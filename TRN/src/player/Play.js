@@ -65,40 +65,42 @@ function show(trlevel) {
 
 		var sc = converter.convert(trlevel);
 
-		/*ssc = JSON.stringify(sc);
-	    var zip = new JSZip();
-	    zip.file("level", ssc);
-	    var content = zip.generate({compression:'DEFLATE', type:'blob'});
-	    console.log(ssc.length, content.size)
+		if (false) {
+			ssc = JSON.stringify(sc);
+		    var zip = new JSZip();
+		    zip.file("level", ssc);
+		    var content = zip.generate({compression:'DEFLATE', type:'blob'});
+		    console.log(ssc.length, content.size)
 
-		var requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
-		if (requestFileSystem) {
-			console.log('requestFileSystem found !');
+			var requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
+			if (requestFileSystem) {
+				console.log('requestFileSystem found !');
 
-			window.webkitStorageInfo.requestQuota(PERSISTENT, 100*1024*1024, function(grantedBytes) {
-				requestFileSystem(window.PERSISTENT, 100*1024*1024, function(fs) { 
+				window.webkitStorageInfo.requestQuota(PERSISTENT, 100*1024*1024, function(grantedBytes) {
+					requestFileSystem(window.PERSISTENT, 100*1024*1024, function(fs) { 
 
-					fs.root.getFile(sc.levelShortFileName + '.zip', { create:true, exclusive:false }, function(fileEntry) {
-					    fileEntry.createWriter(function(fileWriter) {
+						fs.root.getFile(sc.levelShortFileName + '.zip', { create:true, exclusive:false }, function(fileEntry) {
+						    fileEntry.createWriter(function(fileWriter) {
 
-					      fileWriter.onwriteend = function(e) {
-					        console.log('Write completed.');
-					      };
+						      fileWriter.onwriteend = function(e) {
+						        console.log('Write completed.');
+						      };
 
-					      fileWriter.onerror = function(e) {
-					        console.log('Write failed: ' + e.toString());
-					      };
+						      fileWriter.onerror = function(e) {
+						        console.log('Write failed: ' + e.toString());
+						      };
 
-					      // Create a new Blob and write it to log.txt.
-					      //var blob = new Blob(content, {type: 'application/octet-stream'});
+						      // Create a new Blob and write it to log.txt.
+						      //var blob = new Blob(content, {type: 'application/octet-stream'});
 
-					      fileWriter.write(content);
+						      fileWriter.write(content);
 
-					    }, errorHandler);					
+						    }, errorHandler);					
+						}, errorHandler);
 					}, errorHandler);
-				}, errorHandler);
-			});
-		}*/
+				});
+			}
+		}
 
 		sceneJSON = sc;
 		if (sc.cutScene.frames) {

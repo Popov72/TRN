@@ -72,7 +72,7 @@ TRN.LevelConverter.prototype = {
 		// create one texture per tile	
 		for (var i = 0; i < this.trlevel.textile.length; ++i) {
 			this.sc.textures['texture' + i] = {
-				"url": "texture/brick.jpg",
+				"url": "TRN/texture/brick.jpg",
 				/*"url": this.sc.texturePath  + this.sc.levelShortFileName + "_tile" + i + ".png",*/
 				"anisotropy": 16
 			};
