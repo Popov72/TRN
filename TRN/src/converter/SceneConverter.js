@@ -197,10 +197,9 @@ function createRooms(trlevel, sc) {
 			var moveLight = (attribute & 0x4000) ? 1 : 0;
 			var moveVertex = (attribute & 0x2000) ? 1 : 0;
 			var strengthEffect = ((attribute & 0x1E)-16)/16;
+			if (moveVertex) moveLight = 1;
 			if (trlevel.rversion == 'TR2' && isFilledWithWater) moveLight = 1;
 			if (trlevel.rversion == 'TR2' && isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
-			//if ((rflags & 16) == 0) console.log(m);
-			//if ((attribute & 16) == 16 && m == 65) lighting = 255;
 
 			attributes.flags.value.push(new THREE.Vector4(moveLight, isFlickering && strengthEffect ? 1 : 0, moveVertex, -strengthEffect));
 			roomJSON.colors.push(lighting);

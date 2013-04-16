@@ -23,16 +23,22 @@ function makeFace(obj, vertices, isQuad, tiles2material, texture, tex, ofstvert,
 	}
 
 	// material
-	var imat, anmTexture = false;
+	var imat, anmTexture = false, alpha = tex.attributes & 2 ? 'alpha' : '';
 	if (mapObjTexture2AnimTexture[texture]) {
 		var animTexture = mapObjTexture2AnimTexture[texture];
-		var matName = 'anmtext_' + animTexture.idxAnimatedTexture + '_' + animTexture.pos;
+		var matName = 'anmtext' + alpha + '_' + animTexture.idxAnimatedTexture + '_' + animTexture.pos;
 		imat = tiles2material[matName];
 		if (typeof(imat) == 'undefined') {
 			imat = TRN.objSize(tiles2material);
 			tiles2material[matName] = imat;
 		}
 		anmTexture = true;
+	} else if (tex.attributes & 2) {
+		imat = tiles2material['alpha' + tex.tile];
+		if (typeof(imat) == 'undefined') {
+			imat = TRN.objSize(tiles2material);
+			tiles2material['alpha' + tex.tile] = imat;
+		}
 	} else {
 		imat = tiles2material[tex.tile];
 		if (typeof(imat) == 'undefined') {
@@ -136,12 +142,15 @@ function makeMaterialList(tiles2material, attributes, matname) {
 	for (var tile in tiles2material) {
 		var imat = tiles2material[tile];
 		var isAnimText = tile.substr(0, 7) == 'anmtext';
+		var isAlphaText = tile.substr(0, 5) == 'alpha';
+		if (isAlphaText) tile = tile.substr(5);
 		lstMat[imat] = {
 			"material": "TR_" + matname,
 			"attributes": attributes,
-			"userData": {}
+			"userData": {},
 		};
 		if (isAnimText) {
+			isAlphaText = tile.substr(7, 5) == 'alpha';
 			lstMat[imat].userData.animatedTexture = {
 				"idxAnimatedTexture": parseInt(tile.split('_')[1]),
 				"pos": parseInt(tile.split('_')[2])
@@ -151,6 +160,8 @@ function makeMaterialList(tiles2material, attributes, matname) {
 				"map": { type: "t", value: "texture" + tile }
 			};
 		}
+		lstMat[imat].hasAlpha = isAlphaText;
+
 	}
 	return lstMat;
 }

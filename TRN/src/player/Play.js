@@ -213,19 +213,22 @@ function callbackFinished(result) {
 		if (!materials || !materials.length) continue;
 		for (var i = 0; i < materials.length; ++i) {
 			var material = materials[i];
-			/*material.transparent = true;
-			material.blending = THREE.AdditiveBlending;
-			material.blendSrc = THREE.OneFactor;
-			material.blendDst = THREE.OneMinusSrcColorFactor;
-			material.depthWrite = false;
-			material.needsUpdate = true;*/
 			if (material instanceof THREE.ShaderMaterial) {
 				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
 					material.uniforms.map.value = scene.textures[material.uniforms.map.value];
 				}
-			}
-			if (objJSON.filledWithWater) {
-				material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);
+				if (objJSON.filledWithWater) {
+					material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);
+				}
+				if (material.hasAlpha) {
+					isTransparent = true;
+					material.transparent = true;
+					material.blending = THREE.AdditiveBlending;
+					material.blendSrc = THREE.OneFactor;
+					material.blendDst = THREE.OneMinusSrcColorFactor;
+					material.depthWrite = false;
+					material.needsUpdate = true;
+				}
 			}
 		}
 	}
