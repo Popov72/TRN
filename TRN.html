@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	
+	<script src="include/jquery-1.9.1.min.js"></script>
+
+	<script src="include/encoding-indexes.js"></script>
+	<script src="include/encoding.js"></script>
+	<script src="include/DataStream.js"></script>
+
+	<script src="include/three/build/three.js"></script>
+	<script src="include/three/examples/Detector.js"></script>
+	<script src="include/three/examples/js/libs/stats.min.js"></script>
+
+	<script src="TRN/src/TRN.js"></script>
+	<script src="TRN/src/loader/Loader.js"></script>
+	<script src="TRN/src/loader/TR2Loader.js"></script>
+	<script src="TRN/src/loader/TR3Loader.js"></script>
+	<script src="TRN/src/converter/SceneConverterHelper.js"></script>
+	<script src="TRN/src/converter/SceneConverter.js"></script>
+	<script src="TRN/src/sound/Sound.js"></script>
+	<script src="TRN/src/player/BasicControls.js"></script>
+	<script src="TRN/src/player/Play.js"></script>
+
+	<style>
+	body {
+		overflow: hidden;
+		margin: 0;
+		background-color: #000000;
+	}
+
+	.panel {
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		background-color: #00FF00;
+		opacity: 0.5;
+		z-index: 100;
+		display: none;
+		font-size: 10px;
+	}
+	</style>
+</head>
+<body>
+
+<input type="file" id="files" multiple />
+<div id="output" style="color:white"></div>
+
+<div id="panel" class="panel">
+	<table>
+		<tr><td>Current room</td><td><span id="currentroom"></span></td><td>Single room mode</td><td><input type="checkbox" id="singleroommode"/></td></tr>
+		<tr><td>Camera position</td><td><span id="camerapos"></span></td><td>Wireframe mode</td><td><input type="checkbox" id="wireframemode"/></td></tr>
+		<tr><td>Camera rotation</td><td><span id="camerarot"></span></td><td>Fog</td><td><input type="checkbox" id="usefog"/></td></tr>
+	</table>
+</div>
+
+<div id="container"></div>
+
+<script>
+// fullscreen + mouse lock code: http://media.tojicode.com/q3bsp/
+var showTiles = false;
+
+function handleFileSelect(evt) {
+	var files = evt.target.files;
+	
+	var output = [], idx = 1;
+	jQuery('#output').html('');
+	for (var i = 0; i < files.length; ++i) {
+		var f = files[i];
+		var freader = new FileReader();
+		freader.onload = (function(theFile) {
+			return function(e) {
+				var rs = loadLevel(e.target.result, theFile.name);
+				var json = '';//JSON.stringify(rs.json, null, '\t');
+				jQuery('#output').html(function(index,old) { 
+					return old + (idx++) + ' - ' + theFile.name + ' converted. ok=' + rs.ok + '<br><pre>' + json+ '</pre>'; });
+				if (!showTiles) {
+					jQuery('#files').css('display', 'none');
+					jQuery('#output').css('display', 'none');
+					jQuery('#panel').css('display', 'block');
+					show(rs.json);
+				}
+			};
+		})(f);
+		freader.readAsArrayBuffer(f);
+	}
+}
+
+document.getElementById("files").addEventListener("change", handleFileSelect, false);
+</script>
+
+</body>
+</html>
