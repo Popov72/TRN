@@ -22128,6 +22128,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 		if ( this.sortObjects ) {
 
 			renderList.sort( painterSortStable );
+			//renderList.sort( painterSortStable );
 			/*if (!this.first || this.first < 20) {
 				var i1, i2;
 				for (var aa=0;aa<renderList.length;++aa) {

@@ -1,3 +1,10 @@
-/TRN/sound/*
-/TRN/texture/*
+/TRN/sound/tr1/*
+/TRN/sound/tr2/*
+/TRN/sound/tr3/*
+/TRN/sound/tr4/*
+/TRN/texture/tr1/*
+/TRN/texture/tr2/*
+/TRN/texture/tr3/*
+/TRN/texture/tr4/*
 .DS_Store
+include/three/build/three_dev.js

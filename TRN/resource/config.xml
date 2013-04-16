@@ -384,6 +384,7 @@
 			</meshswap>
 			<moveables>
 				<moveable id="0">
+					<visuid>315</visuid>
 					<behaviour name="BasicControl">
 						<scale><move>4000</move><rotation>100</rotation><mouserotation>0.13</mouserotation></scale>
 					</behaviour>
@@ -392,7 +393,6 @@
 						<updist>1000</updist>
 						<lara>
 							<animid>0</animid>
-							<visuid>315</visuid>
 							<height>750</height>
 						</lara>
 						<pistol_anim>
@@ -503,7 +503,7 @@
 			<camera>
 				<fov>70</fov>
 				<neardist>50</neardist>
-				<fardist>30000</fardist>
+				<fardist>300000</fardist>
 			</camera>
 			<fog>
 				<neardist>14000</neardist>
@@ -519,6 +519,7 @@
 			</rendering>
 			<moveables>
 				<moveable id="0">
+					<visuid>8</visuid>
 					<behaviour name="BasicControl">
 						<scale><move>4000</move><rotation>100</rotation><mouserotation>0.13</mouserotation></scale>
 					</behaviour>
@@ -528,7 +529,6 @@
 						<updist>-600</updist>
 						<lara>
 							<animid>0</animid>
-							<visuid>8</visuid>
 							<height>750</height>
 						</lara>
 						<pistol_anim>

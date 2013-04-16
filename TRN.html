@@ -14,6 +14,11 @@
 	<script src="include/three/examples/Detector.js"></script>
 	<script src="include/three/examples/js/libs/stats.min.js"></script>
 
+	<script src="include/jszip/jszip.js"></script>
+	<script src="include/jszip/jszip-deflate.js"></script>
+	<script src="include/jszip/jszip-inflate.js"></script>
+	<script src="include/jszip/jszip-load.js"></script>
+
 	<script src="TRN/src/TRN.js"></script>
 	<script src="TRN/src/loader/Loader.js"></script>
 	<script src="TRN/src/loader/TR2Loader.js"></script>
@@ -45,7 +50,7 @@
 </head>
 <body>
 
-<input type="file" id="files" multiple />
+<input type="file" id="files" style="display: none" />
 <div id="output" style="color:white"></div>
 
 <div id="panel" class="panel">
@@ -88,7 +93,35 @@ function handleFileSelect(evt) {
 	}
 }
 
-document.getElementById("files").addEventListener("change", handleFileSelect, false);
+var QueryString = function () {
+  // This function is anonymous, is executed immediately and 
+  // the return value is assigned to QueryString!
+  var query_string = {};
+  var query = window.location.search.substring(1);
+  var vars = query.split("&");
+  for (var i=0;i<vars.length;i++) {
+    var pair = vars[i].split("=");
+    	// If first entry with this name
+    if (typeof query_string[decodeURIComponent(pair[0])] === "undefined") {
+      query_string[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+    	// If second entry with this name
+    } else if (typeof query_string[decodeURIComponent(pair[0])] === "string") {
+      var arr = [ query_string[decodeURIComponent(pair[0])], decodeURIComponent(pair[1]) ];
+      query_string[decodeURIComponent(pair[0])] = arr;
+    	// If third or later entry with this name
+    } else {
+      query_string[decodeURIComponent(pair[0])].push(decodeURIComponent(pair[1]));
+    }
+  } 
+    return query_string;
+} ();
+
+if (QueryString.level) {
+	show('TRN/level/' + QueryString.level + '.zip');
+} else {
+	document.getElementById("files").style.display = "block";
+	document.getElementById("files").addEventListener("change", handleFileSelect, false);
+}
 </script>
 
 </body>

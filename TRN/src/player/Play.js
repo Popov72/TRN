@@ -3,18 +3,178 @@ var clock = new THREE.Clock();
 
 var trlevel_; // debug only => to be removed
 
-function show(trlevel) {
-	trlevel_ = trlevel;
+function errorHandler(e) {
+  var msg = '';
 
-	convert(trlevel, function(sceneJSON) {
-		init(sceneJSON);
-	});
+  switch (e.code) {
+    case FileError.QUOTA_EXCEEDED_ERR:
+      msg = 'QUOTA_EXCEEDED_ERR';
+      break;
+    case FileError.NOT_FOUND_ERR:
+      msg = 'NOT_FOUND_ERR';
+      break;
+    case FileError.SECURITY_ERR:
+      msg = 'SECURITY_ERR';
+      break;
+    case FileError.INVALID_MODIFICATION_ERR:
+      msg = 'INVALID_MODIFICATION_ERR';
+      break;
+    case FileError.INVALID_STATE_ERR:
+      msg = 'INVALID_STATE_ERR';
+      break;
+    default:
+      msg = 'Unknown Error';
+      break;
+  };
+
+  console.log('requestFileSystem Error: ' + msg);
+}
+
+function show(trlevel) {
+	if (typeof(trlevel) == 'string') {
+
+	    var request = new XMLHttpRequest();
+	    request.open("GET", trlevel, true);
+	    request.responseType = "arraybuffer";
+	    request.onerror = function() {
+	        console.log('Read level: XHR error', request.status, request.statusText);
+	    }
+
+	    request.onreadystatechange = function() {
+	        if (request.readyState != 4) return;
+
+	        if (request.status != 200) {
+		   		console.log('Could not read the level', trlevel, request.status, request.statusText);
+	        } else {
+	        	console.log('Level', trlevel, 'loaded. Unzipping...');
+	    		var zip = new JSZip();
+	    		zip.load(request.response);
+	    		var f = zip.file('level');
+	    		sceneJSON = eval('[' + f.asText() + ']')[0];
+	    		console.log('Level unzipped.');
+	    		init();
+	        }
+	    }
+
+		request.send();
+
+	} else {
+		trlevel_ = trlevel;
+
+		var converter = new TRN.LevelConverter(trlevel.confMgr);
+
+		var sc = converter.convert(trlevel);
+
+		/*ssc = JSON.stringify(sc);
+	    var zip = new JSZip();
+	    zip.file("level", ssc);
+	    var content = zip.generate({compression:'DEFLATE', type:'blob'});
+	    console.log(ssc.length, content.size)
+
+		var requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
+		if (requestFileSystem) {
+			console.log('requestFileSystem found !');
+
+			window.webkitStorageInfo.requestQuota(PERSISTENT, 100*1024*1024, function(grantedBytes) {
+				requestFileSystem(window.PERSISTENT, 100*1024*1024, function(fs) { 
+
+					fs.root.getFile(sc.levelShortFileName + '.zip', { create:true, exclusive:false }, function(fileEntry) {
+					    fileEntry.createWriter(function(fileWriter) {
+
+					      fileWriter.onwriteend = function(e) {
+					        console.log('Write completed.');
+					      };
+
+					      fileWriter.onerror = function(e) {
+					        console.log('Write failed: ' + e.toString());
+					      };
+
+					      // Create a new Blob and write it to log.txt.
+					      //var blob = new Blob(content, {type: 'application/octet-stream'});
+
+					      fileWriter.write(content);
+
+					    }, errorHandler);					
+					}, errorHandler);
+				}, errorHandler);
+			});
+		}*/
+
+		sceneJSON = sc;
+		if (sc.cutScene.frames) {
+			var context = typeof(webkitAudioContext) != 'undefined' ? new webkitAudioContext() : typeof(AudioContext) != 'undefined' ? new AudioContext() : null;
+			if (context != null) {
+				var bufferLoader = new BufferLoader(
+					context,
+					[
+					  sc.soundPath + sc.levelShortFileName.toUpperCase(),
+					],
+					function finishedLoading(bufferList, err) {
+						if (bufferList != null && bufferList.length > 0) {
+							sc.cutScene.sound = context.createBufferSource();
+							sc.cutScene.sound.buffer = bufferList[0];
+							sc.cutScene.sound.connect(context.destination);
+						} else {
+							console.log('Error when loading sound. ', err);
+						}
+						init();
+					}
+				);
+				bufferLoader.load();
+			} else {
+				init();
+			}
+		} else {
+			init();
+		}
+	}
 }
 
 function showInfo() {
 	jQuery('#currentroom').html(sceneJSON.curRoom);
 	jQuery('#camerapos').html(camera.position.x.toFixed(12)+','+camera.position.y.toFixed(12)+','+camera.position.z.toFixed(12));
 	jQuery('#camerarot').html(camera.quaternion.x.toFixed(12)+','+camera.quaternion.y.toFixed(12)+','+camera.quaternion.z.toFixed(12)+','+camera.quaternion.w.toFixed(12));
+}
+
+function init() {
+
+	var container = document.getElementById( 'container' );
+
+	if (renderer) {
+		container.removeChild(renderer.domElement);
+	}
+	
+	renderer = new THREE.WebGLRenderer({ antialias: true });
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	//renderer.sortObjects = false;
+
+	container.appendChild( renderer.domElement );
+
+	stats = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.top = '0px';
+	stats.domElement.style.right = '0px';
+	stats.domElement.style.zIndex = 100;
+	container.appendChild( stats.domElement );
+
+	var loader = new THREE.SceneLoader();
+	//loader.callbackSync = callbackSync;
+	//loader.callbackProgress = callbackProgress;
+
+	//loader.load(sceneJSON, callbackFinished);
+	loader.parse(sceneJSON, callbackFinished, '');
+
+}
+
+function onWindowResize() {
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight );
+
+	render();
+
 }
 
 function registerAnimation(objectID, animIndex, useOrigAnimation) {
@@ -68,6 +228,7 @@ function callbackFinished(result) {
 	});
 
 	jQuery('#usefog').on('click', function() {
+		var shaderMgr = new TRN.ShaderMgr();
 		for (var objID in scene.objects) {
 			var obj = scene.objects[objID];
 			if (!(obj instanceof THREE.Mesh)) continue;
@@ -75,7 +236,7 @@ function callbackFinished(result) {
 			if (!materials || !materials.length) continue;
 			for (var i = 0; i < materials.length; ++i) {
 				var material = materials[i], userData = material.userData;
-				material.fragmentShader = sceneJSON.shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
+				material.fragmentShader = shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
 				material.needsUpdate = true;
 			}
 		}
@@ -290,48 +451,6 @@ function handle_update( result, pieces ) {
 			}
 		}
 	}
-}
-
-function init(sc) {
-	sceneJSON = sc;
-
-	var container = document.getElementById( 'container' );
-
-	if (renderer) {
-		container.removeChild(renderer.domElement);
-	}
-	
-	renderer = new THREE.WebGLRenderer({ antialias: true });
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	//renderer.sortObjects = false;
-
-	container.appendChild( renderer.domElement );
-
-	stats = new Stats();
-	stats.domElement.style.position = 'absolute';
-	stats.domElement.style.top = '0px';
-	stats.domElement.style.right = '0px';
-	stats.domElement.style.zIndex = 100;
-	container.appendChild( stats.domElement );
-
-	var loader = new THREE.SceneLoader();
-	//loader.callbackSync = callbackSync;
-	//loader.callbackProgress = callbackProgress;
-
-	//loader.load(sceneJSON, callbackFinished);
-	loader.parse(sceneJSON, callbackFinished, '');
-
-}
-
-function onWindowResize() {
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
-	render();
-
 }
 
 var quantum = 1000/TRN.baseFrameRate, quantumTime = (new Date()).getTime(), quantumRnd = 0;
