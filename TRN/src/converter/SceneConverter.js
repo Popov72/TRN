@@ -300,11 +300,57 @@ TRN.LevelConverter.prototype = {
 				maxLightsInRoom = room.lights.length;
 				roomL = m;
 			}
-			/*for (var l = 0; l < room.lights.length; ++l) {
-				var light = room.lights[l];
-				console.log('room='+m+',x='+light.x+',y='+light.y+',z='+light.z+',i1='+TRN.toHexString16(light.intensity1)+',i2='+TRN.toHexString16(light.intensity2)+
-					',fade1='+TRN.toHexString32(light.fade1)+',fade2='+TRN.toHexString32(light.fade2))
-			}*/
+
+			var ambient1 = room.ambientIntensity1, ambient2 = room.ambientIntensity2;
+			var ambientColor = new THREE.Vector3();
+			if (this.trlevel.rversion != 'TR4') {
+				ambient1 = 1.0 - ambient1/0x2000;
+				ambientColor.set(ambient1, ambient1, ambient1);
+			} else {
+				ambientColor.setX((ambient2 & 0xFF) / 255.0);
+				ambientColor.setY(((ambient1 & 0xFF00) >> 8)  / 255.0);
+				ambientColor.setZ((ambient1 & 0xFF)  / 255.0);
+			}
+
+			var lights = [];
+			for (var l = 0; l < room.lights.length; ++l) {
+				var light = room.lights[l], color = new THREE.Vector3(1, 1, 1);
+				var fadeIn = 0, fadeOut = 0;
+				switch(this.trlevel.rversion) {
+					case 'TR1':
+					case 'TR2':
+						var intensity = light.intensity1;
+		                if (intensity > 0x2000) intensity = 0x2000;
+		                intensity = intensity / 0x2000;
+		                color.set(intensity, intensity, intensity);
+		                fadeOut = light.fade1;
+						break;
+					case 'TR3':
+		                var r = light.color.r / 255.0;
+		                var g = light.color.g / 255.0;
+		                var b = light.color.b / 255.0;
+		                var intensity = light.intensity;
+		                if (intensity > 0x2000) intensity = 0x2000;
+		                intensity = intensity / 0x2000;
+		                color.set(r*intensity, g*intensity, b*intensity);
+		                fadeOut = light.fade;
+						break;
+					case 'TR4':
+						// todo
+						break;
+				}
+		        if (fadeOut > 0x7FFF) fadeOut = 0x8000;
+		        if (fadeIn > fadeOut) fadeIn = 0;
+				lights.push({
+					x: light.x,
+					y: -light.y,
+					z: -light.z,
+					color: color,
+					fadeIn: fadeIn,
+					fadeOut: fadeOut
+				});
+			}
+			this.sc.objects['room' + m].lights = lights;
 		}
 		console.log('num max lights in one room=' + maxLightsInRoom + '. room=' + roomL)
 	},

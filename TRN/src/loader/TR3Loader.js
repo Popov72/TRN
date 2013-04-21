@@ -58,10 +58,9 @@ TRN.gameFormatDescr.TR3 = {
 				'x', 'int32',
 				'y', 'int32',
 				'z', 'int32',
-				'intensity1', 'uint16',
-				'intensity2', 'uint16',
-				'fade1', 'uint32',
-				'fade2', 'uint32'
+				'color', ['r', 'uint8', 'g', 'uint8', 'b', 'uint8', 'u', 'uint8'],
+				'intensity', 'uint32',
+				'fade', 'uint32'
 			], 'numLights'],
 			'numStaticMeshes', 'uint16',
 			'staticMeshes', ['', [

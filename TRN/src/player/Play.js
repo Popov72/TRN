@@ -252,9 +252,11 @@ function callbackFinished(result) {
 
 	// initialize the animated textures
 	scene.animatedTextures = sceneJSON.animatedTextures;
-	for (var i = 0; i < scene.animatedTextures.length; ++i) {
-		var animTexture = scene.animatedTextures[i];
-		animTexture.progressor = new SequenceProgressor(animTexture.animcoords.length, 1.0/animTexture.animspeed);
+	if (scene.animatedTextures) {
+		for (var i = 0; i < scene.animatedTextures.length; ++i) {
+			var animTexture = scene.animatedTextures[i];
+			animTexture.progressor = new SequenceProgressor(animTexture.animcoords.length, 1.0/animTexture.animspeed);
+		}
 	}
 
 	// update position/quaternion for some specific items if we play a cut scene
@@ -508,9 +510,11 @@ function animate() {
 		scene.objects.sky.position = camera.position;
 	}
 
-	for (var i = 0; i < scene.animatedTextures.length; ++i) {
-		var animTexture = scene.animatedTextures[i];
-		animTexture.progressor.update(delta);
+	if (scene.animatedTextures) {
+		for (var i = 0; i < scene.animatedTextures.length; ++i) {
+			var animTexture = scene.animatedTextures[i];
+			animTexture.progressor.update(delta);
+		}
 	}
 
 	var singleRoomMode = jQuery('#singleroommode').prop('checked');

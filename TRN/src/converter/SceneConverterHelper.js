@@ -24,7 +24,7 @@ function makeFace(obj, vertices, isQuad, tiles2material, texture, tex, ofstvert,
 
 	// material
 	var imat, anmTexture = false, alpha = tex.attributes & 2 ? 'alpha' : '';
-	if (mapObjTexture2AnimTexture[texture]) {
+	if (mapObjTexture2AnimTexture && mapObjTexture2AnimTexture[texture]) {
 		var animTexture = mapObjTexture2AnimTexture[texture];
 		var matName = 'anmtext' + alpha + '_' + animTexture.idxAnimatedTexture + '_' + animTexture.pos;
 		imat = tiles2material[matName];

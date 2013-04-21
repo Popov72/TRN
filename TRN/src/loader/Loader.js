@@ -1,6 +1,6 @@
 TRN.gameFormatDescr = {};
 
-function replaceColouredPolys(out) {
+function replaceColouredPolys(out, tile) {
 	if (out.rversion == 'TR4') return;
 
     // Build a new textile from the color palette
@@ -23,8 +23,6 @@ function replaceColouredPolys(out) {
             lgn += 3;
 		}
 	}
-	out.textile16.push(newTile);
-	out.numTextiles++;
 
     // Build new objectTexture structures for the 256 colors of the palette
     // There are 2 new sets of 256 objectTexture structs: one for tris and one for quads
@@ -34,7 +32,7 @@ function replaceColouredPolys(out) {
  		for (var c = 0; c < 256; ++c) {
  			var objText = {
  				"attributes": 0,
-				"tile": out.numTextiles-1,
+				"tile": tile,
 				"vertices": [
 					{ "Xcoordinate":+1, "Xpixel":ofst,   "Ycoordinate":+1, "Ypixel":lgn },
 					{ "Xcoordinate":-1, "Xpixel":ofst+2, "Ycoordinate":+1, "Ypixel":lgn },
@@ -97,6 +95,8 @@ function replaceColouredPolys(out) {
 		mesh.colouredTriangles = [];
 		mesh.numColouredTriangles = 0;
     }
+
+    return newTile;
 }
 
 function loadLevel(data, fname) {
@@ -163,16 +163,12 @@ function loadLevel(data, fname) {
 
 	out.confMgr = new TRN.ConfigMgr(out.rversion);
 
-	if (!out.textile16) out.textile16 = [];
-
-	out.numTextiles = 0;
-	if (out.textile8)  out.numTextiles += out.textile8.length;
-	if (out.textile16) out.numTextiles += out.textile16.length;
-
-	replaceColouredPolys(out);
+	var numTotTextiles = 0;
+	if (out.textile8 && !out.textile16) numTotTextiles += out.textile8.length;
+	if (out.textile16) numTotTextiles += out.textile16.length;
 
 	var numTextiles = 0;
-	if (out.textile8) {
+	if (out.textile8 && !out.textile16) {
 		for (var t = 0; t < out.textile8.length; ++t, ++numTextiles) {
 			jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
 			var canvas = jQuery('#TRN_textile' + numTextiles);
@@ -198,6 +194,9 @@ function loadLevel(data, fname) {
 			}
 		}
 	}
+
+	if (!out.textile16) out.textile16 = [];
+	out.textile16.push(replaceColouredPolys(out, numTotTextiles));
 
 	for (var t = 0; t < out.textile16.length; ++t, ++numTextiles) {
 		jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
