@@ -24,7 +24,7 @@ function replaceColouredPolys(out) {
 		}
 	}
 	out.textile16.push(newTile);
-	out.numTextiles = out.textile16.length;
+	out.numTextiles++;
 
     // Build new objectTexture structures for the 256 colors of the palette
     // There are 2 new sets of 256 objectTexture structs: one for tris and one for quads
@@ -113,12 +113,18 @@ function loadLevel(data, fname) {
 		case 0x00000020: rversion = 'TR1'; break;
 		case 0x0000002D: rversion = 'TR2'; break;
 		case 0xFF080038: rversion = 'TR3'; break;
+		case 0xFF180034: rversion = 'TR3'; break;
 		case 0xFF180038: rversion = 'TR3'; break;
 		case 0x00345254: rversion = 'TR4'; break;
 	}
 	ds.seek(0);
 
-	var out = ds.readStruct(TRN.gameFormatDescr[rversion].part1);
+	var rversionLoader = rversion;
+	if (fname.toLowerCase().indexOf('.tub') >= 0) {
+		rversionLoader = 'TR1TUB';
+	}
+
+	var out = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part1);
 
 	var savepos = ds.position;
 	ds.position += out.numMeshData*2;
@@ -131,7 +137,7 @@ function loadLevel(data, fname) {
 	for (var m = 0; m < out.numMeshPointers; ++m) {
 		ds.position = savepos + out.meshPointers[m];
 
-		var mesh = ds.readStruct(TRN.gameFormatDescr[rversion].part2);
+		var mesh = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part2);
 		
 		out.meshes[m] = mesh;
 		out.meshes[m].dummy = out.meshPointers[m] == 0;
@@ -140,7 +146,7 @@ function loadLevel(data, fname) {
 	
 	ds.position = savepos2;
 	
-	var nextPart = ds.readStruct(TRN.gameFormatDescr[rversion].part3);
+	var nextPart = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part3);
 	
 	for (var attr in nextPart) {
 		out[attr] = nextPart[attr]
@@ -157,11 +163,45 @@ function loadLevel(data, fname) {
 
 	out.confMgr = new TRN.ConfigMgr(out.rversion);
 
+	if (!out.textile16) out.textile16 = [];
+
+	out.numTextiles = 0;
+	if (out.textile8)  out.numTextiles += out.textile8.length;
+	if (out.textile16) out.numTextiles += out.textile16.length;
+
 	replaceColouredPolys(out);
 
-	for (var t = 0; t < out.numTextiles; ++t) {
-		jQuery('body').append('<canvas id="TRN_textile' + t + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
-		var canvas = jQuery('#TRN_textile' + t);
+	var numTextiles = 0;
+	if (out.textile8) {
+		for (var t = 0; t < out.textile8.length; ++t, ++numTextiles) {
+			jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
+			var canvas = jQuery('#TRN_textile' + numTextiles);
+			var context = canvas[0].getContext('2d');
+			var imageData = context.createImageData(canvas[0].width, canvas[0].height);
+			for (var j = 0; j < 256; ++j) {
+				for (var i = 0; i < 256; ++i) {
+					var pix = out.textile8[t][j*256+i];
+					var a = pix ? 0xFF : 0x00, r = out.palette[pix].r << 2, g = out.palette[pix].g << 2, b = out.palette[pix].b << 2;
+					imageData.data[j*256*4+i*4+0]=r;
+					imageData.data[j*256*4+i*4+1]=g;
+					imageData.data[j*256*4+i*4+2]=b;
+					imageData.data[j*256*4+i*4+3]=a;
+				}
+			}
+			context.putImageData(imageData, 0, 0);
+			out.textile[numTextiles] = canvas[0].toDataURL('image/png');
+			canvas.remove();
+			if (showTiles) {
+				jQuery('body').append('<span onclick="saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
+					'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
+					'"/><span style="position:relative;left:-140px;top:-140px;background-color:white">' + numTextiles + '</span></span>');
+			}
+		}
+	}
+
+	for (var t = 0; t < out.textile16.length; ++t, ++numTextiles) {
+		jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
+		var canvas = jQuery('#TRN_textile' + numTextiles);
 		var context = canvas[0].getContext('2d');
 		var imageData = context.createImageData(canvas[0].width, canvas[0].height);
 		for (var j = 0; j < 256; ++j) {
@@ -176,12 +216,12 @@ function loadLevel(data, fname) {
 			}
 		}
 		context.putImageData(imageData, 0, 0);
-		out.textile[t] = canvas[0].toDataURL('image/png');
+		out.textile[numTextiles] = canvas[0].toDataURL('image/png');
 		canvas.remove();
 		if (showTiles) {
-			jQuery('body').append('<span onclick="saveData(\'' + fname2 + '_tile' + t + '\',\'' + out.textile[t] + '\')">' +
-				'<img alt="' + fname2 + '_tile' + t + '.png" style="border:1px solid red" src="' + out.textile[t] + 
-				'"/><span style="position:relative;left:-140px;top:-140px;background-color:white">' + t + '</span></span>');
+			jQuery('body').append('<span onclick="saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
+				'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
+				'"/><span style="position:relative;left:-140px;top:-140px;background-color:white">' + numTextiles + '</span></span>');
 		}
 	}
 

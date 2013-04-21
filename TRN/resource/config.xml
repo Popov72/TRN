@@ -15,13 +15,16 @@
 			<camera>
 				<fov>70</fov>
 				<neardist>50</neardist>
-				<fardist>30000</fardist>
+				<fardist>300000</fardist>
 			</camera>
 			<fog>
 				<neardist>14000</neardist>
 				<fardist>21000</fardist>
 				<color><r>0</r><g>0</g><b>0</b></color>
 			</fog>
+			<lara>
+				<id>0</id>
+			</lara>
 			<moveables>
 				<moveable id="0">
 					<behaviour name="BasicControl">
@@ -31,8 +34,6 @@
 						<dirdist>1430</dirdist>
 						<updist>1000</updist>
 						<lara>
-							<animid>0</animid>
-							<visuid>0</visuid>
 							<height>750</height>
 						</lara>
 						<pistol_anim>
@@ -77,142 +78,45 @@
 			<level id="level8a"		type="normal"	name="City of Khamoon"/>
 			<level id="level8b"		type="normal"	name="Obelisk of Khamoon"/>
 			<level id="level8c"		type="normal"	name="Sanctuary of the Scion"/>
-			<level id="level10a"		type="normal"	name="Natla's Mines"/>
-			<level id="level10b"		type="normal"	name="Atlantis"/>
-			<level id="level10c"		type="normal"	name="The Great Pyramid"/>
+			<level id="level10a"	type="normal"	name="Natla's Mines"/>
+			<level id="level10b"	type="normal"	name="Atlantis"/>
+			<level id="level10c"	type="normal"	name="The Great Pyramid"/>
 			<level id="title"		type="normal"	name="Title display"/>
-			<level id="cut1"			type="cutscene" name="Larson vs. Lara">
+			<level id="cut1"		type="cutscene" name="Larson vs. Lara">
+				<lara>
+					<id>77</id>
+				</lara>
 				<moveables>
 					<moveable id="77">
-						<behaviour name="BasicControl">
-							<scale><move>4000</move><rotation>100</rotation><mouserotation>0.13</mouserotation></scale>
-						</behaviour>
-						<behaviour name="CutScene">
-							<angle>247</angle>
-							<track>8</track>
-							<animminid>77</animminid>
-							<animmaxid>80</animmaxid>
-						</behaviour>
-						<behaviour name="Lara">
-							<dirdist>1430</dirdist>
-							<updist>-600</updist>
-							<lara>
-								<animid>77</animid>
-								<visuid>77</visuid>
-								<height>750</height>
-							</lara>
-							<pistol_anim>
-								<id>1</id>
-								<left_thigh>2</left_thigh>
-								<right_thigh>5</right_thigh>
-								<left_hand>14</left_hand>
-								<right_hand>11</right_hand>
-							</pistol_anim>
-						</behaviour>
+						<angle>90</angle>
 					</moveable>
 				</moveables>
 			</level>
-			<level id="cut2"	type="cutscene" name="Lara reads Tihocan eulogy">
+			<level id="cut2"		type="cutscene" name="Lara reads Tihocan eulogy">
+				<lara>
+					<id>77</id>
+				</lara>
 				<moveables>
 					<moveable id="77">
-						<behaviour name="BasicControl">
-							<scale><move>4000</move><rotation>100</rotation><mouserotation>0.13</mouserotation></scale>
-						</behaviour>
-						<behaviour name="CutScene">
-							<angle>90</angle>
-							<track>10</track>
-							<animminid>77</animminid>
-							<animmaxid>80</animmaxid>
-						</behaviour>
-						<behaviour name="Lara">
-							<dirdist>1430</dirdist>
-							<updist>-600</updist>
-							<lara>
-								<animid>77</animid>
-								<visuid>77</visuid>
-								<height>750</height>
-							</lara>
-							<pistol_anim>
-								<id>1</id>
-								<left_thigh>2</left_thigh>
-								<right_thigh>5</right_thigh>
-								<left_hand>14</left_hand>
-								<right_hand>11</right_hand>
-							</pistol_anim>
-						</behaviour>
-					</moveable>
-				</moveables>
-				<rendering>
-					<texture_correction>2</texture_correction>
-				</rendering>
-			</level>
-			<level id="cut3"	type="cutscene" name="Natla installs Scion">
-				<moveables>
-					<moveable id="77">
-						<behaviour name="BasicControl">
-							<scale><move>4000</move><rotation>100</rotation><mouserotation>0.13</mouserotation></scale>
-						</behaviour>
-						<behaviour name="CutScene">
-							<angle>90</angle>
-							<track>9</track>
-							<animminid>77</animminid>
-							<animmaxid>80</animmaxid>
-						</behaviour>
-						<behaviour name="Lara">
-							<dirdist>1430</dirdist>
-							<updist>-600</updist>
-							<lara>
-								<animid>77</animid>
-								<visuid>77</visuid>
-								<height>750</height>
-							</lara>
-							<pistol_anim>
-								<id>1</id>
-								<left_thigh>2</left_thigh>
-								<right_thigh>5</right_thigh>
-								<left_hand>14</left_hand>
-								<right_hand>11</right_hand>
-							</pistol_anim>
-						</behaviour>
+						<angle>-90</angle>
 					</moveable>
 				</moveables>
 			</level>
-			<level id="cut4"	type="cutscene" name="Lara vs. Natla">
-				<moveables>
-					<moveable id="77">
-						<behaviour name="BasicControl">
-							<scale><move>4000</move><rotation>100</rotation><mouserotation>0.13</mouserotation></scale>
-						</behaviour>
-						<behaviour name="CutScene">
-							<angle>90</angle>
-							<track>7</track>
-							<animminid>77</animminid>
-							<animmaxid>80</animmaxid>
-						</behaviour>
-						<behaviour name="Lara">
-							<dirdist>1430</dirdist>
-							<updist>-600</updist>
-							<lara>
-								<animid>77</animid>
-								<visuid>77</visuid>
-								<height>750</height>
-							</lara>
-							<pistol_anim>
-								<id>1</id>
-								<left_thigh>2</left_thigh>
-								<right_thigh>5</right_thigh>
-								<left_hand>14</left_hand>
-								<right_hand>11</right_hand>
-							</pistol_anim>
-						</behaviour>
-					</moveable>
-				</moveables>
+			<level id="cut3"		type="cutscene" name="Natla installs Scion">
+				<lara>
+					<id>77</id>
+				</lara>
+			</level>
+			<level id="cut4"		type="cutscene" name="Lara vs. Natla">
+				<lara>
+					<id>77</id>
+				</lara>
 			</level>
 			<!-- Gold levels -->
 			<level id="egypt"		type="normal"	name="Return to Egypt"		gold="1"/>
 			<level id="cat"			type="normal"	name="Temple of the Cat"	gold="1"/>
 			<level id="end"			type="normal"	name="Atlantean Stronghold" gold="1"/>
-			<level id="end2"			type="normal"	name="The Hive"				gold="1"/>
+			<level id="end2"		type="normal"	name="The Hive"				gold="1"/>
 		</levels>
 	</game>
 	

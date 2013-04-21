@@ -72,8 +72,8 @@ TRN.LevelConverter.prototype = {
 		// create one texture per tile	
 		for (var i = 0; i < this.trlevel.textile.length; ++i) {
 			this.sc.textures['texture' + i] = {
-				"url": "TRN/texture/brick.jpg",
-				/*"url": this.sc.texturePath  + this.sc.levelShortFileName + "_tile" + i + ".png",*/
+				/*"url": "TRN/texture/brick.jpg",*/
+				"url": this.sc.texturePath  + this.sc.levelShortFileNameOrig + "_tile" + i + ".png",
 				"anisotropy": 16
 			};
 		}
@@ -167,9 +167,11 @@ TRN.LevelConverter.prototype = {
 			}
 		}
 		
+		var maxLightsInRoom = 0, roomL = -1;
+
 		// generate the rooms
 		for (var m = 0; m < this.trlevel.rooms.length; ++m) {
-			//if (m != 64 && m != 65) continue;
+			//if (m != 65) continue;
 			var room = this.trlevel.rooms[m];
 			var info = room.info, rdata = room.roomData, rflags = room.flags, lightMode = room.lightMode;
 			var isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
@@ -292,7 +294,19 @@ TRN.LevelConverter.prototype = {
 
 				//console.log('room #',m,' mesh #', s, 'objectID=', objectID, 'mindex=', mindex, mesh)
 			}
+
+			// lights in the room
+			if (room.lights.length > maxLightsInRoom) {
+				maxLightsInRoom = room.lights.length;
+				roomL = m;
+			}
+			/*for (var l = 0; l < room.lights.length; ++l) {
+				var light = room.lights[l];
+				console.log('room='+m+',x='+light.x+',y='+light.y+',z='+light.z+',i1='+TRN.toHexString16(light.intensity1)+',i2='+TRN.toHexString16(light.intensity2)+
+					',fade1='+TRN.toHexString32(light.fade1)+',fade2='+TRN.toHexString32(light.fade2))
+			}*/
 		}
+		console.log('num max lights in one room=' + maxLightsInRoom + '. room=' + roomL)
 	},
 
 /*	getNumAnimsForMoveable : function (mindex) {
@@ -688,13 +702,16 @@ TRN.LevelConverter.prototype = {
 		};
 
 		this.sc.levelFileName = this.trlevel.filename;
-		this.sc.levelShortFileName = this.sc.levelFileName.substring(0, this.sc.levelFileName.indexOf('.')).toLowerCase();
+		this.sc.levelShortFileNameOrig = this.sc.levelFileName.substring(0, this.sc.levelFileName.indexOf('.'));
+		this.sc.levelShortFileName = this.sc.levelShortFileNameOrig.toLowerCase();
 		this.sc.waterColor = {
 			"in" : this.confMgr.globalColor('water > colorin'),
 			"out" : this.confMgr.globalColor('water > colorout')
 		};
 		this.sc.texturePath = "TRN/texture/" + this.trlevel.rversion.toLowerCase() + "/";
 		this.sc.soundPath = "TRN/sound/" + this.trlevel.rversion.toLowerCase() + "/";
+
+		TRN.ObjectID.Lara = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
 
 		// get Lara's position => camera starting point
 		var laraPos = { x:0, y:0, z:0, rotY:0 };
