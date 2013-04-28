@@ -1,7 +1,7 @@
 var BasicControls = function ( object, domElement ) {
 
 	var _this = this;
-	var STATES = { FASTER:0, FORWARD:1, LEFT:2, RIGHT:3, BACKWARD:4, UP:5, DOWN:6, ROTY:7, ROTNY:8, ROTX:9, ROTNX:10 };
+	var STATES = { FASTER:0, FORWARD:1, LEFT:2, RIGHT:3, BACKWARD:4, UP:5, DOWN:6, ROTY:7, ROTNY:8, ROTX:9, ROTNX:10, SLOWER:11 };
 	var KEYS = { MOUSENX:300, MOUSEX:301, MOUSENY:302, MOUSEY:303 };
 
 	this.object = object;
@@ -12,7 +12,8 @@ var BasicControls = function ( object, domElement ) {
 	object.useQuaternion = true;
 
 	this.states = { 
-		16: {state:STATES.FASTER,   on:false}, // LSHIFT
+		16: {state:STATES.FASTER,   on:false}, // SHIFT
+		17: {state:STATES.SLOWER,   on:false}, // CTRL
 		90: {state:STATES.FORWARD,  on:false}, // Z
 		38: {state:STATES.FORWARD,  on:false}, // CURSOR UP
 		81: {state:STATES.LEFT,     on:false}, // Q
@@ -167,6 +168,11 @@ var BasicControls = function ( object, domElement ) {
 					moveScale *= 3;
 					rotScale *= 3;
 					rotMouseScale *= 3;
+					break;
+				case STATES.SLOWER:
+					moveScale /= 3;
+					rotScale /= 3;
+					rotMouseScale /= 3;
 					break;
 				case STATES.FORWARD:
 					translate.z = -moveScale;

@@ -25,8 +25,8 @@
 	<script src="TRN/src/loader/TR1TUBLoader.js"></script>
 	<script src="TRN/src/loader/TR2Loader.js"></script>
 	<script src="TRN/src/loader/TR3Loader.js"></script>
-	<script src="TRN/src/converter/SceneConverterHelper.js"></script>
 	<script src="TRN/src/converter/SceneConverter.js"></script>
+	<script src="TRN/src/converter/SceneConverterHelper.js"></script>
 	<script src="TRN/src/sound/Sound.js"></script>
 	<script src="TRN/src/player/BasicControls.js"></script>
 	<script src="TRN/src/player/Play.js"></script>
@@ -57,9 +57,20 @@
 
 <div id="panel" class="panel">
 	<table>
-		<tr><td>Current room</td><td><span id="currentroom"></span></td><td>Single room mode</td><td><input type="checkbox" id="singleroommode"/></td></tr>
-		<tr><td>Camera position</td><td><span id="camerapos"></span></td><td>Wireframe mode</td><td><input type="checkbox" id="wireframemode"/></td></tr>
-		<tr><td>Camera rotation</td><td><span id="camerarot"></span></td><td>Fog</td><td><input type="checkbox" id="usefog"/></td></tr>
+		<tr>
+			<td>Current room</td><td><span id="currentroom"></span></td>
+			<td>Num lights</td><td><span id="numlights"></span></td>
+			<td>Single room mode</td><td><input type="checkbox" id="singleroommode"/></td>
+			<td>No lights</td><td><input type="checkbox" id="nolights"/></td>
+		</tr>
+		<tr>
+			<td>Camera position</td><td colspan="3"><span id="camerapos"></span></td>
+			<td>Wireframe mode</td><td><input type="checkbox" id="wireframemode"/></td>
+		</tr>
+		<tr>
+			<td>Camera rotation</td><td colspan="3"><span id="camerarot"></span></td>
+			<td>Fog</td><td><input type="checkbox" id="usefog"/></td>
+		</tr>
 	</table>
 </div>
 
@@ -119,7 +130,7 @@ var QueryString = function () {
 } ();
 
 if (QueryString.level) {
-	show('TRN/level/' + QueryString.level + '.zip');
+	show('TRN/level/' + QueryString.level);
 } else {
 	document.getElementById("files").style.display = "block";
 	document.getElementById("files").addEventListener("change", handleFileSelect, false);

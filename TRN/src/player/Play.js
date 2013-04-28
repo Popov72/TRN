@@ -33,9 +33,10 @@ function errorHandler(e) {
 function show(trlevel) {
 	if (typeof(trlevel) == 'string') {
 
+		var isZip = trlevel.indexOf('.zip') >= 0;
 	    var request = new XMLHttpRequest();
 	    request.open("GET", trlevel, true);
-	    request.responseType = "arraybuffer";
+	    request.responseType = isZip ? "arraybuffer" : "text";
 	    request.onerror = function() {
 	        console.log('Read level: XHR error', request.status, request.statusText);
 	    }
@@ -46,12 +47,16 @@ function show(trlevel) {
 	        if (request.status != 200) {
 		   		console.log('Could not read the level', trlevel, request.status, request.statusText);
 	        } else {
-	        	console.log('Level', trlevel, 'loaded. Unzipping...');
-	    		var zip = new JSZip();
-	    		zip.load(request.response);
-	    		var f = zip.file('level');
-	    		sceneJSON = eval('[' + f.asText() + ']')[0];
-	    		console.log('Level unzipped.');
+	        	if (isZip) {
+		        	console.log('Level', trlevel, 'loaded. Unzipping...');
+		    		var zip = new JSZip();
+		    		zip.load(request.response);
+		    		var f = zip.file('level');
+		    		sceneJSON = JSON.parse(f.asText());//eval('[' + f.asText() + ']')[0];
+		    		console.log('Level unzipped.');
+		    	} else {
+		    		sceneJSON = JSON.parse(request.response);
+		    	}
 	    		init();
 	        }
 	    }
@@ -67,7 +72,8 @@ function show(trlevel) {
 
 		if (false) {
 			ssc = JSON.stringify(sc);
-		    var zip = new JSZip();
+			console.log(ssc)
+		    /*var zip = new JSZip();
 		    zip.file("level", ssc);
 		    var content = zip.generate({compression:'DEFLATE', type:'blob'});
 		    console.log(ssc.length, content.size)
@@ -99,7 +105,7 @@ function show(trlevel) {
 						}, errorHandler);
 					}, errorHandler);
 				});
-			}
+			}*/
 		}
 
 		sceneJSON = sc;
@@ -134,6 +140,7 @@ function show(trlevel) {
 
 function showInfo() {
 	jQuery('#currentroom').html(sceneJSON.curRoom);
+	jQuery('#numlights').html(sceneJSON.curRoom != -1 ? sceneJSON.objects['room'+sceneJSON.curRoom].lights.length : '');
 	jQuery('#camerapos').html(camera.position.x.toFixed(12)+','+camera.position.y.toFixed(12)+','+camera.position.z.toFixed(12));
 	jQuery('#camerarot').html(camera.quaternion.x.toFixed(12)+','+camera.quaternion.y.toFixed(12)+','+camera.quaternion.z.toFixed(12)+','+camera.quaternion.w.toFixed(12));
 }
@@ -220,8 +227,10 @@ function callbackFinished(result) {
 		for (var objID in scene.objects) {
 			var obj = scene.objects[objID];
 			if (!(obj instanceof THREE.Mesh)) continue;
+
 			var materials = obj.material.materials;
 			if (!materials || !materials.length) continue;
+
 			for (var i = 0; i < materials.length; ++i) {
 				var material = materials[i], userData = material.userData;
 				material.wireframe = this.checked;
@@ -234,11 +243,36 @@ function callbackFinished(result) {
 		for (var objID in scene.objects) {
 			var obj = scene.objects[objID];
 			if (!(obj instanceof THREE.Mesh)) continue;
+
 			var materials = obj.material.materials;
 			if (!materials || !materials.length) continue;
+
 			for (var i = 0; i < materials.length; ++i) {
 				var material = materials[i], userData = material.userData;
 				material.fragmentShader = shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
+				material.needsUpdate = true;
+			}
+		}
+	});
+
+	jQuery('#nolights').on('click', function() {
+		var shaderMgr = new TRN.ShaderMgr();
+		for (var objID in scene.objects) {
+			var obj = scene.objects[objID];
+			if (!(obj instanceof THREE.Mesh)) continue;
+
+			var materials = obj.material.materials;
+			if (!materials || !materials.length) continue;
+
+			for (var i = 0; i < materials.length; ++i) {
+				var material = materials[i], origMatName = material.origMatName;
+				if (!origMatName) {
+					origMatName = material.origMatName = material.name;
+					material.origVertexShader = material.vertexShader;
+				}
+				if (origMatName.indexOf('_l') < 0) continue;
+
+				material.vertexShader = this.checked ? shaderMgr.getVertexShader('moveable') : material.origVertexShader;
 				material.needsUpdate = true;
 			}
 		}
@@ -342,6 +376,12 @@ function callbackFinished(result) {
 		}
 	}
 
+	// don't flip Y coordinates in textures
+	for (var texture in scene.textures) {
+		if (!scene.textures.hasOwnProperty(texture)) continue;
+		scene.textures[texture].flipY = false;
+	}
+
 	// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
 	for (var objID in scene.objects) {
 		var obj = scene.objects[objID];
@@ -354,6 +394,9 @@ function callbackFinished(result) {
 
 		var material = new THREE.MeshFaceMaterial();
 		obj.material = material;
+
+		obj.geometry.computeFaceNormals();
+		obj.geometry.computeVertexNormals();
 
 		for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
 			var elem = objJSON.material[mt_];
@@ -384,6 +427,19 @@ function callbackFinished(result) {
 				}
 				if (objJSON.filledWithWater) {
 					material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);
+				}
+				if (typeof(objJSON.roomIndex) != 'undefined') {
+					var room = sceneJSON.objects['room' + objJSON.roomIndex];
+					material.uniforms.ambientColor.value = room.ambientColor;
+					material.uniforms.pointLightPosition = { type: "v3v", value: [] };
+					material.uniforms.pointLightColor = { type: "v3v", value: [] };
+					material.uniforms.pointLightDistance = { type: "f", value: [] };
+					for (var l = 0; l < room.lights.length; ++l) {
+						var light = room.lights[l];
+						material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
+						material.uniforms.pointLightColor.value[l] = light.color;
+						material.uniforms.pointLightDistance.value[l] = light.fadeOut;
+					}
 				}
 				if (material.hasAlpha) {
 					isTransparent = true;

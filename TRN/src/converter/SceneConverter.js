@@ -10,64 +10,95 @@ TRN.LevelConverter.prototype = {
 
 	constructor : TRN.LevelConverter,
 
+	getMaterial : function (objType, numLights) {
+		var matName = '';
+		if (typeof(numLights) == 'undefined') numLights = -1;
+
+		switch(objType) {
+			case 'room':
+				matName = 'TR_room';
+				if (!this.sc.materials[matName]) {
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"curTime": { type: "f", value: 0.0 },
+								"rnd": { type: "f", value: 0.0 },
+								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
+							},
+							"vertexShader": this.shaderMgr.getVertexShader('room'),
+							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
+							"vertexColors" : true
+						}
+					};
+				}
+				break;
+			case 'mesh':
+				matName = 'TR_mesh';
+				if (!this.sc.materials[matName]) {
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"curTime": { type: "f", value: 0.0 },
+								"rnd": { type: "f", value: 0.0 },
+								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
+								"lighting": { type: "f", value: 0.0 }
+							},
+							"vertexShader": this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4' ? this.shaderMgr.getVertexShader('mesh2') : this.shaderMgr.getVertexShader('mesh'),
+							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
+							"vertexColors" : true
+						}
+					};
+				}				
+				break;
+			case 'moveable':
+				matName = 'TR_moveable' + (numLights >= 0 ? '_l' + numLights : '');
+				if (!this.sc.materials[matName]) {
+					var vertexShader;
+
+					if (numLights >= 0) {
+						vertexShader = this.shaderMgr.getVertexShader('moveable_with_lights');
+						vertexShader = vertexShader.replace(/##num_lights##/g, numLights);
+					} else {
+						vertexShader = this.shaderMgr.getVertexShader('moveable');
+					}
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"curTime": { type: "f", value: 0.0 },
+								"rnd": { type: "f", value: 0.0 },
+								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
+								"lighting": { type: "f", value: 0.0 }
+							},
+							"vertexShader": vertexShader,
+							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
+							"vertexColors" : true,
+							"skinning": true
+						}
+					};
+				}
+				break;
+		}
+
+		return matName;
+	},
+
 	// create the materials + texture per tile	
-	createMaterials : function () {
-		this.sc.materials['TR_room'] = {
-			"type": "ShaderMaterial",
-			"parameters": {
-				"uniforms": {
-					"map": { type: "t", value: "" },
-					"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-					"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-					"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
-					"curTime": { type: "f", value: 0.0 },
-					"rnd": { type: "f", value: 0.0 },
-					"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
-				},
-				"vertexShader": this.shaderMgr.getVertexShader('room'),
-				"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-				"vertexColors" : true
-			}
-		};
-
-		this.sc.materials['TR_mesh'] = {
-			"type": "ShaderMaterial",
-			"parameters": {
-				"uniforms": {
-					"map": { type: "t", value: "" },
-					"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-					"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-					"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
-					"curTime": { type: "f", value: 0.0 },
-					"rnd": { type: "f", value: 0.0 },
-					"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
-					"lighting": { type: "f", value: 0.0 }
-				},
-				"vertexShader": this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4' ? this.shaderMgr.getVertexShader('mesh2') : this.shaderMgr.getVertexShader('mesh'),
-				"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-				"vertexColors" : true
-			}
-		};
-
-		this.sc.materials['TR_moveable'] = {
-			"type": "ShaderMaterial",
-			"parameters": {
-				"uniforms": {
-					"map": { type: "t", value: "" },
-					"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-					"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-					"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
-					"curTime": { type: "f", value: 0.0 },
-					"rnd": { type: "f", value: 0.0 },
-					"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
-					"lighting": { type: "f", value: 0.0 }
-				},
-				"vertexShader": this.shaderMgr.getVertexShader('moveable'),
-				"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-				"vertexColors" : true,
-				"skinning": true
-			}
-		};
+	createTextures : function () {
 
 		// create one texture per tile	
 		for (var i = 0; i < this.trlevel.textile.length; ++i) {
@@ -85,7 +116,6 @@ TRN.LevelConverter.prototype = {
 		var animatedTextures = [], mapObjTexture2AnimTexture = {};
 		while (numAnimatedTextures-- > 0) {
 			var numTextures = adata[i++] + 1, snumTextures = numTextures;
-			//console.log('Animated texture #' + idxAnimatedTexture + ', num textures=' + numTextures);
 			var anmcoords = [];
 			while (numTextures-- > 0) {
 				var texture = adata[i++], tex = this.trlevel.objectTextures[texture], tile = tex.tile & 0x7FFF;
@@ -94,21 +124,18 @@ TRN.LevelConverter.prototype = {
 					(tex.vertices[3].Ypixel == 0)  &&
 					(tex.vertices[3].Xcoordinate == 0)  &&
 					(tex.vertices[3].Ycoordinate == 0);
-			    var minU = 0x7FFF, minV = 0x7FFF, maxU = 0x0, maxV = 0x0, numVertices = isTri ? 3 : 4;
+			    var minU = 0x7FFF, minV = 0x7FFF, numVertices = isTri ? 3 : 4;
 
 			    mapObjTexture2AnimTexture[texture] = { idxAnimatedTexture:animatedTextures.length, pos:snumTextures-numTextures-1 };
 
 			    for (var j = 0; j < numVertices; j++) {
-			        var u = tex.vertices[j].Xpixel + tex.vertices[j].Xcoordinate;
-			        var v = tex.vertices[j].Ypixel + tex.vertices[j].Ycoordinate;
+			        var u = tex.vertices[j].Xpixel;
+			        var v = tex.vertices[j].Ypixel;
 
 			        if (minU > u) minU = u; if (minV > v) minV = v;
-			        if (maxU < u) maxU = u; if (maxV < v) maxV = v;
 			    }
 
-			    var width = maxU - minU + 1, height = maxV - minV + 1;
-			    anmcoords.push({ minU:minU/256, minV:1-maxV/256, texture:"texture" + tile});
-			    //console.log('  ', isTri, width, height, tile, minU, minV, maxU, maxV);
+			    anmcoords.push({ minU:(minU+0.5)/256, minV:(minV+0.5)/256, texture:"texture" + tile});
 			}
 			animatedTextures.push({
 				"animcoords": anmcoords,
@@ -128,17 +155,17 @@ TRN.LevelConverter.prototype = {
 		var numExternalLit = 0, numInternalLit = 0;
 		for (var i = 0; i < this.trlevel.meshes.length; ++i) {
 			var mesh = this.trlevel.meshes[i];
-			var meshJSON = createNewJSONEmbed();
+			var meshJSON = this.createNewJSONEmbed();
 			var attributes = {
 				flags: { type:"v4", value:[] }
 			};
 			var tiles2material = {};
 
-			var externalLit = makeMeshGeometry(mesh, i, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
+			var externalLit = this.makeMeshGeometry(mesh, i, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
 
 			if (externalLit) numExternalLit++; else numInternalLit++;
 
-			meshJSON._materials = makeMaterialList(tiles2material, attributes, 'mesh');
+			meshJSON._materials = this.makeMaterialList(tiles2material, attributes, 'mesh');
 			for (var m = 0; m < meshJSON._materials.length; ++m) {
 				if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
 					meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
@@ -175,7 +202,7 @@ TRN.LevelConverter.prototype = {
 			var room = this.trlevel.rooms[m];
 			var info = room.info, rdata = room.roomData, rflags = room.flags, lightMode = room.lightMode;
 			var isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
-			var roomJSON = createNewJSONEmbed();
+			var roomJSON = this.createNewJSONEmbed();
 			var attributes = {
 				flags: { type:"v4", value:[] }
 			};
@@ -220,7 +247,7 @@ TRN.LevelConverter.prototype = {
 			}
 
 			// create the tri/quad faces
-			makeFaces(roomJSON, [rdata.rectangles, rdata.triangles], tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0);
+			this.makeFaces(roomJSON, [rdata.rectangles, rdata.triangles], tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0);
 			
 			// add the room to the scene
 			this.sc.embeds['room' + m] = roomJSON;
@@ -232,7 +259,7 @@ TRN.LevelConverter.prototype = {
 			//q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad() );
 			this.sc.objects['room' + m] = {
 				"geometry" : "room" + m,
-				"material" : makeMaterialList(tiles2material, attributes),
+				"material" : this.makeMaterialList(tiles2material, attributes),
 				"position" : [ 0, 0, 0 ],
 				"rotation" : [ 0, 0, 0 ],
 				"scale"	   : [ 1, 1, 1 ],
@@ -249,7 +276,7 @@ TRN.LevelConverter.prototype = {
 				var x = staticMesh.x, y = -staticMesh.y, z = -staticMesh.z, rot = staticMesh.rotation, lightingGlobal = staticMesh.intensity1/8192.0;
 				var objectID = staticMesh.objectID;
 
-				var gstaticMesh = findStatichMeshByID(this.trlevel, objectID);
+				var gstaticMesh = this.findStatichMeshByID(objectID);
 				if (gstaticMesh == null) continue;
 
 				var mindex = gstaticMesh.mesh, mflags = gstaticMesh.flags;
@@ -269,13 +296,7 @@ TRN.LevelConverter.prototype = {
 				var materials = [];
 				for (var mat = 0; mat < this.sc.embeds['mesh' + mindex]._materials.length; ++mat) {
 					var material = jQuery.extend(true, {}, this.sc.embeds['mesh' + mindex]._materials[mat]);
-					if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
-						lightingGlobal = staticMesh.intensity1;
-						var b = ((lightingGlobal & 0x7C00) >> 10) << 3, g = ((lightingGlobal & 0x03E0) >> 5) << 3, r = (lightingGlobal & 0x001F) << 3;
-						material.uniforms.lighting.value = new THREE.Vector3(r/255, g/255, b/255);
-					} else {
-						material.uniforms.lighting.value = lightingGlobal;
-					}
+					material.uniforms.lighting.value = this.convertIntensity(staticMesh.intensity1);
 					materials.push(material);
 				}
 				
@@ -330,7 +351,7 @@ TRN.LevelConverter.prototype = {
 		                var g = light.color.g / 255.0;
 		                var b = light.color.b / 255.0;
 		                var intensity = light.intensity;
-		                if (intensity > 0x2000) intensity = 0x2000;
+		                if (intensity > 0x2000) intensity = 0x2000; // without this test, cut5 in TR3 is wrong (for eg)
 		                intensity = intensity / 0x2000;
 		                color.set(r*intensity, g*intensity, b*intensity);
 		                fadeOut = light.fade;
@@ -350,7 +371,9 @@ TRN.LevelConverter.prototype = {
 					fadeOut: fadeOut
 				});
 			}
+
 			this.sc.objects['room' + m].lights = lights;
+			this.sc.objects['room' + m].ambientColor = ambientColor;
 		}
 		console.log('num max lights in one room=' + maxLightsInRoom + '. room=' + roomL)
 	},
@@ -568,7 +591,7 @@ TRN.LevelConverter.prototype = {
 
 			if (this.sc.geometries['moveable' + moveable.objectID] || isDummy) continue;
 
-			var meshJSON = createNewJSONEmbed();
+			var meshJSON = this.createNewJSONEmbed();
 			var attributes = {
 				flags: { type:"v4", value:[] }
 			};
@@ -593,7 +616,7 @@ TRN.LevelConverter.prototype = {
 
 				var mesh = this.trlevel.meshes[meshIndex];
 
-				makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
+				this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
 
 				ofsvert = parseInt(meshJSON.vertices.length/3);
 
@@ -612,7 +635,7 @@ TRN.LevelConverter.prototype = {
 			meshJSON.skinIndices = skinIndices;
 			meshJSON.skinWeights = skinWeights;
 
-			meshJSON._materials = makeMaterialList(tiles2material, attributes, 'moveable');
+			meshJSON._materials = this.makeMaterialList(tiles2material, attributes, 'moveable');
 			for (var mat = 0; mat < meshJSON._materials.length; ++mat) {
 				meshJSON._materials[mat].uniforms.lighting = { type: "f", value: 0.0 }
 			}
@@ -643,6 +666,7 @@ TRN.LevelConverter.prototype = {
 			var m = mapObjID2Index[item.objectID];
 			if (m == null) continue; // not a moveable
 
+			var roomIndex = item.room, lighting = item.intensity1, room = this.trlevel.rooms[roomIndex];
 			var moveable = this.trlevel.moveables[m];
 
 			var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
@@ -653,7 +677,14 @@ TRN.LevelConverter.prototype = {
 				materials = [];
 				for (var mat = 0; mat < this.sc.embeds['moveable' + objIDForVisu]._materials.length; ++mat) {
 					var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objIDForVisu]._materials[mat]);
-					material.uniforms.lighting.value = 1.0;
+					if (lighting != -1) {
+						// item is internally lit
+						material.uniforms.lighting.value = this.convertIntensity(item.intensity1);
+					} else {
+						// change the material to use lights
+						material.material = this.getMaterial('moveable', room.lights.length);
+						material.uniforms.lighting.value = 1.0;
+					}
 					materials.push(material);
 				}
 			}
@@ -667,12 +698,12 @@ TRN.LevelConverter.prototype = {
 				"position" : [ item.x, -item.y, -item.z ],
 				"quaternion" : [ q.x, q.y, q.z, q.w ],
 				"scale"	   : [ 1, 1, 1 ],
-				"visible"  : !this.trlevel.rooms[item.room].isAlternate,
+				"visible"  : !room.isAlternate,
 				"moveable" : moveable.objectID,
 				"has_anims": true,
-				"roomIndex": item.room,
+				"roomIndex": roomIndex,
 				"animationStartIndex": moveable.animation,
-				"isAlternateRoom" : this.trlevel.rooms[item.room].isAlternate,
+				"isAlternateRoom" : room.isAlternate,
 				"skin"	: true,
 				"use_vertex_texture" : false
 			};
@@ -688,7 +719,7 @@ TRN.LevelConverter.prototype = {
 				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + moveable.objectID]._materials[mat]);
 				material.uniforms.lighting.value = 1.0;
 				material.depthWrite = false;
-				material.depthTest = false;
+				//material.depthTest = false;
 				materials.push(material);
 			}
 			var skyNoAnim = this.confMgr.levelBoolean(this.sc.levelShortFileName, 'sky > noanim', true, false);
@@ -813,7 +844,7 @@ TRN.LevelConverter.prototype = {
 			"quaternion": [ q.x, q.y, q.z, q.w ]
 		}
 
-		this.createMaterials();
+		this.createTextures();
 
 		this.createAnimatedTextures();
 

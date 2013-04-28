@@ -6,6 +6,40 @@ TRN.ObjectID = {
 
 TRN.baseFrameRate = 30.0;
 
+// stolen from threejs !
+TRN.extend = function ( obj, source ) {
+
+	if ( Object.keys ) {
+
+		var keys = Object.keys( source );
+
+		for (var i = 0, il = keys.length; i < il; i++) {
+
+			var prop = keys[i];
+			Object.defineProperty( obj, prop, Object.getOwnPropertyDescriptor( source, prop ) );
+
+		}
+
+	} else {
+
+		var safeHasOwnProperty = {}.hasOwnProperty;
+
+		for ( var prop in source ) {
+
+			if ( safeHasOwnProperty.call( source, prop ) ) {
+
+				obj[prop] = source[prop];
+
+			}
+
+		}
+
+	}
+
+	return obj;
+
+};
+
 TRN.startSound = function(sound) {
 	if (sound == null) return;
 
