@@ -22497,6 +22497,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 							_vector3.applyProjection( _projScreenMatrix );
 
 							webglObject.z = _vector3.z;
+							//if (webglObject.z < 0 || webglObject.z > 1) console.log(webglObject.z)
 
 						}
 

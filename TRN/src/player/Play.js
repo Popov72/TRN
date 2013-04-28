@@ -430,15 +430,17 @@ function callbackFinished(result) {
 				}
 				if (typeof(objJSON.roomIndex) != 'undefined') {
 					var room = sceneJSON.objects['room' + objJSON.roomIndex];
-					material.uniforms.ambientColor.value = room.ambientColor;
-					material.uniforms.pointLightPosition = { type: "v3v", value: [] };
-					material.uniforms.pointLightColor = { type: "v3v", value: [] };
-					material.uniforms.pointLightDistance = { type: "f", value: [] };
-					for (var l = 0; l < room.lights.length; ++l) {
-						var light = room.lights[l];
-						material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
-						material.uniforms.pointLightColor.value[l] = light.color;
-						material.uniforms.pointLightDistance.value[l] = light.fadeOut;
+					if (room) {
+						material.uniforms.ambientColor.value = room.ambientColor;
+						material.uniforms.pointLightPosition = { type: "v3v", value: [] };
+						material.uniforms.pointLightColor = { type: "v3v", value: [] };
+						material.uniforms.pointLightDistance = { type: "f", value: [] };
+						for (var l = 0; l < room.lights.length; ++l) {
+							var light = room.lights[l];
+							material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
+							material.uniforms.pointLightColor.value[l] = light.color;
+							material.uniforms.pointLightDistance.value[l] = light.fadeOut;
+						}
 					}
 				}
 				if (material.hasAlpha) {
@@ -482,6 +484,8 @@ function callbackFinished(result) {
 		// unwater
 		//camera.position.set(80344.23082910081,5708.199004460822,-48651.619581856896);
 		//camera.quaternion.set(0.005487008774905242,0.9860915773002777,0.16275151654342634,-0.03324511655818078);
+		camera.updateMatrix();
+		camera.updateMatrixWorld();
 	}
 	
 	controls = new BasicControls( camera, renderer.domElement );
@@ -562,6 +566,8 @@ function animate() {
 		}
 	}
 
+	camera.updateMatrixWorld();
+
 	if (scene.objects.sky) {
 		scene.objects.sky.position = camera.position;
 	}
@@ -578,19 +584,36 @@ function animate() {
 	sceneJSON.curRoom = -1;
 
 	for (var objID in scene.objects) {
-		var obj = scene.objects[objID];
-		if (sceneJSON.objects[objID].isRoom) {
-			if (obj.geometry.boundingBox.containsPoint(camera.position) && !sceneJSON.objects[objID].isAlternateRoom) {
-				sceneJSON.curRoom = sceneJSON.objects[objID].roomIndex;
+		var obj = scene.objects[objID], objJSON = sceneJSON.objects[objID];
+		if (objJSON.isRoom) {
+			if (obj.geometry.boundingBox.containsPoint(camera.position) && !objJSON.isAlternateRoom) {
+				sceneJSON.curRoom = objJSON.roomIndex;
 			}
 		}
 		if (singleRoomMode) {
-			obj.visible = sceneJSON.objects[objID].roomIndex == sceneJSON.curRoom && !sceneJSON.objects[objID].isAlternateRoom;
+			obj.visible = objJSON.roomIndex == sceneJSON.curRoom && !objJSON.isAlternateRoom;
 		} else {
-			obj.visible = !sceneJSON.objects[objID].isAlternateRoom;
+			obj.visible = !objJSON.isAlternateRoom;
 		}
 
 		if (!(obj instanceof THREE.Mesh)) continue;
+
+		if (objJSON.isSprite) {
+			var camdir = new THREE.Vector3(0, 0, 1);
+
+			camdir.applyMatrix4(camera.matrixWorld);
+			camdir.sub(camera.position);
+
+			var eye = obj.position, target = new THREE.Vector3();
+			
+			target.copy(eye).add(camdir);
+
+			obj.matrix.lookAt(eye, target, camera.up);
+			obj.quaternion.setFromRotationMatrix(obj.matrix);
+
+			obj.updateMatrix();
+			obj.updateMatrixWorld();
+		}
 
 		var materials = obj.material.materials;
 		if (!materials || !materials.length) continue;

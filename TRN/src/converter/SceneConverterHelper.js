@@ -27,6 +27,45 @@ TRN.extend(TRN.LevelConverter.prototype, {
 		return l;
 	},
 
+	processRoomVertex : function(rvertex, isFilledWithWater, isFlickering) {
+		var vertex = rvertex.vertex, attribute = rvertex.attributes;
+		var lighting = 0;
+
+		switch(this.trlevel.rversion) {
+			case 'TR1':
+				lighting = Math.floor((1.0-rvertex.lighting1/8192.)*2*256);
+				if (lighting > 255) lighting = 255;
+				var r = lighting, g = lighting, b = lighting;
+				lighting = b + (g << 8) + (r << 16);
+				break;
+			case 'TR2':
+				lighting = Math.floor((1.0-rvertex.lighting2/8192.)*2*256);
+				if (lighting > 255) lighting = 255;
+				var r = lighting, g = lighting, b = lighting;
+				lighting = b + (g << 8) + (r << 16);
+				break;
+			default:
+				lighting = rvertex.lighting2;
+				var r = (lighting & 0x7C00) >> 10, g = (lighting & 0x03E0) >> 5, b = (lighting & 0x001F);
+				lighting = (b << 3) + (g << 11) + (r << 19);
+				break;
+		}
+
+		var moveLight = (attribute & 0x4000) ? 1 : 0;
+		var moveVertex = (attribute & 0x2000) ? 1 : 0;
+		var strengthEffect = ((attribute & 0x1E)-16)/16;
+
+		if (moveVertex) moveLight = 1;
+		if (this.trlevel.rversion == 'TR2' && isFilledWithWater) moveLight = 1;
+		if (this.trlevel.rversion == 'TR2' && isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
+
+		return {
+			x: vertex.x, y: -vertex.y, z: -vertex.z,
+			flag: new THREE.Vector4(moveLight, isFlickering && strengthEffect ? 1 : 0, moveVertex, -strengthEffect),
+			color: lighting
+		};
+	},
+
 	makeFace : function (obj, vertices, isQuad, tiles2material, texture, tex, ofstvert, mapObjTexture2AnimTexture, fidx) {
 		obj.faces.push(isQuad ? 139 : 138); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
 
