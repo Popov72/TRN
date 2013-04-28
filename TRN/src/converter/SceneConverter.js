@@ -196,9 +196,15 @@ TRN.LevelConverter.prototype = {
 
 	createSprite : function (spriteIndex, flag, color) {
 
-		if (this.sc.embeds['sprite' + spriteIndex]) return; // sprite already created
+		if (this.sc.embeds['sprite' + spriteIndex]) return true; // sprite already created
+
+		if (spriteIndex >= this.trlevel.spriteTextures.length) {
+			console.log('spriteindex', spriteIndex, 'is too big: only', this.trlevel.spriteTextures.length, 'sprites in this.trlevel.spriteTextures !');
+			return false;
+		}
 
 		var sprite = this.trlevel.spriteTextures[spriteIndex];
+		console.log(spriteIndex, sprite)
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
 			flags: { type:"v4", value:[] }
@@ -252,6 +258,8 @@ TRN.LevelConverter.prototype = {
 			"type": "embedded",
 			"id"  : "sprite" + spriteIndex
 		};
+
+		return true;
 	},
 
 	// generate the rooms + static meshes in the room => one embedded object is created per room and per static mesh
@@ -359,7 +367,7 @@ TRN.LevelConverter.prototype = {
 				var rvertex = rdata.vertices[sprite.vertex];
 				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater, isFlickering);
 
-				this.createSprite(spriteIndex, vertexInfo.flag, vertexInfo.color);
+				if (!this.createSprite(spriteIndex, vertexInfo.flag, vertexInfo.color)) continue;
 
 				var materials = [];
 				for (var mat = 0; mat < this.sc.embeds['sprite' + spriteIndex]._materials.length; ++mat) {
