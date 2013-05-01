@@ -226,18 +226,18 @@ TRN.ConfigMgr.prototype = {
 
 	constructor : TRN.ConfigMgr,
 
-	globalParam : function(path) {
+	globalParam : function(path, getnode) {
 		var node = jQuery(this.root).find('game[id="' + this.trversion + '"] > global ' + path);
-		return node.size() > 0 ? node.text() : null;
+		return getnode ? node : (node.size() > 0 ? node.text() : null);
 	},
 
-	levelParam : function(levelname, path, checkinglobal) {
+	levelParam : function(levelname, path, checkinglobal, getnode) {
 		checkinglobal = checkinglobal || false;
 		var node = jQuery(this.root).find('game[id="' + this.trversion + '"] > levels > level[id="' + levelname + '"] ' + path);
 		if (node.size() == 0 && checkinglobal) {
-			node = jQuery(this.root).find('game[id="' + this.trversion + '"] > global ' + path);
+			node = jQuery(this.root).find('game[id="' + this.trversion + '"] > global ' + path, getnode);
 		}
-		return node.size() > 0 ? node.text() : null;
+		return getnode ? node : (node.size() > 0 ? node.text() : null);
 	},
 
 	globalColor : function(path) {

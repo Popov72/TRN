@@ -261,7 +261,7 @@ TRN.LevelConverter.prototype = {
 		return true;
 	},
 
-	// generate the rooms + static meshes in the room => one embedded object is created per room and per static mesh
+	// generate the rooms + static meshes + sprites in the room
 	createRooms : function () {
 		// flag the alternate rooms
 		for (var m = 0; m < this.trlevel.rooms.length; ++m) {
@@ -314,6 +314,7 @@ TRN.LevelConverter.prototype = {
 				"visible"  : !room.isAlternate,
 				"isAlternateRoom" : room.isAlternate,
 				"filledWithWater": isFilledWithWater,
+				"flickering": isFlickering,
 				"isRoom": true,
 				"roomIndex": m
 			};
@@ -669,69 +670,120 @@ TRN.LevelConverter.prototype = {
 		console.log('Num moveables=', numMoveables)
 	},
 
+	createMoveableInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, moveable) {
+		var room = this.trlevel.rooms[roomIndex];
+
+		var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
+
+		var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
+		var materials = null;
+		if (hasGeometry) {
+			materials = [];
+			for (var mat = 0; mat < this.sc.embeds['moveable' + objIDForVisu]._materials.length; ++mat) {
+				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objIDForVisu]._materials[mat]);
+				if (lighting != -1) {
+					// item is internally lit
+					material.uniforms.lighting.value = this.convertIntensity(lighting);
+				} else {
+					// change material to a material that handles lights
+					material.material = this.getMaterial('moveable', room.lights.length);
+					material.uniforms.lighting.value = 1.0;
+				}
+				materials.push(material);
+			}
+		}
+
+		this.sc.objects['moveable' + moveable.objectID + '_' + itemIndex] = {
+			"geometry" : hasGeometry ? "moveable" + objIDForVisu : null,
+			"material" : materials,
+			"position" : [ x, y, z ],
+			"quaternion" : [ rotation.x, rotation.y, rotation.z, rotation.w ],
+			"scale"	   : [ 1, 1, 1 ],
+			"visible"  : !room.isAlternate,
+			"moveable" : moveable.objectID,
+			"has_anims": true,
+			"roomIndex": roomIndex,
+			"animationStartIndex": moveable.animation,
+			"isAlternateRoom" : room.isAlternate,
+			"skin"	: true,
+			"use_vertex_texture" : false
+		};
+	},
+
+	createSpriteSeqInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, spriteSeq) {
+ 		var room = this.trlevel.rooms[roomIndex];
+		var spriteIndex = spriteSeq.offset;
+
+		if (spriteSeq.negativeLength == -1) {
+			var rvertex = {
+				vertex: { x:x, y:-y, z:-z },
+				attribute: 0,
+				lighting1: lighting,
+				lighting2: lighting
+			};
+			var vertexInfo = this.processRoomVertex(rvertex, room.isFilledWithWater, room.isFlickering);
+
+			if (this.createSprite(spriteIndex, vertexInfo.flag, vertexInfo.color)) {
+				var materials = [];
+				for (var mat = 0; mat < this.sc.embeds['sprite' + spriteIndex]._materials.length; ++mat) {
+					var material = jQuery.extend(true, {}, this.sc.embeds['sprite' + spriteIndex]._materials[mat]);
+					materials.push(material);
+				}
+				
+				this.sc.objects['spriteseq' + spriteSeq.objectID + '_' + itemIndex] = {
+					"geometry" : "sprite" + spriteIndex,
+					"material" : materials,
+					"position" : [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
+					"quaternion" : [ 0, 0, 0, 1 ],
+					"scale"	   : [ 1, 1, 1 ],
+					"visible"  : !room.isAlternate,
+					"isAlternateRoom" : room.isAlternate,
+					"filledWithWater": room.isFilledWithWater,
+					"isSprite": true,
+					"roomIndex": roomIndex
+				};
+			}
+		} else {
+			console.log('Sprite sequence with objectId=', spriteSeq.objectID, 'is animated => not handled');
+		}
+
+	},
+
 	createItems : function () {
-		var mapObjID2Index = {};
+		var movObjID2Index = {}, sprObjID2Index = {};
 
 		for (var m = 0; m < this.trlevel.moveables.length; ++m) {
 			var moveable = this.trlevel.moveables[m];
-			mapObjID2Index[moveable.objectID] = m;
+			movObjID2Index[moveable.objectID] = m;
 		}
 
-		var numMoveableInstances = 0;
+		for (var sq = 0; sq < this.trlevel.spriteSequences.length; ++sq) {
+			var spriteSeq = this.trlevel.spriteSequences[sq];
+			sprObjID2Index[spriteSeq.objectID] = sq;
+		}
+
+		var numMoveableInstances = 0, numSpriteSeqInstances = 0;
 		for (var i = 0; i < this.trlevel.items.length; ++i) {
 			var item = this.trlevel.items[i];
-			var m = mapObjID2Index[item.objectID];
-			if (m == null) continue; // not a moveable
 
-			var roomIndex = item.room, lighting = item.intensity1, room = this.trlevel.rooms[roomIndex];
-			var moveable = this.trlevel.moveables[m];
+			var roomIndex = item.room, lighting = item.intensity1, q = new THREE.Quaternion();
 
-			var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
-
-			var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
-			var materials = null;
-			if (hasGeometry) {
-				materials = [];
-				for (var mat = 0; mat < this.sc.embeds['moveable' + objIDForVisu]._materials.length; ++mat) {
-					var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objIDForVisu]._materials[mat]);
-					if (lighting != -1) {
-						// item is internally lit
-						material.uniforms.lighting.value = this.convertIntensity(item.intensity1);
-					} else {
-						// change material to a material that handles lights
-						material.material = this.getMaterial('moveable', room.lights.length);
-						material.uniforms.lighting.value = 1.0;
-					}
-					materials.push(material);
-				}
-			}
-
-			var q = new THREE.Quaternion();
 			q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(-(item.angle >> 14) * 90) );
 
-			this.sc.objects['item' + i] = {
-				"geometry" : hasGeometry ? "moveable" + objIDForVisu : null,
-				"material" : materials,
-				"position" : [ item.x, -item.y, -item.z ],
-				"quaternion" : [ q.x, q.y, q.z, q.w ],
-				"scale"	   : [ 1, 1, 1 ],
-				"visible"  : !room.isAlternate,
-				"moveable" : moveable.objectID,
-				"has_anims": true,
-				"roomIndex": roomIndex,
-				"animationStartIndex": moveable.animation,
-				"isAlternateRoom" : room.isAlternate,
-				"skin"	: true,
-				"use_vertex_texture" : false
-			};
-
-			numMoveableInstances++;
+			var m = movObjID2Index[item.objectID];
+			if (m == null) {
+				this.createSpriteSeqInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.spriteSequences[sprObjID2Index[item.objectID]]);
+				numSpriteSeqInstances++;
+			} else {
+				this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.moveables[m]);
+				numMoveableInstances++;
+			}
 		}
 
 		// specific handling of the sky
 		var skyId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > objectid', true, 0);
-		if (skyId && mapObjID2Index[skyId]) {
-			moveable = this.trlevel.moveables[mapObjID2Index[skyId]];
+		if (skyId && movObjID2Index[skyId]) {
+			moveable = this.trlevel.moveables[movObjID2Index[skyId]];
 			var materials = [];
 			for (var mat = 0; mat < this.sc.embeds['moveable' + moveable.objectID]._materials.length; ++mat) {
 				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + moveable.objectID]._materials[mat]);
@@ -758,7 +810,7 @@ TRN.LevelConverter.prototype = {
 			numMoveableInstances++;	
 		}
 
-		console.log('Num moveable instances=', numMoveableInstances)
+		console.log('Num moveable instances=', numMoveableInstances, '. Num sprite sequence instances=', numSpriteSeqInstances);
 	},
 
 	convert : function (trlevel, callback_created) {
@@ -827,11 +879,10 @@ TRN.LevelConverter.prototype = {
 			laraPos.rotY = laraAngle;
 		}
 
-		if (this.trlevel.numCinematicFrames > 0) {
+		var isCutScene = this.confMgr.levelParam(this.sc.levelShortFileName, '', false, true).attr('type') == 'cutscene';
+		if (this.trlevel.numCinematicFrames > 0 && isCutScene) {
 			this.sc.cutScene.frames = this.trlevel.cinematicFrames;
 			this.sc.cutScene.origin = laraPos;
-			this.sc.cutScene.animminid = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animminid', true, 0);
-			this.sc.cutScene.animmaxid = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animmaxid', true, 0);
 		}	
 
 		var camPos = { x:laraPos.x, y:laraPos.y, z:laraPos.z, rotY:laraPos.rotY }
@@ -874,6 +925,22 @@ TRN.LevelConverter.prototype = {
 		this.createItems();
 
 		this.createAnimations();
+
+		if (this.sc.cutScene.frames) {
+			// update position/quaternion for some specific items if we play a cut scene
+			var min = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animminid', true, 0);
+			var max = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animmaxid', true, 0);
+			for (var objID in this.sc.objects) {
+				var objJSON = this.sc.objects[objID];
+
+				if (objJSON.moveable == TRN.ObjectID.Lara || (objJSON.moveable >= min && objJSON.moveable <= max)) {
+					objJSON.position = [ this.sc.cutScene.origin.x, this.sc.cutScene.origin.y, this.sc.cutScene.origin.z ];
+					var q = new THREE.Quaternion();
+					q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sc.cutScene.origin.rotY) );
+					objJSON.quaternion = [ q.x, q.y, q.z, q.w ];
+				}
+			}
+		}
 
 		return this.sc;
 

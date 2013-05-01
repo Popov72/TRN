@@ -309,23 +309,6 @@ function callbackFinished(result) {
 		}
 	}
 
-	// update position/quaternion for some specific items if we play a cut scene
-	if (sceneJSON.cutScene.frames) {
-		var min = sceneJSON.cutScene.animminid;
-		var max = sceneJSON.cutScene.animmaxid;
-		for (var objID in scene.objects) {
-			var obj = scene.objects[objID];
-			var objJSON = sceneJSON.objects[objID];
-
-			if (objID.substr(0, 4) == 'item' && (objJSON.moveable == TRN.ObjectID.Lara || (objJSON.moveable >= min && objJSON.moveable <= max))) {
-				obj.position.set(sceneJSON.cutScene.origin.x, sceneJSON.cutScene.origin.y, sceneJSON.cutScene.origin.z);
-				var q = new THREE.Quaternion();
-				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(sceneJSON.cutScene.origin.rotY) );
-				obj.quaternion = q;
-			}
-		}
-	}
-
 	// start anim #0 for meshes with animations
 	if (sceneJSON.animations) {
 		for (var objID in scene.objects) {
