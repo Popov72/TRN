@@ -31,6 +31,8 @@ function errorHandler(e) {
 }
 
 function show(trlevel) {
+	jQuery( "#progress" ).css('display', "block");
+
 	if (typeof(trlevel) == 'string') {
 
 		var isZip = trlevel.indexOf('.zip') >= 0;
@@ -39,6 +41,17 @@ function show(trlevel) {
 	    request.responseType = isZip ? "arraybuffer" : "text";
 	    request.onerror = function() {
 	        console.log('Read level: XHR error', request.status, request.statusText);
+	    }
+	    request.onprogress = function(e) {
+	    	if (e.lengthComputable) {
+				var bar = 250;
+
+				if ( e.total )
+					bar = Math.floor( bar * e.loaded / e.total );
+
+				jQuery( "#bar" ).css('width', bar + "px");
+
+	    	}
 	    }
 
 	    request.onreadystatechange = function() {
@@ -167,12 +180,21 @@ function init() {
 	container.appendChild( stats.domElement );
 
 	var loader = new THREE.SceneLoader();
-	//loader.callbackSync = callbackSync;
-	//loader.callbackProgress = callbackProgress;
+	loader.callbackProgress = callbackProgress;
 
-	//loader.load(sceneJSON, callbackFinished);
 	loader.parse(sceneJSON, callbackFinished, '');
 
+}
+
+function callbackProgress(progress, result) {
+	var bar = 250,
+		total = progress.totalModels + progress.totalTextures,
+		loaded = progress.loadedModels + progress.loadedTextures;
+
+	if ( total )
+		bar = Math.floor( bar * loaded / total );
+
+	jQuery( "#bar" ).css('width', bar + "px");
 }
 
 function onWindowResize() {
@@ -293,6 +315,8 @@ function callbackFinished(result) {
     		jQuery('#fullscreen').prop('checked', document.fullscreenElement != null);
     	}, false);
     }
+
+	sceneJSON.curRoom = -1;
 
 	// make sure the sky is displayed first
 	if (scene.objects.sky) {
@@ -457,16 +481,6 @@ function callbackFinished(result) {
 		}
 	}
 
-/*	handle_update( result, 1 );
-
-	result.scene.traverse( function ( object ) {
-		if ( object.properties.rotating === true ) {
-
-			rotatingObjects.push( object );
-
-		}
-	} );
-*/
 	camera = scene.currentCamera;
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
@@ -487,6 +501,16 @@ function callbackFinished(result) {
 		//camera.quaternion.set(0.005487008774905242,0.9860915773002777,0.16275151654342634,-0.03324511655818078);
 	}
 
+	if (TRN.QueryString.pos) {
+		var vals = TRN.QueryString.pos.split(',');
+		camera.position.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]));
+	}
+
+	if (TRN.QueryString.rot) {
+		var vals = TRN.QueryString.rot.split(',');
+		camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
+	}
+
 	camera.updateMatrix();
 	camera.updateMatrixWorld();
 	
@@ -497,31 +521,31 @@ function callbackFinished(result) {
 	TRN.bindRequestPointerLock(elem);
 	TRN.bindRequestFullscreen(elem);
 
+	jQuery( "#start" ).on( 'click', start );
+	jQuery( "#message" ).css('display', "none");
+	jQuery( "#progressbar" ).css('display', "none");
+	jQuery( "#panel" ).css('display', 'block');
+
+	if (TRN.QueryString.autostart == '1') {
+		start();
+	} else {
+		jQuery( "#start" ).css('display', "block");
+		jQuery( "#start" ).attr('class', "enabled");
+	}
+}
+
+function start() {
 	window.addEventListener( 'resize', onWindowResize, false );
+
+	onWindowResize();
+
+	jQuery( "#progress" ).css('display', "none");
 
 	if (sceneJSON.cutScene.frames != null) {
 		TRN.startSound(sceneJSON.cutScene.sound);
 	}
 
 	animate();
-}
-
-function handle_update( result, pieces ) {
-	return;
-	var m, material, count = 0;
-	for ( m in result.materials ) {
-		material = result.materials[ m ];
-		if ( ! ( material instanceof THREE.MeshFaceMaterial || material instanceof THREE.ShaderMaterial || material.morphTargets ) ) {
-			if( !material.program ) {
-				renderer.initMaterial( material, result.scene.__lights, result.scene.fog );
-				count += 1;
-				if( count > pieces ) {
-					//console.log("xxxxxxxxx");
-					break;
-				}
-			}
-		}
-	}
 }
 
 var quantum = 1000/TRN.baseFrameRate, quantumTime = (new Date()).getTime(), quantumRnd = 0;
@@ -634,8 +658,7 @@ function animate() {
 	render();
 }
 
-function SequenceProgressor(numTiles, tileDispDuration) 
-{	
+function SequenceProgressor(numTiles, tileDispDuration) {	
 	this.numberOfTiles = numTiles;
 	this.tileDisplayDuration = tileDispDuration;
 
