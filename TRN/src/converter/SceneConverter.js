@@ -204,7 +204,6 @@ TRN.LevelConverter.prototype = {
 		}
 
 		var sprite = this.trlevel.spriteTextures[spriteIndex];
-		console.log(spriteIndex, sprite)
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
 			flags: { type:"v4", value:[] }

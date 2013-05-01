@@ -53,7 +53,7 @@
 <body>
 
 <input type="file" id="files" style="display: none" />
-<div id="output" style="color:white"></div>
+<div id="output" style="color:white" style="display: none"></div>
 
 <div id="panel" class="panel">
 	<table>
@@ -66,6 +66,7 @@
 		<tr>
 			<td>Camera position</td><td colspan="2"><span id="camerapos"></span></td>
 			<td>Wireframe mode</td><td><input type="checkbox" id="wireframemode"/></td>
+			<td>Full screen</td><td><input type="checkbox" id="fullscreen"/></td>
 		</tr>
 		<tr>
 			<td>Camera rotation</td><td colspan="2"><span id="camerarot"></span></td>
@@ -77,7 +78,6 @@
 <div id="container"></div>
 
 <script>
-// fullscreen + mouse lock code: http://media.tojicode.com/q3bsp/
 var showTiles = false;
 
 function handleFileSelect(evt) {
@@ -106,33 +106,12 @@ function handleFileSelect(evt) {
 	}
 }
 
-var QueryString = function () {
-  // This function is anonymous, is executed immediately and 
-  // the return value is assigned to QueryString!
-  var query_string = {};
-  var query = window.location.search.substring(1);
-  var vars = query.split("&");
-  for (var i=0;i<vars.length;i++) {
-    var pair = vars[i].split("=");
-    	// If first entry with this name
-    if (typeof query_string[decodeURIComponent(pair[0])] === "undefined") {
-      query_string[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
-    	// If second entry with this name
-    } else if (typeof query_string[decodeURIComponent(pair[0])] === "string") {
-      var arr = [ query_string[decodeURIComponent(pair[0])], decodeURIComponent(pair[1]) ];
-      query_string[decodeURIComponent(pair[0])] = arr;
-    	// If third or later entry with this name
-    } else {
-      query_string[decodeURIComponent(pair[0])].push(decodeURIComponent(pair[1]));
-    }
-  } 
-    return query_string;
-} ();
-
-if (QueryString.level) {
-	show('TRN/level/' + QueryString.level);
+if (TRN.QueryString.level) {
+	jQuery('#panel').css('display', 'block');
+	show('TRN/level/' + TRN.QueryString.level);
 } else {
 	document.getElementById("files").style.display = "block";
+	document.getElementById("output").style.display = "block";
 	document.getElementById("files").addEventListener("change", handleFileSelect, false);
 }
 </script>

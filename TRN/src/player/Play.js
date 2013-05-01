@@ -278,6 +278,22 @@ function callbackFinished(result) {
 		}
 	});
 
+	jQuery('#fullscreen').on('click', function() {
+		if (document.fullscreenElement != null) {
+			if (document.exitFullscreen) 
+				document.exitFullscreen();
+		} else if (document.body.requestFullscreen) {
+			document.body.requestFullscreen();
+		}
+	});
+
+    var prefix = ['', 'webkit', 'moz'];
+    for (var i = 0; i < prefix.length; ++i) {
+    	document.addEventListener(prefix[i] + "fullscreenchange", function() {
+    		jQuery('#fullscreen').prop('checked', document.fullscreenElement != null);
+    	}, false);
+    }
+
 	// make sure the sky is displayed first
 	if (scene.objects.sky) {
 		scene.objects.sky.renderDepth = -1e10;
@@ -311,57 +327,59 @@ function callbackFinished(result) {
 	}
 
 	// start anim #0 for meshes with animations
-	for (var objID in scene.objects) {
-		var obj = scene.objects[objID];
-		var objJSON = sceneJSON.objects[objID];
+	if (sceneJSON.animations) {
+		for (var objID in scene.objects) {
+			var obj = scene.objects[objID];
+			var objJSON = sceneJSON.objects[objID];
 
-		if (!objJSON.has_anims) continue;
+			if (!objJSON.has_anims) continue;
 
-		if (sceneJSON.cutScene.frames) {
-			var animator = function(obj, animIndex, objectID) {
-				var curAnim = animIndex;
-				return function(remainingTime) {
-					var scurAnim = curAnim;
+			if (sceneJSON.cutScene.frames) {
+				var animator = function(obj, animIndex, objectID) {
+					var curAnim = animIndex;
+					return function(remainingTime) {
+						var scurAnim = curAnim;
 
-					curAnim = trlevel_.animations[scurAnim].nextAnimation;
+						curAnim = trlevel_.animations[scurAnim].nextAnimation;
 
-					var nextFrame = trlevel_.animations[scurAnim].nextFrame - trlevel_.animations[curAnim].frameStart;
+						var nextFrame = trlevel_.animations[scurAnim].nextFrame - trlevel_.animations[curAnim].frameStart;
 
-					if (scurAnim == curAnim) return;
+						if (scurAnim == curAnim) return;
 
-					remainingTime += nextFrame / TRN.baseFrameRate;
+						remainingTime += nextFrame / TRN.baseFrameRate;
 
-					var anim = registerAnimation(objectID, curAnim, true);
-					var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR, this.callbackfn);
+						var anim = registerAnimation(objectID, curAnim, true);
+						var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR, this.callbackfn);
 
-					animation.play( false, remainingTime );
-					animation.update(0);
+						animation.play( false, remainingTime );
+						animation.update(0);
+					}
+				};
+
+				// register all animations we will need in the cut scene
+				var registered = {}, anmIndex = objJSON.animationStartIndex;
+				while (true) {
+					if (registered[anmIndex]) break;
+					
+					registered[anmIndex] = true;
+					registerAnimation(objJSON.moveable, anmIndex, true);
+
+					anmIndex = trlevel_.animations[anmIndex].nextAnimation;
 				}
-			};
 
-			// register all animations we will need in the cut scene
-			var registered = {}, anmIndex = objJSON.animationStartIndex;
-			while (true) {
-				if (registered[anmIndex]) break;
-				
-				registered[anmIndex] = true;
-				registerAnimation(objJSON.moveable, anmIndex, true);
+				var anim = registerAnimation(objJSON.moveable, objJSON.animationStartIndex, true);
+				var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR, animator(obj, objJSON.animationStartIndex, objJSON.moveable));
 
-				anmIndex = trlevel_.animations[anmIndex].nextAnimation;
+				animation.play( false );
+				animation.update(0);
+
+			} else {
+				var anim = registerAnimation(objJSON.moveable, objJSON.animationStartIndex);
+				var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR );
+
+				animation.play( true, Math.random()*anim.length );
+				animation.update(0);
 			}
-
-			var anim = registerAnimation(objJSON.moveable, objJSON.animationStartIndex, true);
-			var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR, animator(obj, objJSON.animationStartIndex, objJSON.moveable));
-
-			animation.play( false );
-			animation.update(0);
-
-		} else {
-			var anim = registerAnimation(objJSON.moveable, objJSON.animationStartIndex);
-			var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR );
-
-			animation.play( true, Math.random()*anim.length );
-			animation.update(0);
 		}
 	}
 
@@ -484,11 +502,17 @@ function callbackFinished(result) {
 		// unwater
 		//camera.position.set(80344.23082910081,5708.199004460822,-48651.619581856896);
 		//camera.quaternion.set(0.005487008774905242,0.9860915773002777,0.16275151654342634,-0.03324511655818078);
-		camera.updateMatrix();
-		camera.updateMatrixWorld();
 	}
+
+	camera.updateMatrix();
+	camera.updateMatrixWorld();
 	
-	controls = new BasicControls( camera, renderer.domElement );
+	var elem = document.body;
+
+	controls = new BasicControls( camera, elem );
+
+	TRN.bindRequestPointerLock(elem);
+	TRN.bindRequestFullscreen(elem);
 
 	window.addEventListener( 'resize', onWindowResize, false );
 
@@ -599,17 +623,8 @@ function animate() {
 		if (!(obj instanceof THREE.Mesh)) continue;
 
 		if (objJSON.isSprite) {
-			var camdir = new THREE.Vector3(0, 0, 1);
-
-			camdir.applyMatrix4(camera.matrixWorld);
-			camdir.sub(camera.position);
-
-			var eye = obj.position, target = new THREE.Vector3();
-			
-			target.copy(eye).add(camdir);
-
-			obj.matrix.lookAt(eye, target, camera.up);
-			obj.quaternion.setFromRotationMatrix(obj.matrix);
+			// make sure the object is always facing the camera
+			obj.quaternion.set(camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w);
 
 			obj.updateMatrix();
 			obj.updateMatrixWorld();

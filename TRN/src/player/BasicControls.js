@@ -5,7 +5,7 @@ var BasicControls = function ( object, domElement ) {
 	var KEYS = { MOUSENX:300, MOUSEX:301, MOUSENY:302, MOUSEY:303 };
 
 	this.object = object;
-	this.domElement = ( domElement !== undefined ) ? domElement : document;
+	this.domElement = ( domElement !== undefined ) ? domElement : document.body;
 	this.enabled = true;
 	this.captureMouse = false;
 	
@@ -39,53 +39,17 @@ var BasicControls = function ( object, domElement ) {
 	this._mouseY = -1;
 	this._mouseDeltaX = this._mouseDeltaY = 0;
 
-    if(!document.hasOwnProperty("pointerLockElement")) {
-        getter = (function() {
-            // These are the functions that match the spec, and should be preferred
-            if("webkitPointerLockElement" in document) {
-                return function() { return document.webkitPointerLockElement; };
-            }
-            if("mozPointerLockElement" in document) {
-                return function() { return document.mozPointerLockElement; };
-            }
-            
-            return function() { return null; }; // not supported
-        })();
-        
-        Object.defineProperty(document, "pointerLockElement", {
-            enumerable: true, configurable: false, writeable: false,
-            get: getter
-        });
-    }
-
-    if(!document.exitPointerLock) {
-        document.exitPointerLock = (function() {
-            return  document.webkitExitPointerLock ||
-                    document.mozExitPointerLock ||
-                    function(){
-                        if(navigator.pointer) {
-                            var elem = this;
-                            navigator.pointer.unlock();
-                        }
-                    };
-        })();
-    }
-
-	this.domElement.requestPointerLock = 
-		this.domElement.requestPointerLock    ||
-		this.domElement.mozRequestPointerLock ||
-		this.domElement.webkitRequestPointerLock;
-
-    function pointerlockchange(oldEvent) {
+    function pointerLockChange(oldEvent) {
     	var locked = document.pointerLockElement == _this.domElement; 
     	_this.captureMouse = locked;
     }
 
-    document.addEventListener("webkitpointerlockchange", pointerlockchange, false);
-    document.addEventListener("webkitpointerlocklost", pointerlockchange, false);
-    document.addEventListener("mozpointerlockchange", pointerlockchange, false);
-    document.addEventListener("mozpointerlocklost", pointerlockchange, false);
-
+    var prefix = ['', 'webkit', 'moz'];
+    for (var i = 0; i < prefix.length; ++i) {
+    	document.addEventListener(prefix[i] + "pointerlockchange", pointerLockChange, false);
+    	document.addEventListener(prefix[i] + "pointerlocklost", pointerLockChange, false);
+    }
+    
 	function keydown( event ) {
 		if ( _this.enabled === false ) return;
 
@@ -94,8 +58,6 @@ var BasicControls = function ( object, domElement ) {
 			event.preventDefault();
 			event.stopPropagation();
 		}
-		
-//		console.log('down', event.keyCode);
 	}
 
 	function keyup( event ) {
@@ -106,8 +68,6 @@ var BasicControls = function ( object, domElement ) {
 			event.preventDefault();
 			event.stopPropagation();
 		}
-		
-//		console.log('up', event.keyCode);
 	}
 	
 	function mousemove( event ) {
@@ -240,13 +200,11 @@ var BasicControls = function ( object, domElement ) {
 		_this.object.position.add(translate.applyQuaternion(_this.object.quaternion));
 	}
 
-	document.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
+	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
 
-	document.addEventListener( 'keydown', keydown, false );
-	document.addEventListener( 'keyup', keyup, false );
-	document.addEventListener( 'mousemove', mousemove, false );
-	document.addEventListener( 'mousedown', mousedown, false );
-
-//	this.handleResize();
+	this.domElement.addEventListener( 'keydown', keydown, false );
+	this.domElement.addEventListener( 'keyup', keyup, false );
+	this.domElement.addEventListener( 'mousemove', mousemove, false );
+	this.domElement.addEventListener( 'mousedown', mousedown, false );
 
 };
