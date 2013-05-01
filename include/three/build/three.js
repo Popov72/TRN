@@ -22465,7 +22465,6 @@ THREE.WebGLRenderer = function ( parameters ) {
 		// set matrices for regular objects (frustum culled)
 
 		renderList = scene.__webglObjects;
-
 		for ( i = 0, il = renderList.length; i < il; i ++ ) {
 
 			webglObject = renderList[ i ];
@@ -22473,7 +22472,6 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 			webglObject.id = i;
 			webglObject.render = false;
-			webglObject.z = 0; // popov
 
 			if ( object.visible ) {
 
@@ -22497,7 +22495,6 @@ THREE.WebGLRenderer = function ( parameters ) {
 							_vector3.applyProjection( _projScreenMatrix );
 
 							webglObject.z = _vector3.z;
-							//if (webglObject.z < 0 || webglObject.z > 1) console.log(webglObject.z)
 
 						}
 
@@ -22918,7 +22915,6 @@ THREE.WebGLRenderer = function ( parameters ) {
 		}
 
 		// update must be called after objects adding / removal
-
 		for ( var o = 0, ol = scene.__webglObjects.length; o < ol; o ++ ) {
 
 			var object = scene.__webglObjects[ o ].object;
@@ -23103,6 +23099,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 		objlist.push(
 			{
+				z: 0, // popov
 				buffer: buffer,
 				object: object,
 				opaque: null,
