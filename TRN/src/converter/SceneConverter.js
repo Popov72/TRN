@@ -194,14 +194,35 @@ TRN.LevelConverter.prototype = {
 		console.log('Num meshes in level=' + this.trlevel.meshes.length + ', num externally lit=' + numExternalLit + ', num internally lit=' + numInternalLit);
 	},
 
-	createSprite : function (spriteIndex, flag, color) {
+	//  create a sprite sequence: if there's more than one sprite in the sequence, we create an animated texture
+	createSpriteSeq : function (spriteSeq, flag, color) {
 
-		if (this.sc.embeds['sprite' + spriteIndex]) return true; // sprite already created
+		var spriteIndex, numSprites = 1, spriteid;
 
-		if (spriteIndex >= this.trlevel.spriteTextures.length) {
-			console.log('spriteindex', spriteIndex, 'is too big: only', this.trlevel.spriteTextures.length, 'sprites in this.trlevel.spriteTextures !');
-			return false;
+		if (typeof(spriteSeq) == 'number') {
+			// case where this function is called to create a single sprite in a room
+
+			spriteIndex = spriteSeq;
+			spriteSeq = null;
+			spriteid = 'sprite' + spriteIndex;  
+
+			if (this.sc.embeds[spriteid]) return true; // sprite already created
+
+			if (spriteIndex >= this.trlevel.spriteTextures.length) {
+				console.log('spriteindex', spriteIndex, 'is too big: only', this.trlevel.spriteTextures.length, 'sprites in this.trlevel.spriteTextures !');
+				return false;
+			}
+
+		} else {
+			// case where this function is called to create a sprite sequence
+
+			spriteIndex = spriteSeq.offset;
+			numSprites = -spriteSeq.negativeLength;
+			spriteid = 'spriteseq' + spriteSeq.objectID;
+
+			if (this.sc.embeds[spriteid]) return true; // sprite sequence already created
 		}
+
 
 		var sprite = this.trlevel.spriteTextures[spriteIndex];
 		var meshJSON = this.createNewJSONEmbed();
@@ -241,21 +262,39 @@ TRN.LevelConverter.prototype = {
 			}
 		];
 
-		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, null, 0);
+	    var mapObjTexture2AnimTexture = {};
+
+	    if (numSprites > 1) {
+			var anmcoords = [];
+		    mapObjTexture2AnimTexture[0] = { idxAnimatedTexture:this.sc.animatedTextures.length, pos:0 };
+			for (var i = 0; i < numSprites; ++i) {
+				sprite = this.trlevel.spriteTextures[spriteIndex + i];
+			    anmcoords.push({ minU:(sprite.x+0.5)/256, minV:(sprite.y+0.5)/256, texture:"texture" + sprite.tile});
+			}
+			this.sc.animatedTextures.push({
+				"animcoords": anmcoords,
+				"animspeed" : 20
+			});
+		}
+
+		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
 		meshJSON._materials = this.makeMaterialList(tiles2material, attributes, 'room');
-		for (var m = 0; m < meshJSON._materials.length; ++m) {
-			if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
-				meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
-			} else {
-				meshJSON._materials[m].uniforms.lighting = { type: "f", value: 0.0 }
+
+		if (numSprites == 1) {
+			for (var m = 0; m < meshJSON._materials.length; ++m) {
+				if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
+					meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
+				} else {
+					meshJSON._materials[m].uniforms.lighting = { type: "f", value: 0.0 }
+				}
 			}
 		}
 
-		this.sc.embeds['sprite' + spriteIndex] = meshJSON;
-		this.sc.geometries['sprite' + spriteIndex] = {
+		this.sc.embeds[spriteid] = meshJSON;
+		this.sc.geometries[spriteid] = {
 			"type": "embedded",
-			"id"  : "sprite" + spriteIndex
+			"id"  : spriteid
 		};
 
 		return true;
@@ -356,7 +395,8 @@ TRN.LevelConverter.prototype = {
 					"isAlternateRoom" : room.isAlternate,
 					"filledWithWater": isFilledWithWater,
 					"isStaticMesh": true,
-					"roomIndex": m
+					"roomIndex": m,
+					"objectID": objectID
 				};
 
 			}
@@ -708,45 +748,51 @@ TRN.LevelConverter.prototype = {
 			"skin"	: true,
 			"use_vertex_texture" : false
 		};
+
+		var spriteSeqObjID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
+
+		if (spriteSeqObjID >= 0) {
+			var spriteSeq = this.findSpriteSequenceByID(spriteSeqObjID);
+			if (spriteSeq != null) {
+				this.createSpriteSeqInstance(itemIndex, roomIndex, x, y, z, 0, null, spriteSeq);
+			}
+		}
 	},
 
 	createSpriteSeqInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, spriteSeq) {
  		var room = this.trlevel.rooms[roomIndex];
 		var spriteIndex = spriteSeq.offset;
 
-		if (spriteSeq.negativeLength == -1) {
-			var rvertex = {
-				vertex: { x:x, y:-y, z:-z },
-				attribute: 0,
-				lighting1: lighting,
-				lighting2: lighting
-			};
-			var vertexInfo = this.processRoomVertex(rvertex, room.isFilledWithWater, room.isFlickering);
+		var rvertex = {
+			vertex: { x:x, y:-y, z:-z },
+			attribute: 0,
+			lighting1: lighting,
+			lighting2: lighting
+		};
+		var vertexInfo = this.processRoomVertex(rvertex, room.isFilledWithWater, room.isFlickering);
 
-			if (this.createSprite(spriteIndex, vertexInfo.flag, vertexInfo.color)) {
-				var materials = [];
-				for (var mat = 0; mat < this.sc.embeds['sprite' + spriteIndex]._materials.length; ++mat) {
-					var material = jQuery.extend(true, {}, this.sc.embeds['sprite' + spriteIndex]._materials[mat]);
-					materials.push(material);
-				}
-				
-				this.sc.objects['spriteseq' + spriteSeq.objectID + '_' + itemIndex] = {
-					"geometry" : "sprite" + spriteIndex,
-					"material" : materials,
-					"position" : [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
-					"quaternion" : [ 0, 0, 0, 1 ],
-					"scale"	   : [ 1, 1, 1 ],
-					"visible"  : !room.isAlternate,
-					"isAlternateRoom" : room.isAlternate,
-					"filledWithWater": room.isFilledWithWater,
-					"isSprite": true,
-					"roomIndex": roomIndex
-				};
+		if (this.createSpriteSeq(spriteSeq, vertexInfo.flag, vertexInfo.color)) {
+			var spriteid = 'spriteseq' + spriteSeq.objectID;
+
+			var materials = [];
+			for (var mat = 0; mat < this.sc.embeds[spriteid]._materials.length; ++mat) {
+				var material = jQuery.extend(true, {}, this.sc.embeds[spriteid]._materials[mat]);
+				materials.push(material);
 			}
-		} else {
-			console.log('Sprite sequence with objectId=', spriteSeq.objectID, 'is animated => not handled');
+			
+			this.sc.objects['spriteseq' + spriteSeq.objectID + '_' + itemIndex] = {
+				"geometry" : spriteid,
+				"material" : materials,
+				"position" : [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
+				"quaternion" : [ 0, 0, 0, 1 ],
+				"scale"	   : [ 1, 1, 1 ],
+				"visible"  : !room.isAlternate,
+				"isAlternateRoom" : room.isAlternate,
+				"filledWithWater": room.isFilledWithWater,
+				"isSprite": true,
+				"roomIndex": roomIndex
+			};
 		}
-
 	},
 
 	createItems : function () {

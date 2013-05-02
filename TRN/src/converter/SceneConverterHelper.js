@@ -201,6 +201,16 @@ TRN.extend(TRN.LevelConverter.prototype, {
 			}
 		}
 		return null;
+	},
+
+	findSpriteSequenceByID : function(objectID) {
+		var spriteSeq = null;
+		for (var sq = 0; sq < this.trlevel.spriteSequences.length; ++sq) {
+			if (this.trlevel.spriteSequences[sq].objectID == objectID) {
+				return this.trlevel.spriteSequences[sq];
+			}
+		}
+		return null;
 	}
 
 });

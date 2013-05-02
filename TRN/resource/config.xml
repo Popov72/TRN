@@ -177,6 +177,7 @@
 					</behaviour>
 				</moveable>
 				<moveable id="253">
+					<spritesequence>252</spritesequence>
 					<behaviour name="ParticleSystem">
 						<particlesys_name>TRPlayer/Fire</particlesys_name>
 						<particlesys_offset><x>0</x><y>0</y><z>0</z></particlesys_offset>
