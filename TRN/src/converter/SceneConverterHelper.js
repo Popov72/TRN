@@ -81,20 +81,20 @@ TRN.extend(TRN.LevelConverter.prototype, {
 			var matName = 'anmtext' + alpha + '_' + animTexture.idxAnimatedTexture + '_' + animTexture.pos;
 			imat = tiles2material[matName];
 			if (typeof(imat) == 'undefined') {
-				imat = TRN.objSize(tiles2material);
+				imat = TRN.Helper.objSize(tiles2material);
 				tiles2material[matName] = imat;
 			}
 			anmTexture = true;
 		} else if (tex.attributes & 2) {
 			imat = tiles2material['alpha' + tex.tile];
 			if (typeof(imat) == 'undefined') {
-				imat = TRN.objSize(tiles2material);
+				imat = TRN.Helper.objSize(tiles2material);
 				tiles2material['alpha' + tex.tile] = imat;
 			}
 		} else {
 			imat = tiles2material[tex.tile];
 			if (typeof(imat) == 'undefined') {
-				imat = TRN.objSize(tiles2material);
+				imat = TRN.Helper.objSize(tiles2material);
 				tiles2material[tex.tile] = imat;
 			}
 		}
@@ -163,7 +163,7 @@ TRN.extend(TRN.LevelConverter.prototype, {
 		return internallyLit;
 	},
 
-	makeMaterialList : function (tiles2material, attributes, matname, numLights) {
+	makeMaterialList : function (tiles2material, matname, numLights) {
 		if (!matname) matname = 'room';
 		var lstMat = [];
 		for (var tile in tiles2material) {
@@ -173,8 +173,10 @@ TRN.extend(TRN.LevelConverter.prototype, {
 			if (isAlphaText) tile = tile.substr(5);
 			lstMat[imat] = {
 				"material": this.getMaterial(matname, numLights),
-				"attributes": attributes,
-				"userData": {},
+				"uniforms": {
+					"offsetRepeat" : { type: "v4", value: new THREE.Vector4( 0, 0, 1, 1 ) }
+				},
+				"userData": {}
 			};
 			if (isAnimText) {
 				isAlphaText = tile.substr(7, 5) == 'alpha';
@@ -183,9 +185,7 @@ TRN.extend(TRN.LevelConverter.prototype, {
 					"pos": parseInt(tile.split('_')[2])
 				};
 			} else {
-				lstMat[imat].uniforms = {
-					"map": { type: "t", value: "texture" + tile }
-				};
+				lstMat[imat].uniforms.map = { type: "t", value: "texture" + tile };
 			}
 			lstMat[imat].hasAlpha = isAlphaText;
 

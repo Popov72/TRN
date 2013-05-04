@@ -1,8 +1,6 @@
 var camera, scene, sceneJSON, renderer, stats, controls, startTime = -1;
 var clock = new THREE.Clock();
 
-var trlevel_; // debug only => to be removed
-
 function errorHandler(e) {
   var msg = '';
 
@@ -33,15 +31,39 @@ function errorHandler(e) {
 function show(trlevel) {
 	jQuery( "#progress" ).css('display', "block");
 
+	var levelConverted = function(sc) {
+		sceneJSON = sc;
+		if (sc.cutScene.soundData && TRN.Browser.AudioContext) {
+            TRN.Browser.AudioContext.decodeAudioData(
+                TRN.Base64Binary.decodeArrayBuffer(sc.cutScene.soundData),
+                function(buffer) {
+                    if (!buffer) {
+                        console.log('error decoding sound data for cut scene');
+                    } else {
+						sc.cutScene.sound = TRN.Browser.AudioContext.createBufferSource();
+						sc.cutScene.sound.buffer = buffer;
+						sc.cutScene.sound.connect(TRN.Browser.AudioContext.destination);
+                    }
+					init();
+                }    
+            );
+		} else {
+			init();
+		}
+	}
+
 	if (typeof(trlevel) == 'string') {
 
 		var isZip = trlevel.indexOf('.zip') >= 0;
+
 	    var request = new XMLHttpRequest();
 	    request.open("GET", trlevel, true);
 	    request.responseType = isZip ? "arraybuffer" : "text";
+
 	    request.onerror = function() {
 	        console.log('Read level: XHR error', request.status, request.statusText);
 	    }
+
 	    request.onprogress = function(e) {
 	    	if (e.lengthComputable) {
 				var bar = 250;
@@ -60,33 +82,32 @@ function show(trlevel) {
 	        if (request.status != 200) {
 		   		console.log('Could not read the level', trlevel, request.status, request.statusText);
 	        } else {
+				jQuery( "#bar" ).css('width', "100%");
+	        	var sc;
 	        	if (isZip) {
 		        	console.log('Level', trlevel, 'loaded. Unzipping...');
 		    		var zip = new JSZip();
 		    		zip.load(request.response);
 		    		var f = zip.file('level');
-		    		sceneJSON = JSON.parse(f.asText());//eval('[' + f.asText() + ']')[0];
+		    		sc = JSON.parse(f.asText());
 		    		console.log('Level unzipped.');
 		    	} else {
-		    		sceneJSON = JSON.parse(request.response);
+		    		sc = JSON.parse(request.response);
 		    	}
-	    		init();
+	    		levelConverted(sc);
 	        }
 	    }
 
 		request.send();
 
 	} else {
-		trlevel_ = trlevel;
-
 		var converter = new TRN.LevelConverter(trlevel.confMgr);
 
-		var sc = converter.convert(trlevel);
+		converter.convert(trlevel, levelConverted);
 
 		if (false) {
-			ssc = JSON.stringify(sc);
-			console.log(ssc)
-		    /*var zip = new JSZip();
+			/*ssc = JSON.stringify(sc);
+		    var zip = new JSZip();
 		    zip.file("level", ssc);
 		    var content = zip.generate({compression:'DEFLATE', type:'blob'});
 		    console.log(ssc.length, content.size)
@@ -121,33 +142,6 @@ function show(trlevel) {
 			}*/
 		}
 
-		sceneJSON = sc;
-		if (sc.cutScene.frames) {
-			var context = typeof(webkitAudioContext) != 'undefined' ? new webkitAudioContext() : typeof(AudioContext) != 'undefined' ? new AudioContext() : null;
-			if (context != null) {
-				var bufferLoader = new BufferLoader(
-					context,
-					[
-					  sc.soundPath + sc.levelShortFileName.toUpperCase(),
-					],
-					function finishedLoading(bufferList, err) {
-						if (bufferList != null && bufferList.length > 0) {
-							sc.cutScene.sound = context.createBufferSource();
-							sc.cutScene.sound.buffer = bufferList[0];
-							sc.cutScene.sound.connect(context.destination);
-						} else {
-							console.log('Error when loading sound. ', err);
-						}
-						init();
-					}
-				);
-				bufferLoader.load();
-			} else {
-				init();
-			}
-		} else {
-			init();
-		}
 	}
 }
 
@@ -182,7 +176,14 @@ function init() {
 	var loader = new THREE.SceneLoader();
 	loader.callbackProgress = callbackProgress;
 
-	loader.parse(sceneJSON, callbackFinished, '');
+	loader.parse(sceneJSON, function(result) {
+	    window.setTimeout(function() {
+		    jQuery('#message').html('Processing...');
+		    window.setTimeout(function() {
+				callbackFinished(result);
+			}, 100);
+		}, 100);
+	}, '');
 
 }
 
@@ -254,7 +255,7 @@ function callbackFinished(result) {
 			if (!materials || !materials.length) continue;
 
 			for (var i = 0; i < materials.length; ++i) {
-				var material = materials[i], userData = material.userData;
+				var material = materials[i];
 				material.wireframe = this.checked;
 			}
 		}
@@ -270,7 +271,7 @@ function callbackFinished(result) {
 			if (!materials || !materials.length) continue;
 
 			for (var i = 0; i < materials.length; ++i) {
-				var material = materials[i], userData = material.userData;
+				var material = materials[i];
 				material.fragmentShader = shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
 				material.needsUpdate = true;
 			}
@@ -347,9 +348,9 @@ function callbackFinished(result) {
 					return function(remainingTime) {
 						var scurAnim = curAnim;
 
-						curAnim = trlevel_.animations[scurAnim].nextAnimation;
+						curAnim = sceneJSON.animations_[scurAnim].nextAnimation;
 
-						var nextFrame = trlevel_.animations[scurAnim].nextFrame - trlevel_.animations[curAnim].frameStart;
+						var nextFrame = sceneJSON.animations_[scurAnim].nextFrame - sceneJSON.animations_[curAnim].frameStart;
 
 						if (scurAnim == curAnim) return;
 
@@ -371,7 +372,7 @@ function callbackFinished(result) {
 					registered[anmIndex] = true;
 					registerAnimation(objJSON.moveable, anmIndex, true);
 
-					anmIndex = trlevel_.animations[anmIndex].nextAnimation;
+					anmIndex = sceneJSON.animations_[anmIndex].nextAnimation;
 				}
 
 				var anim = registerAnimation(objJSON.moveable, objJSON.animationStartIndex, true);
@@ -423,6 +424,11 @@ function callbackFinished(result) {
 		obj.geometry.computeFaceNormals();
 		obj.geometry.computeVertexNormals();
 
+		var attributes = sceneJSON.embeds[sceneJSON.geometries[objJSON.geometry].id].attributes;
+		if (attributes) {
+			attributes.flags.needsUpdate = true;
+		}
+
 		for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
 			var elem = objJSON.material[mt_];
 			if (typeof(elem) == 'string') {
@@ -432,9 +438,9 @@ function callbackFinished(result) {
 				if (elem.uniforms) {
 					material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
 				}
-				if (elem.attributes) {
-					material.materials[mt_].attributes = elem.attributes;
-					material.materials[mt_].attributes.flags.needsUpdate = true;
+
+				if (attributes) {
+					material.materials[mt_].attributes = attributes;
 				}
 				for (var mkey in elem) {
 					if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
@@ -442,6 +448,7 @@ function callbackFinished(result) {
 				}
 			}
 		}
+
 		var materials = material.materials;
 		if (!materials || !materials.length) continue;
 		for (var i = 0; i < materials.length; ++i) {
@@ -501,13 +508,13 @@ function callbackFinished(result) {
 		//camera.quaternion.set(0.005487008774905242,0.9860915773002777,0.16275151654342634,-0.03324511655818078);
 	}
 
-	if (TRN.QueryString.pos) {
-		var vals = TRN.QueryString.pos.split(',');
+	if (TRN.Browser.QueryString.pos) {
+		var vals = TRN.Browser.QueryString.pos.split(',');
 		camera.position.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]));
 	}
 
-	if (TRN.QueryString.rot) {
-		var vals = TRN.QueryString.rot.split(',');
+	if (TRN.Browser.QueryString.rot) {
+		var vals = TRN.Browser.QueryString.rot.split(',');
 		camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
 	}
 
@@ -518,15 +525,15 @@ function callbackFinished(result) {
 
 	controls = new BasicControls( camera, elem );
 
-	TRN.bindRequestPointerLock(elem);
-	TRN.bindRequestFullscreen(elem);
+	TRN.Browser.bindRequestPointerLock(elem);
+	TRN.Browser.bindRequestFullscreen(elem);
 
 	jQuery( "#start" ).on( 'click', start );
 	jQuery( "#message" ).css('display', "none");
 	jQuery( "#progressbar" ).css('display', "none");
 	jQuery( "#panel" ).css('display', 'block');
 
-	if (TRN.QueryString.autostart == '1') {
+	if (TRN.Browser.QueryString.autostart == '1') {
 		start();
 	} else {
 		jQuery( "#start" ).css('display', "block");
@@ -542,7 +549,7 @@ function start() {
 	jQuery( "#progress" ).css('display', "none");
 
 	if (sceneJSON.cutScene.frames != null) {
-		TRN.startSound(sceneJSON.cutScene.sound);
+		TRN.Helper.startSound(sceneJSON.cutScene.sound);
 	}
 
 	animate();

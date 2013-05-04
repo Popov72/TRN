@@ -6,5 +6,6 @@
 /TRN/texture/tr2/*
 /TRN/texture/tr3/*
 /TRN/texture/tr4/*
+/TRN/level/*
 .DS_Store
 include/three/build/three_dev.js

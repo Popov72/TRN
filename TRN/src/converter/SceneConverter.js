@@ -103,8 +103,8 @@ TRN.LevelConverter.prototype = {
 		// create one texture per tile	
 		for (var i = 0; i < this.trlevel.textile.length; ++i) {
 			this.sc.textures['texture' + i] = {
-				/*"url": "TRN/texture/brick.jpg",*/
-				"url": this.sc.texturePath  + this.sc.levelShortFileNameOrig + "_tile" + i + ".png",
+				/*"url_": this.sc.texturePath  + this.sc.levelShortFileNameOrig + "_tile" + i + ".png",*/
+				"url": this.trlevel.textile[i],
 				"anisotropy": 16
 			};
 		}
@@ -160,9 +160,11 @@ TRN.LevelConverter.prototype = {
 		};
 		var tiles2material = {};
 
+		meshJSON.attributes = attributes;
+
 		var externalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
 
-		meshJSON._materials = this.makeMaterialList(tiles2material, attributes, 'mesh');
+		meshJSON._materials = this.makeMaterialList(tiles2material, 'mesh');
 		for (var m = 0; m < meshJSON._materials.length; ++m) {
 			if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
 				meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
@@ -231,6 +233,8 @@ TRN.LevelConverter.prototype = {
 		};
 		var tiles2material = {};
 
+		meshJSON.attributes = attributes;
+
 		meshJSON.vertices.push(sprite.leftSide, -sprite.topSide, 0);
 		meshJSON.vertices.push(sprite.leftSide, -sprite.bottomSide, 0);
 		meshJSON.vertices.push(sprite.rightSide, -sprite.bottomSide, 0);
@@ -264,7 +268,7 @@ TRN.LevelConverter.prototype = {
 
 	    var mapObjTexture2AnimTexture = {};
 
-	    if (numSprites > 1) {
+	    if (numSprites > 1 && this.sc.animatedTextures) {
 			var anmcoords = [];
 		    mapObjTexture2AnimTexture[0] = { idxAnimatedTexture:this.sc.animatedTextures.length, pos:0 };
 			for (var i = 0; i < numSprites; ++i) {
@@ -279,7 +283,7 @@ TRN.LevelConverter.prototype = {
 
 		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
-		meshJSON._materials = this.makeMaterialList(tiles2material, attributes, 'room');
+		meshJSON._materials = this.makeMaterialList(tiles2material, 'room');
 
 		if (numSprites == 1) {
 			for (var m = 0; m < meshJSON._materials.length; ++m) {
@@ -325,6 +329,8 @@ TRN.LevelConverter.prototype = {
 			};
 			var tiles2material = {};
 
+			roomJSON.attributes = attributes;
+
 			// push the vertices + vertex colors of the room
 			for (var v = 0; v < rdata.vertices.length; ++v) {
 				var rvertex = rdata.vertices[v];
@@ -346,7 +352,7 @@ TRN.LevelConverter.prototype = {
 			};
 			this.sc.objects['room' + m] = {
 				"geometry" : "room" + m,
-				"material" : this.makeMaterialList(tiles2material, attributes),
+				"material" : this.makeMaterialList(tiles2material, 'room'),
 				"position" : [ 0, 0, 0 ],
 				"quaternion" : [ 0, 0, 0, 1 ],
 				"scale"	   : [ 1, 1, 1 ],
@@ -407,7 +413,7 @@ TRN.LevelConverter.prototype = {
 				var rvertex = rdata.vertices[sprite.vertex];
 				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater, isFlickering);
 
-				if (!this.createSprite(spriteIndex, vertexInfo.flag, vertexInfo.color)) continue;
+				if (!this.createSpriteSeq(spriteIndex, vertexInfo.flag, vertexInfo.color)) continue;
 
 				var materials = [];
 				for (var mat = 0; mat < this.sc.embeds['sprite' + spriteIndex]._materials.length; ++mat) {
@@ -657,6 +663,8 @@ TRN.LevelConverter.prototype = {
 			var stackIdx = 0, stack = [], parent = -1;
 			var px = 0, py = 0, pz = 0, ofsvert = 0, bones = [], skinIndices = [], skinWeights = [];
 
+			meshJSON.attributes = attributes;
+
 			for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
 				if (idx != 0) {
 					var sflag = this.trlevel.meshTrees[meshTree++].coord;
@@ -693,7 +701,7 @@ TRN.LevelConverter.prototype = {
 			meshJSON.skinIndices = skinIndices;
 			meshJSON.skinWeights = skinWeights;
 
-			meshJSON._materials = this.makeMaterialList(tiles2material, attributes, 'moveable');
+			meshJSON._materials = this.makeMaterialList(tiles2material, 'moveable');
 			for (var mat = 0; mat < meshJSON._materials.length; ++mat) {
 				meshJSON._materials[mat].uniforms.lighting = { type: "f", value: 0.0 }
 			}
@@ -902,7 +910,7 @@ TRN.LevelConverter.prototype = {
 			"in" : this.confMgr.globalColor('water > colorin'),
 			"out" : this.confMgr.globalColor('water > colorout')
 		};
-		this.sc.texturePath = "TRN/texture/" + this.trlevel.rversion.toLowerCase() + "/";
+		//this.sc.texturePath = "TRN/texture/" + this.trlevel.rversion.toLowerCase() + "/";
 		this.sc.soundPath = "TRN/sound/" + this.trlevel.rversion.toLowerCase() + "/";
 
 		TRN.ObjectID.Lara = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
@@ -972,6 +980,8 @@ TRN.LevelConverter.prototype = {
 
 		this.createAnimations();
 
+		this.sc.animations_ = this.trlevel.animations; // to be removed but needed for the time being for the cut scenes
+
 		if (this.sc.cutScene.frames) {
 			// update position/quaternion for some specific items if we play a cut scene
 			var min = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animminid', true, 0);
@@ -986,9 +996,25 @@ TRN.LevelConverter.prototype = {
 					objJSON.quaternion = [ q.x, q.y, q.z, q.w ];
 				}
 			}
-		}
 
-		return this.sc;
+			var this_ = this;
+			var binaryBuffer = new TRN.BinaryBuffer(
+				[
+				  this_.sc.soundPath + this_.sc.levelShortFileName.toUpperCase()
+				],
+				function finishedLoading(bufferList, err) {
+					if (bufferList != null && bufferList.length > 0) {
+						this_.sc.cutScene.soundData = TRN.Base64Binary.encode(bufferList[0]);
+					} else {
+						console.log('Error when loading file. ', err);
+					}
+					callback_created(this_.sc);
+				}
+			);
+			binaryBuffer.load();
+		} else {
+			callback_created(this.sc);
+		}
 
 	}
 }

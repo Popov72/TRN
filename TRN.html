@@ -20,6 +20,11 @@
 	<script src="include/jszip/jszip-load.js"></script>
 
 	<script src="TRN/src/TRN.js"></script>
+	<script src="TRN/src/util/Helper.js"></script>
+	<script src="TRN/src/util/Browser.js"></script>
+	<script src="TRN/src/util/BinaryBuffer.js"></script>
+	<script src="TRN/src/util/Base64Binary.js"></script>
+	<script src="TRN/src/util/Base64String.js"></script>
 	<script src="TRN/src/loader/Loader.js"></script>
 	<script src="TRN/src/loader/TR1Loader.js"></script>
 	<script src="TRN/src/loader/TR1TUBLoader.js"></script>
@@ -29,6 +34,8 @@
 	<script src="TRN/src/converter/SceneConverterHelper.js"></script>
 	<script src="TRN/src/sound/Sound.js"></script>
 	<script src="TRN/src/player/BasicControls.js"></script>
+	<script src="TRN/src/player/ConfigMgr.js"></script>
+	<script src="TRN/src/player/ShaderMgr.js"></script>
 	<script src="TRN/src/player/Play.js"></script>
 
 	<style>
@@ -108,7 +115,7 @@
 </head>
 <body>
 
-<input type="file" id="files" style="display: none" />
+<input type="file" id="files" multiple='multiple' style="display: none" />
 <div id="output" style="color:white" style="display: none"></div>
 
 <div id="panel" class="panel">
@@ -144,34 +151,67 @@
 
 <script>
 var showTiles = false;
+var makeJSON = false;
+var level2JSON = {};
+
+function saveJSON(rversion, levelName) {
+  window.URL = window.webkitURL || window.URL;
+
+  var bb = new Blob([level2JSON[levelName]], {type: 'application/x-json'});
+
+  var a = document.createElement('a');
+  
+  a.download = /*rversion.toLowerCase() + '_' + */levelName;
+  a.href = window.URL.createObjectURL(bb);
+  a.click();
+}
 
 function handleFileSelect(evt) {
-	var files = evt.target.files;
-	
-	var output = [], idx = 1;
-	jQuery('#output').html('');
-	for (var i = 0; i < files.length; ++i) {
-		var f = files[i];
+
+	function readFile(idx) {
+		var f = files[idx-1];
 		var freader = new FileReader();
 		freader.onload = (function(theFile) {
 			return function(e) {
-				var rs = loadLevel(e.target.result, theFile.name);
-				var json = '';//JSON.stringify(rs.json, null, '\t');
-				jQuery('#output').html(function(index,old) { 
-					return old + (idx++) + ' - ' + theFile.name + ' converted. ok=' + rs.ok + '<br><pre>' + json+ '</pre>'; });
-				if (!showTiles) {
+				var rs = TRN.Loader.loadLevel(e.target.result, theFile.name);
+
+				if (!showTiles && !makeJSON) {
 					jQuery('#files').css('display', 'none');
 					jQuery('#output').css('display', 'none');
 					show(rs.json);
+				} else if (makeJSON) {
+					var trlevel = rs.json;
+					var converter = new TRN.LevelConverter(trlevel.confMgr);
+
+					converter.convert(trlevel, function(sc) {
+						level2JSON[sc.levelShortFileName] = JSON.stringify(sc);
+
+						jQuery('body').append(
+							'<div style="color:white;cursor:pointer" onclick="saveJSON(\'' + trlevel.rversion + '\', \'' + sc.levelShortFileName + '\')">' +
+							idx + '/' + files.length + ' - Click to download ' + sc.levelShortFileNameOrig + '<div>'
+						);
+
+						if (idx++ < files.length) {
+							window.setTimeout(function() {
+								readFile(idx);
+							}, 100);
+						}
+					});
 				}
 			};
 		})(f);
 		freader.readAsArrayBuffer(f);
 	}
+
+	var files = evt.target.files;
+	
+	jQuery('#output').html('');
+
+	readFile(1);
 }
 
-if (TRN.QueryString.level) {
-	show('TRN/level/' + TRN.QueryString.level);
+if (TRN.Browser.QueryString.level) {
+	show('TRN/level/' + TRN.Browser.QueryString.level);
 } else {
 	document.getElementById("files").style.display = "block";
 	document.getElementById("output").style.display = "block";
