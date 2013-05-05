@@ -382,7 +382,9 @@
 			<level id="cut7"		type="cutscene"	name="Lara Drives Over Fence"/>
 			<level id="cut8"		type="cutscene"	name="Lara the stowaway in a delivery truck"/>
 			<level id="cut9"		type="cutscene"	name="Lara meets Tony again"/>
-			<level id="cut11" 		type="cutscene"	name="Lara meets Sophia Lee"/>
+			<level id="cut11" 		type="cutscene"	name="Lara meets Sophia Lee">
+				<sky><noanim>true</noanim></sky>
+			</level>
 			<level id="cut12" 		type="cutscene"	name="Lara watches Willard transform"/>
 			<!-- Gold levels -->
 			<level id="chunnel"		type="normal"	name="" gold="1"/>
