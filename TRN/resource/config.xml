@@ -267,6 +267,7 @@
 				<color><r>255</r><g>255</g><b>255</b></color>
 				<objectid>355</objectid>
 				<removepoly><start>16</start><num>16</num></removepoly>
+				<noanim>true</noanim>
 			</sky>
 			<water>
 				<colorin><r>153</r><g>255</g><b>306</b></colorin>
@@ -325,31 +326,21 @@
 		</global>
 		<levels>
 			<!-- Standard levels -->
-			<level id="house"		type="normal"	name="Lara's Home">
-				<sky><noanim>true</noanim></sky>
-			</level>
-			<level id="jungle"		type="normal"	name="Jungle">
-				<sky><noanim>true</noanim></sky>
-			</level>
+			<level id="house"		type="normal"	name="Lara's Home"/>
+			<level id="jungle"		type="normal"	name="Jungle"/>
 			<level id="temple"		type="normal"	name="Temple Ruins"/>
-			<level id="quadchas"	type="normal"	name="The River Ganges">
-				<sky><noanim>true</noanim></sky>
-			</level>
+			<level id="quadchas"	type="normal"	name="The River Ganges"/>
 			<level id="tonyboss"	type="normal"	name="Caves of Kaliya"/>
-			<level id="shore"		type="normal"	name="Coastal Village">
-				<sky><noanim>true</noanim></sky>
-			</level>
+			<level id="shore"		type="normal"	name="Coastal Village"/>
 			<level id="crash"		type="normal"	name="Crash Site"/>
-			<level id="rapids"		type="normal"	name="Madubu Gorge">
-				<sky><noanim>true</noanim></sky>
-			</level>
+			<level id="rapids"		type="normal"	name="Madubu Gorge"/>
 			<level id="triboss"		type="normal"	name="Temple of Puna"/>
-			<level id="roofs"		type="normal"	name="Thames Wharf">
-				<sky><noanim>true</noanim></sky>
-			</level>
+			<level id="roofs"		type="normal"	name="Thames Wharf"/>
 			<level id="sewer"		type="normal"	name="Aldwych"/>
 			<level id="tower"		type="normal"	name="Lud's Gate"/>
-			<level id="office"		type="normal"	name="City"/>
+			<level id="office"		type="normal"	name="City">
+				<sky><noanim>false</noanim></sky>
+			</level>
 			<level id="nevada"		type="normal"	name="Nevada Desert"/>
 			<level id="compound"	type="normal"	name="High Security Compound"/>
 			<level id="area51"		type="normal"	name="Area 51"/>
@@ -359,7 +350,9 @@
 			<level id="chamber"		type="normal"	name="Meteorite Cavern">
 				<sky><removepoly><num>0</num></removepoly></sky>
 			</level>
-			<level id="stpaul"		type="normal"	name="All Hallows"/>
+			<level id="stpaul"		type="normal"	name="All Hallows">
+				<sky><noanim>false</noanim></sky>
+			</level>
 			<level id="title"		type="normal"	name="Title display"/>
 			<level id="cut1"		type="cutscene"	name="Lara Meets Amputated Mercenary"/>
 			<level id="cut2"		type="cutscene"	name="Saved by the Bell">
@@ -382,9 +375,7 @@
 			<level id="cut7"		type="cutscene"	name="Lara Drives Over Fence"/>
 			<level id="cut8"		type="cutscene"	name="Lara the stowaway in a delivery truck"/>
 			<level id="cut9"		type="cutscene"	name="Lara meets Tony again"/>
-			<level id="cut11" 		type="cutscene"	name="Lara meets Sophia Lee">
-				<sky><noanim>true</noanim></sky>
-			</level>
+			<level id="cut11" 		type="cutscene"	name="Lara meets Sophia Lee"/>
 			<level id="cut12" 		type="cutscene"	name="Lara watches Willard transform"/>
 			<!-- Gold levels -->
 			<level id="chunnel"		type="normal"	name="" gold="1"/>
@@ -667,7 +658,7 @@
 				</moveables>
 			</level>
 			<level id="palaces"		type="normal"	name="Pharos,Temple Of Isis"/>
-			<level id="palaces2"		type="normal"	name="Cleopatra´s Palaces"/>
+			<level id="palaces2"		type="normal"	name="CleopatraÂ´s Palaces"/>
 			<level id="semer"		type="normal"	name="The Tomb of Semerkhet"/>
 			<level id="semer2"		type="normal"	name="Guardian Of Semerket"/>
 			<level id="settomb1"		type="normal"	name="The Tomb Of Seth"/>

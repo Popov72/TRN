@@ -151,7 +151,7 @@ TRN.LevelConverter.prototype = {
 	// create one mesh
 	createMesh : function (meshIndex) {
 
-		if (this.sc.embeds['mesh' + meshIndex]) return; // mesh already created
+		if (this.sc.embeds['mesh' + meshIndex]) return -1; // mesh already created
 
 		var mesh = this.trlevel.meshes[meshIndex];
 		var meshJSON = this.createNewJSONEmbed();
@@ -162,7 +162,7 @@ TRN.LevelConverter.prototype = {
 
 		meshJSON.attributes = attributes;
 
-		var externalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
+		var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
 
 		meshJSON._materials = this.makeMaterialList(tiles2material, 'mesh');
 		for (var m = 0; m < meshJSON._materials.length; ++m) {
@@ -179,7 +179,7 @@ TRN.LevelConverter.prototype = {
 			"id"  : "mesh" + meshIndex
 		};
 
-		return externalLit;
+		return internalLit ? 1 : 0;
 	},
 
 	// create all the meshes of the level => not used
@@ -188,9 +188,9 @@ TRN.LevelConverter.prototype = {
 
 		for (var i = 0; i < this.trlevel.meshes.length; ++i) {
 
-			var externalLit = this.createMesh(i);
+			var internalLit = this.createMesh(i);
 
-			if (externalLit) numExternalLit++; else numInternalLit++;
+			if (internalLit) numInternalLit++; else numExternalLit++;
 
 		}
 		console.log('Num meshes in level=' + this.trlevel.meshes.length + ', num externally lit=' + numExternalLit + ', num internally lit=' + numInternalLit);
@@ -382,7 +382,11 @@ TRN.LevelConverter.prototype = {
 				rot = ((rot & 0xC000) >> 14) * 90;
 				q.setFromAxisAngle( { x:0, y:1, z:0}, THREE.Math.degToRad(-rot) );
 
-				this.createMesh(mindex);
+				var internalLit = this.createMesh(mindex);
+
+				if (internalLit == 0) {
+					console.log('Static mesh objID=', objectID, ', meshIndex=', mindex, 'in room ', m, 'is externally lit.')
+				}
 
 				var materials = [];
 				for (var mat = 0; mat < this.sc.embeds['mesh' + mindex]._materials.length; ++mat) {
@@ -651,7 +655,7 @@ TRN.LevelConverter.prototype = {
 			var moveable = this.trlevel.moveables[m];
 
 			var numMeshes = moveable.numMeshes, meshIndex = moveable.startingMesh, meshTree = moveable.meshTree;
-			var isDummy = numMeshes == 1 && this.trlevel.meshes[meshIndex].dummy;
+			var isDummy = numMeshes == 1 && this.trlevel.meshes[meshIndex].dummy && !moveable.objectID == TRN.ObjectID.Lara;
 
 			if (this.sc.geometries['moveable' + moveable.objectID] || isDummy) continue;
 
@@ -665,6 +669,7 @@ TRN.LevelConverter.prototype = {
 
 			meshJSON.attributes = attributes;
 
+			var moveableIsInternallyLit = false;
 			for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
 				if (idx != 0) {
 					var sflag = this.trlevel.meshTrees[meshTree++].coord;
@@ -682,7 +687,9 @@ TRN.LevelConverter.prototype = {
 
 				var mesh = this.trlevel.meshes[meshIndex];
 
-				this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
+				var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
+				
+				moveableIsInternallyLit = moveableIsInternallyLit || internalLit;
 
 				ofsvert = parseInt(meshJSON.vertices.length/3);
 
@@ -700,6 +707,7 @@ TRN.LevelConverter.prototype = {
 			meshJSON.bones = bones;
 			meshJSON.skinIndices = skinIndices;
 			meshJSON.skinWeights = skinWeights;
+			meshJSON.moveableIsInternallyLit = moveableIsInternallyLit;
 
 			meshJSON._materials = this.makeMaterialList(tiles2material, 'moveable');
 			for (var mat = 0; mat < meshJSON._materials.length; ++mat) {
@@ -726,11 +734,14 @@ TRN.LevelConverter.prototype = {
 		var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
 		var materials = null;
 		if (hasGeometry) {
+			var moveableIsInternallyLit = this.sc.embeds['moveable' + objIDForVisu].moveableIsInternallyLit;
 			materials = [];
 			for (var mat = 0; mat < this.sc.embeds['moveable' + objIDForVisu]._materials.length; ++mat) {
 				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objIDForVisu]._materials[mat]);
-				if (lighting != -1) {
+				if (lighting != -1 || moveableIsInternallyLit) {
 					// item is internally lit
+					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
+					if (lighting == -1) lighting = 0;
 					material.uniforms.lighting.value = this.convertIntensity(lighting);
 				} else {
 					// change material to a material that handles lights
