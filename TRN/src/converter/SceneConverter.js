@@ -504,7 +504,7 @@ TRN.LevelConverter.prototype = {
 	},
 
 	createAnimations : function () {
-		var animations = [];
+		var animTracks = [];
 
 		for (var anm = 0; anm < this.trlevel.animations.length; ++anm) {
 			var anim = this.trlevel.animations[anm];
@@ -528,7 +528,7 @@ TRN.LevelConverter.prototype = {
 				frameStep = this.trlevel.frames[frameOffset + 9] * 2 + 10;
 			}
 
-			var animBones = [];
+			var animKeys = [];
 
 			for (var key = 0; key < animNumKeys; key++)	{
 				var frame = frameOffset + key * frameStep, sframe = frame;
@@ -544,7 +544,7 @@ TRN.LevelConverter.prototype = {
 					numAnimatedMeshes = this.trlevel.frames[frame++];
 				}
 
-				var mesh = 0;
+				var mesh = 0, keyData = [];
 				// Loop through all the meshes of the key
 				while (mesh < numAnimatedMeshes) {
 					var angleX = 0.0, angleY = 0.0, angleZ = 0.0;
@@ -605,47 +605,39 @@ TRN.LevelConverter.prototype = {
 
 				    qy.multiply(qx).multiply(qz);
 
-				    if (animBones.length <= mesh) {
-						animBones.push({
-							"keys": []
-						});
-				    }
-
-					var bone = animBones[mesh];
-
-					bone.keys.push({
-						"time": (key * anim.frameRate) / TRN.baseFrameRate,
-						"pos":  [ transX, transY, transZ ], 
-						"rot":  [ qy.x, qy.y, qy.z, qy.w ], 
-						"scl":  [ 1, 1, 1 ]
+					keyData.push({
+						"position": 	{ x:transX, y:transY, z:transZ },
+						"quaternion":	{ x:qy.x, y:qy.y, z:qy.z, w:qy.w }
 					});
-
-					if (animNumKeys == 1) {
-						// three js needs at least two keys for skeleton animation
-						bone.keys.push(jQuery.extend(true, {}, bone.keys[bone.keys.length-1]));
-						bone.keys[bone.keys.length-1].time = 1.0;
-					}
 
 					transX = transY = transZ = 0;
 
 					mesh++;
 				}
-				//if (frame-sframe > frameStep)
-				//console.log('id', moveable.objectID, ' anim', anm, ' key', key, ' frameStep', frameStep, ' diff', frame-sframe)
+
+				animKeys.push({
+					"time": 		key * anim.frameRate, 
+					"boundingBox": 	{ xmin: BBLoX, ymin: BBHiY, zmin: BBHiZ, xmax: BBHiX, ymax: BBLoY, zmax: BBLoZ },
+					"data":  		keyData
+				});
+
 			}
 
-			animations.push({ 
-				"name": 		"anim" + anm,
-				"fps": 			animFPS, 
-				"length": 		animLength, 
-				"hierarchy": 	animBones,
-				"numFrames":  	numFrames,
-				"numKeys":      animNumKeys,
-				"frameRate":   	anim.frameRate
+			animTracks.push({
+				"name": 			"anim" + anm,
+				"numKeys":  		animNumKeys,
+				"numFrames":  		numFrames,
+				"frameRate": 		anim.frameRate,
+				"fps":  			animFPS,
+				"nextTrack":  		anim.nextAnimation,
+				"nextTrackFrame": 	anim.nextFrame - this.trlevel.animations[anim.nextAnimation].frameStart,
+				"keys":  			animKeys
 			});
+
 		}
 
-		this.sc.animations = animations;
+		this.sc.animTracks = animTracks;
+
 	},
 
 	createMoveables : function () {
@@ -923,6 +915,7 @@ TRN.LevelConverter.prototype = {
 		};
 		//this.sc.texturePath = "TRN/texture/" + this.trlevel.rversion.toLowerCase() + "/";
 		this.sc.soundPath = "TRN/sound/" + this.trlevel.rversion.toLowerCase() + "/";
+		this.sc.rversion = this.trlevel.rversion;
 
 		TRN.ObjectID.Lara = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
 

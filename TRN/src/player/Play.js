@@ -334,8 +334,32 @@ function callbackFinished(result) {
 		}
 	}
 
-	// start anim #0 for meshes with animations
-	if (sceneJSON.animations) {
+	// animations
+	if (sceneJSON.animTracks) {
+		scene.animTracks = [];
+
+		// create one track per animation
+		for (var t = 0; t < sceneJSON.animTracks.length; ++t) {
+			var trackJSON = sceneJSON.animTracks[t], keys = trackJSON.keys;
+
+			var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.nextTrack, trackJSON.nextTrackFrame, trackJSON.name);
+
+			scene.animTracks.push(track);
+
+			for (var k = 0; k < keys.length; ++k) {
+				var keyJSON = keys[k], dataJSON = keyJSON.data;
+
+				var key = new TRN.Animation.Key(keyJSON.time, keyJSON.boundingBox);
+
+				for (var d = 0; d < dataJSON.length; ++d) {
+					key.addData(dataJSON[d].position, dataJSON[d].quaternion);
+				}
+
+				track.addKey(key);
+			}
+		}
+
+		// instanciate the first track for each animated object
 		for (var objID in scene.objects) {
 			var obj = scene.objects[objID];
 			var objJSON = sceneJSON.objects[objID];
@@ -343,50 +367,45 @@ function callbackFinished(result) {
 			if (!objJSON.has_anims) continue;
 
 			if (sceneJSON.cutScene.frames) {
-				var animator = function(obj, animIndex, objectID) {
-					var curAnim = animIndex;
-					return function(remainingTime) {
-						var scurAnim = curAnim;
-
-						curAnim = sceneJSON.animations_[scurAnim].nextAnimation;
-
-						var nextFrame = sceneJSON.animations_[scurAnim].nextFrame - sceneJSON.animations_[curAnim].frameStart;
-
-						if (scurAnim == curAnim) return;
-
-						remainingTime += nextFrame / TRN.baseFrameRate;
-
-						var anim = registerAnimation(objectID, curAnim, true);
-						var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR, this.callbackfn);
-
-						animation.play( false, remainingTime );
-						animation.update(0);
-					}
-				};
-
 				// register all animations we will need in the cut scene
-				var registered = {}, anmIndex = objJSON.animationStartIndex;
+				var registered = {}, anmIndex = objJSON.animationStartIndex, allTrackInstances = {};
 				while (true) {
 					if (registered[anmIndex]) break;
 					
 					registered[anmIndex] = true;
-					registerAnimation(objJSON.moveable, anmIndex, true);
 
-					anmIndex = sceneJSON.animations_[anmIndex].nextAnimation;
+					var track = scene.animTracks[anmIndex];
+					var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
+
+					allTrackInstances[anmIndex] = trackInstance;
+
+					anmIndex = track.nextTrack;
 				}
 
-				var anim = registerAnimation(objJSON.moveable, objJSON.animationStartIndex, true);
-				var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR, animator(obj, objJSON.animationStartIndex, objJSON.moveable));
+				obj.allTrackInstances = allTrackInstances;
 
-				animation.play( false );
-				animation.update(0);
+				var trackInstance = allTrackInstances[objJSON.animationStartIndex];
 
+				trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
+				trackInstance.setNoInterpolationToNextAnim = true;
+				trackInstance.setNoInterpolationToNextAnimValue = sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
+
+				trackInstance.runForward(0);
+				trackInstance.interpolate();
+
+				obj.trackInstance = trackInstance;
 			} else {
-				var anim = registerAnimation(objJSON.moveable, objJSON.animationStartIndex);
-				var animation = new THREE.Animation( obj, anim.name, THREE.AnimationHandler.LINEAR );
+				var animIndex = objJSON.animationStartIndex;
 
-				animation.play( true, Math.random()*anim.length );
-				animation.update(0);
+				var track = scene.animTracks[animIndex];
+				var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
+
+				trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
+
+				trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
+				trackInstance.interpolate();
+
+				obj.trackInstance = trackInstance;
 			}
 		}
 	}
@@ -572,7 +591,30 @@ function animate() {
 
 	var delta = clock.getDelta();
 
-	THREE.AnimationHandler.update( delta );
+	// animate objects
+	for (var objID in scene.objects) {
+		var obj = scene.objects[objID];
+
+		if (obj.trackInstance) {
+			if (!obj.trackInstance.runForward(delta) && sceneJSON.cutScene.frames != null) {
+				// it's the end of the current track and we are in a cut scene => we link to the next track
+				var trackInstance = obj.trackInstance;
+
+				var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.interpFactor;
+				
+				trackInstance = obj.allTrackInstances[trackInstance.track.nextTrack];
+
+				trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
+				trackInstance.setCurrentFrame(nextTrackFrame);
+				trackInstance.setNoInterpolationToNextAnim = true;
+				trackInstance.setNoInterpolationToNextAnimValue = sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
+
+				obj.trackInstance = trackInstance;
+			}
+
+			obj.trackInstance.interpolate();
+		}
+	}
 
 	controls.update(delta);
 	
