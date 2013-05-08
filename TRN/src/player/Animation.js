@@ -28,8 +28,9 @@ TRN.Animation.Track = function(numKeys, numFrames, frameRate, animFPS, nextTrack
 	this.nextTrack = nextTrack;
 	this.nextTrackFrame = nextTrackFrame;
 	this.id = id;
-	this.remainingFrames = numFrames - parseInt((numFrames - 1) / frameRate) * frameRate;
+	this.remainingFrames = numFrames - Math.floor((numFrames - 1) / frameRate) * frameRate;
 	this.numDataPerKey = 99999;
+	this.boundingBox = new THREE.Box3();
 
 	if (typeof(id) == 'undefined') this.id = 'track' + (++TRN.Animation.Track._counter);
 
@@ -46,10 +47,8 @@ TRN.Animation.Track.prototype = {
 		this.keys.push(key);
 
 		this.numDataPerKey = Math.min(this.numDataPerKey, key.data.length);
-		/*if (this.keys.length > 1 && key.data.length != this.keys[0].data.length) {
-			console.log(key, this.keys[0], this);
-			throw 'All keys must have the same number of data ! ';
-		}*/
+
+		this.boundingBox.union(key.boundingBox);
 	},
 
 	getLength : function() {
@@ -135,7 +134,7 @@ TRN.Animation.TrackInstance.prototype = {
 	            // Yes. The caller must handle this situation
 	            var curKey = this.param.curFrame / this.track.frameRate;
 
-	            this.param.interpFactor = this.activateInterpolation ? curKey - parseInt(curKey) : 0.0;
+	            this.param.interpFactor = this.activateInterpolation ? curKey - Math.floor(curKey) : 0.0;
 				this.noInterpolationToNextTrack = false;
 
 	            return false;
@@ -155,11 +154,11 @@ TRN.Animation.TrackInstance.prototype = {
 	    // Calculate the current key
 	    var curKey = this.param.curFrame / this.track.frameRate;
 
-	    this.param.curKey = parseInt(curKey);
+	    this.param.curKey = Math.floor(curKey);
 
 	    // Use the next key for the interpolation. Handle the case where the
 	    // next key is in the next animation and not in the current one
-	    var nextFrame = parseInt((this.param.curKey + 1) * this.track.frameRate);
+	    var nextFrame = Math.floor((this.param.curKey + 1) * this.track.frameRate);
 	    var speedFactor = 1.0;
 
 	    if (nextFrame < this.track.numFrames) {

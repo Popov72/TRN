@@ -617,7 +617,7 @@ TRN.LevelConverter.prototype = {
 
 				animKeys.push({
 					"time": 		key * anim.frameRate, 
-					"boundingBox": 	{ xmin: BBLoX, ymin: BBHiY, zmin: BBHiZ, xmax: BBHiX, ymax: BBLoY, zmax: BBLoZ },
+					"boundingBox": 	new THREE.Box3(new THREE.Vector3(BBLoX, BBHiY, BBHiZ), new THREE.Vector3(BBHiX, BBLoY, BBLoZ)),
 					"data":  		keyData
 				});
 
@@ -661,7 +661,7 @@ TRN.LevelConverter.prototype = {
 
 			meshJSON.attributes = attributes;
 
-			var moveableIsInternallyLit = false;
+			var moveableIsExternallyLit = false;
 			for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
 				if (idx != 0) {
 					var sflag = this.trlevel.meshTrees[meshTree++].coord;
@@ -681,7 +681,7 @@ TRN.LevelConverter.prototype = {
 
 				var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
 				
-				moveableIsInternallyLit = moveableIsInternallyLit || internalLit;
+				moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
 
 				ofsvert = parseInt(meshJSON.vertices.length/3);
 
@@ -699,7 +699,7 @@ TRN.LevelConverter.prototype = {
 			meshJSON.bones = bones;
 			meshJSON.skinIndices = skinIndices;
 			meshJSON.skinWeights = skinWeights;
-			meshJSON.moveableIsInternallyLit = moveableIsInternallyLit;
+			meshJSON.moveableIsInternallyLit = !moveableIsExternallyLit;
 
 			meshJSON._materials = this.makeMaterialList(tiles2material, 'moveable');
 			for (var mat = 0; mat < meshJSON._materials.length; ++mat) {

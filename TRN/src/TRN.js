@@ -44,6 +44,41 @@ THREE.ImageUtils.loadTexture = function ( url, mapping, onLoad, onError ) {
 
 };
 
+// replaces this function in three js => it takes into account the sphere center
+THREE.Frustum.prototype.intersectsObject = function () {
+
+	var center = new THREE.Vector3();
+
+	return function ( object ) {
+
+		// this method is expanded inlined for performance reasons.
+
+		var matrix = object.matrixWorld;
+		var planes = this.planes;
+		var negRadius = - object.geometry.boundingSphere.radius * matrix.getMaxScaleOnAxis();
+
+		//center.getPositionFromMatrix( matrix );
+		center.copy(object.geometry.boundingSphere.center);
+		center.applyMatrix4(matrix);
+
+		for ( var i = 0; i < 6; i ++ ) {
+
+			var distance = planes[ i ].distanceToPoint( center );
+
+			if ( distance < negRadius ) {
+
+				return false;
+
+			}
+
+		}
+
+		return true;
+
+	};
+
+}();
+
 // stolen from threejs !
 TRN.extend = function ( obj, source ) {
 

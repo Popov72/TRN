@@ -22472,7 +22472,6 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 			webglObject.id = i;
 			webglObject.render = false;
-
 			if ( object.visible ) {
 
 				if ( ! ( object instanceof THREE.Mesh || object instanceof THREE.ParticleSystem ) || ! ( object.frustumCulled ) || _frustum.intersectsObject( object ) ) {
@@ -29900,7 +29899,7 @@ THREE.AnimationHandler = (function() {
 
 			} else {
 
-				//console.log( "THREE.AnimationHandler.get: Couldn't find animation " + name ); popov => commented
+				console.log( "THREE.AnimationHandler.get: Couldn't find animation " + name );
 				return null;
 
 			}
@@ -30096,7 +30095,7 @@ THREE.AnimationHandler = (function() {
  * @author alteredq / http://alteredqualia.com/
  */
 
-THREE.Animation = function ( root, name, interpolationType, callbackfn /* popov */ ) {
+THREE.Animation = function ( root, name, interpolationType ) {
 
 	this.root = root;
 	this.data = THREE.AnimationHandler.get( name );
@@ -30113,8 +30112,6 @@ THREE.Animation = function ( root, name, interpolationType, callbackfn /* popov 
 
 	this.points = [];
 	this.target = new THREE.Vector3();
-
-	this.callbackfn = callbackfn; // popov
 };
 
 THREE.Animation.prototype.play = function ( loop, startTimeMS ) {
@@ -30269,7 +30266,6 @@ THREE.Animation.prototype.update = function ( deltaTimeMS ) {
 					} else {
 
 						this.stop();
-						if (this.callbackfn) this.callbackfn(unloopedCurrentTime - nextKey.time); // popov
 						return;
 
 					}

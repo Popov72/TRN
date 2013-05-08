@@ -150,6 +150,7 @@ function showInfo() {
 	jQuery('#numlights').html(sceneJSON.curRoom != -1 ? sceneJSON.objects['room'+sceneJSON.curRoom].lights.length : '');
 	jQuery('#camerapos').html(camera.position.x.toFixed(12)+','+camera.position.y.toFixed(12)+','+camera.position.z.toFixed(12));
 	jQuery('#camerarot').html(camera.quaternion.x.toFixed(12)+','+camera.quaternion.y.toFixed(12)+','+camera.quaternion.z.toFixed(12)+','+camera.quaternion.w.toFixed(12));
+	jQuery('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces);
 }
 
 function init() {
@@ -301,6 +302,24 @@ function callbackFinished(result) {
 		}
 	});
 
+	jQuery('#showboundingboxes').on('click', function() {
+		for (var objID in scene.objects) {
+			var obj = scene.objects[objID];
+			var objJSON = sceneJSON.objects[objID];
+
+			if (!objJSON.has_anims) continue;
+
+			if (this.checked) {
+				obj.boxHelper = new THREE.BoxHelper();
+				obj.boxHelper.update(obj);
+				scene.scene.add(obj.boxHelper);
+			} else {
+				scene.scene.remove(obj.boxHelper);
+				delete obj.boxHelper;
+			}
+		}
+	});
+
 	jQuery('#fullscreen').on('click', function() {
 		if (document.fullscreenElement != null) {
 			if (document.exitFullscreen) 
@@ -404,7 +423,7 @@ function callbackFinished(result) {
 
 				trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
 				trackInstance.interpolate();
-
+	
 				obj.trackInstance = trackInstance;
 			}
 		}
@@ -434,8 +453,11 @@ function callbackFinished(result) {
 
 		if (!(obj instanceof THREE.Mesh)) continue;
 
-		obj.geometry.computeBoundingBox();
-		obj.frustumCulled = !sceneJSON.cutScene.frames; // hack because bounding spheres are not recalculated for skinned objects
+		if (!objJSON.has_anims) {
+			obj.geometry.computeBoundingBox();
+		}
+
+		obj.frustumCulled = true;
 
 		var material = new THREE.MeshFaceMaterial();
 		obj.material = material;
@@ -576,6 +598,19 @@ function start() {
 
 var quantum = 1000/TRN.baseFrameRate, quantumTime = (new Date()).getTime(), quantumRnd = 0;
 
+function findRoom(position) {
+	for (var objID in scene.objects) {
+		var obj = scene.objects[objID], objJSON = sceneJSON.objects[objID];
+		if (objJSON.isRoom) {
+			if (obj.geometry.boundingBox.containsPoint(position) && !objJSON.isAlternateRoom) {
+				return objJSON.roomIndex;
+			}
+		}
+	}
+
+	return -1;
+}
+
 function animate() {
 
 	requestAnimationFrame( animate );
@@ -593,7 +628,7 @@ function animate() {
 
 	// animate objects
 	for (var objID in scene.objects) {
-		var obj = scene.objects[objID];
+		var obj = scene.objects[objID], objJSON = sceneJSON.objects[objID];
 
 		if (obj.trackInstance) {
 			if (!obj.trackInstance.runForward(delta) && sceneJSON.cutScene.frames != null) {
@@ -610,9 +645,46 @@ function animate() {
 				trackInstance.setNoInterpolationToNextAnimValue = sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
 
 				obj.trackInstance = trackInstance;
+
 			}
 
 			obj.trackInstance.interpolate();
+
+			var boundingBox = obj.trackInstance.track.keys[obj.trackInstance.param.curKey].boundingBox;
+
+			boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
+			obj.geometry.boundingBox = boundingBox;
+
+			if (obj.boxHelper) {
+				obj.boxHelper.update(obj);
+			}
+
+			/*var roomidx = findRoom(boundingBox.center().add(obj.position));
+
+			if (roomidx != objJSON.roomIndex) {
+				console.log('obj', objID,'changing from room',objJSON.roomIndex,'to room',roomidx);
+				objJSON.roomIndex = roomidx;
+				var room = sceneJSON.objects['room' + roomidx];
+				if (room) {
+					var shaderMgr = new TRN.ShaderMgr();
+					var materials = obj.material.materials;
+					for (var i = 0; i < materials.length; ++i) {
+						var material = materials[i];
+						material.material = 'TR_moveable_l' + room.lights.length;
+						material.vertexShader = shaderMgr.getVertexShader('moveable_with_lights');
+						material.vertexShader = material.vertexShader.replace(/##num_lights##/g, room.lights.index);
+						material.uniforms.pointLightPosition.value = []
+						material.uniforms.pointLightColor.value = [];
+						material.uniforms.pointLightDistance.value = [];
+						for (var l = 0; l < room.lights.length; ++l) {
+							var light = room.lights[l];
+							material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
+							material.uniforms.pointLightColor.value[l] = light.color;
+							material.uniforms.pointLightDistance.value[l] = light.fadeOut;
+						}
+					}
+				}
+			}*/
 		}
 	}
 
