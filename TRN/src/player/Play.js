@@ -361,7 +361,10 @@ function callbackFinished(result) {
 		for (var t = 0; t < sceneJSON.animTracks.length; ++t) {
 			var trackJSON = sceneJSON.animTracks[t], keys = trackJSON.keys;
 
-			var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.nextTrack, trackJSON.nextTrackFrame, trackJSON.name);
+			var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
+
+			track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
+			track.setCommands(trackJSON.commands);
 
 			scene.animTracks.push(track);
 
@@ -426,10 +429,13 @@ function callbackFinished(result) {
 	
 				obj.trackInstance = trackInstance;
 			}
+
+			obj.prevTrackInstance = obj.trackInstance;
+			obj.prevTrackInstanceFrame = 0;
 		}
 	}
 
-	// Set all objects except camera as auto update=false
+	// Set all objects except camera/sky + animated objects as auto update=false
 	for (var objID in scene.objects) {
 		var obj = scene.objects[objID];
 		var objJSON = sceneJSON.objects[objID];
@@ -443,6 +449,7 @@ function callbackFinished(result) {
 	// don't flip Y coordinates in textures
 	for (var texture in scene.textures) {
 		if (!scene.textures.hasOwnProperty(texture)) continue;
+
 		scene.textures[texture].flipY = false;
 	}
 
@@ -465,6 +472,8 @@ function callbackFinished(result) {
 		obj.geometry.computeFaceNormals();
 		obj.geometry.computeVertexNormals();
 
+		var room = objJSON.isRoom ? objJSON : sceneJSON.objects['room' + objJSON.roomIndex];
+
 		var attributes = sceneJSON.embeds[sceneJSON.geometries[objJSON.geometry].id].attributes;
 		if (attributes) {
 			attributes.flags.needsUpdate = true;
@@ -472,21 +481,17 @@ function callbackFinished(result) {
 
 		for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
 			var elem = objJSON.material[mt_];
-			if (typeof(elem) == 'string') {
-				material.materials[mt_] = scene.materials[elem];
-			} else {
-				material.materials[mt_] = scene.materials[elem.material].clone();
-				if (elem.uniforms) {
-					material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
-				}
+			material.materials[mt_] = scene.materials[elem.material].clone();
+			if (elem.uniforms) {
+				material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
+			}
 
-				if (attributes) {
-					material.materials[mt_].attributes = attributes;
-				}
-				for (var mkey in elem) {
-					if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
-					material.materials[mt_][mkey] = elem[mkey];
-				}
+			if (attributes) {
+				material.materials[mt_].attributes = attributes;
+			}
+			for (var mkey in elem) {
+				if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
+				material.materials[mt_][mkey] = elem[mkey];
 			}
 		}
 
@@ -494,37 +499,32 @@ function callbackFinished(result) {
 		if (!materials || !materials.length) continue;
 		for (var i = 0; i < materials.length; ++i) {
 			var material = materials[i];
-			if (material instanceof THREE.ShaderMaterial) {
-				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
-					material.uniforms.map.value = scene.textures[material.uniforms.map.value];
+			if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
+				material.uniforms.map.value = scene.textures[material.uniforms.map.value];
+			}
+			if (room && room.filledWithWater) {
+				material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);
+			}
+			if (objJSON.has_anims && room) { // only animated objects are externally lit and need light definitions from the room
+				material.uniforms.ambientColor.value = room.ambientColor;
+				material.uniforms.pointLightPosition = { type: "v3v", value: [] };
+				material.uniforms.pointLightColor = { type: "v3v", value: [] };
+				material.uniforms.pointLightDistance = { type: "f", value: [] };
+				for (var l = 0; l < room.lights.length; ++l) {
+					var light = room.lights[l];
+					material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
+					material.uniforms.pointLightColor.value[l] = light.color;
+					material.uniforms.pointLightDistance.value[l] = light.fadeOut;
 				}
-				if (objJSON.filledWithWater) {
-					material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);
-				}
-				if (typeof(objJSON.roomIndex) != 'undefined') {
-					var room = sceneJSON.objects['room' + objJSON.roomIndex];
-					if (room) {
-						material.uniforms.ambientColor.value = room.ambientColor;
-						material.uniforms.pointLightPosition = { type: "v3v", value: [] };
-						material.uniforms.pointLightColor = { type: "v3v", value: [] };
-						material.uniforms.pointLightDistance = { type: "f", value: [] };
-						for (var l = 0; l < room.lights.length; ++l) {
-							var light = room.lights[l];
-							material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
-							material.uniforms.pointLightColor.value[l] = light.color;
-							material.uniforms.pointLightDistance.value[l] = light.fadeOut;
-						}
-					}
-				}
-				if (material.hasAlpha) {
-					isTransparent = true;
-					material.transparent = true;
-					material.blending = THREE.AdditiveBlending;
-					material.blendSrc = THREE.OneFactor;
-					material.blendDst = THREE.OneMinusSrcColorFactor;
-					material.depthWrite = false;
-					material.needsUpdate = true;
-				}
+			}
+			if (material.hasAlpha) {
+				isTransparent = true;
+				material.transparent = true;
+				material.blending = THREE.AdditiveBlending;
+				material.blendSrc = THREE.OneFactor;
+				material.blendDst = THREE.OneMinusSrcColorFactor;
+				material.depthWrite = false;
+				material.needsUpdate = true;
 			}
 		}
 	}
@@ -580,6 +580,7 @@ function callbackFinished(result) {
 		jQuery( "#start" ).css('display', "block");
 		jQuery( "#start" ).attr('class', "enabled");
 	}
+
 }
 
 function start() {
@@ -597,6 +598,7 @@ function start() {
 }
 
 var quantum = 1000/TRN.baseFrameRate, quantumTime = (new Date()).getTime(), quantumRnd = 0;
+var flickerColor = new THREE.Vector3(1.2, 1.2, 1.2), unitVec3 = new THREE.Vector3(1.0, 1.0, 1.0);
 
 function findRoom(position) {
 	for (var objID in scene.objects) {
@@ -609,6 +611,53 @@ function findRoom(position) {
 	}
 
 	return -1;
+}
+
+function processAnimCommands(trackInstance, prevFrame, curFrame, obj) {
+
+	var commands = trackInstance.track.commands;
+
+	for (var i = 0; i < commands.length; ++i) {
+		var command = commands[i];
+
+		switch (command.cmd) {
+
+			case TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME:
+
+				var frame = command.params[0] - commands.frameStart, action = command.params[1];
+				if (frame < prevFrame || frame >= curFrame) { continue; }
+
+				//console.log(action,'done for frame',frame,obj.name)
+
+				switch (action) {
+
+					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1:
+					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP2:
+					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP3:
+						var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
+						var oswap = scene.objects['meshswap' + idx];
+						var g = obj.geometry, m = obj.material;
+
+						obj.geometry = oswap.geometry;
+						obj.material = oswap.material;
+
+						oswap.geometry = g;
+						oswap.material = m;
+
+						delete obj.__webglInit; // make three js regenerates the webgl buffers
+						break;
+					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_HIDEOBJECT:
+						obj.visible = false;
+						break;
+
+					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT:
+						obj.visible = true;
+						break;
+				}
+
+				break;
+		}
+	}
 }
 
 function animate() {
@@ -628,25 +677,38 @@ function animate() {
 
 	// animate objects
 	for (var objID in scene.objects) {
-		var obj = scene.objects[objID], objJSON = sceneJSON.objects[objID];
+		var obj = scene.objects[objID];
 
-		if (obj.trackInstance) {
-			if (!obj.trackInstance.runForward(delta) && sceneJSON.cutScene.frames != null) {
+		if (obj.trackInstance && obj.visible) {
+			if (!obj.trackInstance.runForward(delta)) {
 				// it's the end of the current track and we are in a cut scene => we link to the next track
 				var trackInstance = obj.trackInstance;
 
 				var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.interpFactor;
 				
 				trackInstance = obj.allTrackInstances[trackInstance.track.nextTrack];
+				obj.trackInstance = trackInstance;
 
 				trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
 				trackInstance.setCurrentFrame(nextTrackFrame);
-				trackInstance.setNoInterpolationToNextAnim = true;
-				trackInstance.setNoInterpolationToNextAnimValue = sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
 
-				obj.trackInstance = trackInstance;
+				trackInstance.setNoInterpolationToNextAnim = sceneJSON.cutScene.frames != null;
+				trackInstance.setNoInterpolationToNextAnimValue = sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
+			}
+
+			if (obj.trackInstance != obj.prevTrackInstance) {
+
+				processAnimCommands(obj.prevTrackInstance, obj.prevTrackInstanceFrame, 1e10, obj);
+				processAnimCommands(obj.trackInstance, 0, obj.trackInstance.param.curFrame, obj);
+
+			} else {
+
+				processAnimCommands(obj.trackInstance, obj.prevTrackInstanceFrame, obj.trackInstance.param.curFrame, obj);
 
 			}
+
+			obj.prevTrackInstance = obj.trackInstance;
+			obj.prevTrackInstanceFrame = obj.trackInstance.param.curFrame;
 
 			obj.trackInstance.interpolate();
 
@@ -658,33 +720,6 @@ function animate() {
 			if (obj.boxHelper) {
 				obj.boxHelper.update(obj);
 			}
-
-			/*var roomidx = findRoom(boundingBox.center().add(obj.position));
-
-			if (roomidx != objJSON.roomIndex) {
-				console.log('obj', objID,'changing from room',objJSON.roomIndex,'to room',roomidx);
-				objJSON.roomIndex = roomidx;
-				var room = sceneJSON.objects['room' + roomidx];
-				if (room) {
-					var shaderMgr = new TRN.ShaderMgr();
-					var materials = obj.material.materials;
-					for (var i = 0; i < materials.length; ++i) {
-						var material = materials[i];
-						material.material = 'TR_moveable_l' + room.lights.length;
-						material.vertexShader = shaderMgr.getVertexShader('moveable_with_lights');
-						material.vertexShader = material.vertexShader.replace(/##num_lights##/g, room.lights.index);
-						material.uniforms.pointLightPosition.value = []
-						material.uniforms.pointLightColor.value = [];
-						material.uniforms.pointLightDistance.value = [];
-						for (var l = 0; l < room.lights.length; ++l) {
-							var light = room.lights[l];
-							material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
-							material.uniforms.pointLightColor.value[l] = light.color;
-							material.uniforms.pointLightDistance.value[l] = light.fadeOut;
-						}
-					}
-				}
-			}*/
 		}
 	}
 
@@ -737,11 +772,15 @@ function animate() {
 
 	for (var objID in scene.objects) {
 		var obj = scene.objects[objID], objJSON = sceneJSON.objects[objID];
+
+		if (!obj.visible) continue;
+
 		if (objJSON.isRoom) {
 			if (obj.geometry.boundingBox.containsPoint(camera.position) && !objJSON.isAlternateRoom) {
 				sceneJSON.curRoom = objJSON.roomIndex;
 			}
 		}
+
 		if (singleRoomMode) {
 			obj.visible = objJSON.roomIndex == sceneJSON.curRoom && !objJSON.isAlternateRoom;
 		} else {
@@ -758,6 +797,8 @@ function animate() {
 			obj.updateMatrixWorld();
 		}
 
+		var room = objJSON.isRoom ? objJSON : sceneJSON.objects['room' + objJSON.roomIndex];
+
 		var materials = obj.material.materials;
 		if (!materials || !materials.length) continue;
 		for (var i = 0; i < materials.length; ++i) {
@@ -765,6 +806,7 @@ function animate() {
 			if (material instanceof THREE.ShaderMaterial) {
 				material.uniforms.curTime.value = curTime;
 				material.uniforms.rnd.value = quantumRnd;
+				material.uniforms.flickerColor.value = room && room.flickering ? flickerColor : unitVec3;
 				if (userData.animatedTexture) {
 					var animTexture = scene.animatedTextures[userData.animatedTexture.idxAnimatedTexture];
 					var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];

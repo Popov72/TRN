@@ -402,8 +402,6 @@ TRN.LevelConverter.prototype = {
 					"quaternion" : [ q.x, q.y, q.z, q.w ],
 					"scale"	   : [ 1, 1, 1 ],
 					"visible"  : !room.isAlternate,
-					"isAlternateRoom" : room.isAlternate,
-					"filledWithWater": isFilledWithWater,
 					"isStaticMesh": true,
 					"roomIndex": m,
 					"objectID": objectID
@@ -433,8 +431,6 @@ TRN.LevelConverter.prototype = {
 					"quaternion" : [ 0, 0, 0, 1 ],
 					"scale"	   : [ 1, 1, 1 ],
 					"visible"  : !room.isAlternate,
-					"isAlternateRoom" : room.isAlternate,
-					"filledWithWater": isFilledWithWater,
 					"isSprite": true,
 					"roomIndex": m
 				};
@@ -623,6 +619,30 @@ TRN.LevelConverter.prototype = {
 
 			}
 
+			var animCommands = [], numAnimCommands = anim.numAnimCommands;
+
+			animCommands.frameStart = anim.frameStart;
+
+			if (numAnimCommands < 0x100) {
+				var aco = anim.animCommand;
+				for (var ac = 0; ac < numAnimCommands; ++ac) {
+					var cmd = this.trlevel.animCommands[aco++].value, numParams = TRN.Animation.Commands.numParams[cmd];
+
+					var command = {
+						"cmd": cmd,
+						"params": []
+					};
+
+					while (numParams-- > 0) {
+						command.params.push(this.trlevel.animCommands[aco++].value);
+					}
+					
+					animCommands.push(command);
+				}
+			} else {
+				console.log('Invalid num anim commands (' + numAnimCommands + ') ! ', anim);
+			}
+
 			animTracks.push({
 				"name": 			"anim" + anm,
 				"numKeys":  		animNumKeys,
@@ -631,7 +651,8 @@ TRN.LevelConverter.prototype = {
 				"fps":  			animFPS,
 				"nextTrack":  		anim.nextAnimation,
 				"nextTrackFrame": 	anim.nextFrame - this.trlevel.animations[anim.nextAnimation].frameStart,
-				"keys":  			animKeys
+				"keys":  			animKeys,
+				"commands":     	animCommands
 			});
 
 		}
@@ -718,7 +739,11 @@ TRN.LevelConverter.prototype = {
 		console.log('Num moveables=', numMoveables)
 	},
 
-	createMoveableInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, moveable) {
+	createMoveableInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, moveable, jsonid, visible) {
+
+		if (typeof(jsonid) == 'undefined') jsonid = 'moveable' + moveable.objectID + '_' + itemIndex;
+		if (typeof(visible) == 'undefined') visible = true;
+
 		var room = this.trlevel.rooms[roomIndex];
 
 		var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
@@ -744,13 +769,13 @@ TRN.LevelConverter.prototype = {
 			}
 		}
 
-		this.sc.objects['moveable' + moveable.objectID + '_' + itemIndex] = {
+		this.sc.objects[jsonid] = {
 			"geometry" : hasGeometry ? "moveable" + objIDForVisu : null,
 			"material" : materials,
 			"position" : [ x, y, z ],
 			"quaternion" : [ rotation.x, rotation.y, rotation.z, rotation.w ],
 			"scale"	   : [ 1, 1, 1 ],
-			"visible"  : !room.isAlternate,
+			"visible"  : !room.isAlternate && visible,
 			"moveable" : moveable.objectID,
 			"has_anims": true,
 			"roomIndex": roomIndex,
@@ -798,8 +823,6 @@ TRN.LevelConverter.prototype = {
 				"quaternion" : [ 0, 0, 0, 1 ],
 				"scale"	   : [ 1, 1, 1 ],
 				"visible"  : !room.isAlternate,
-				"isAlternateRoom" : room.isAlternate,
-				"filledWithWater": room.isFilledWithWater,
 				"isSprite": true,
 				"roomIndex": roomIndex
 			};
@@ -819,6 +842,7 @@ TRN.LevelConverter.prototype = {
 			sprObjID2Index[spriteSeq.objectID] = sq;
 		}
 
+		var laraRoomIndex = -1;
 		var numMoveableInstances = 0, numSpriteSeqInstances = 0;
 		for (var i = 0; i < this.trlevel.items.length; ++i) {
 			var item = this.trlevel.items[i];
@@ -832,8 +856,30 @@ TRN.LevelConverter.prototype = {
 				this.createSpriteSeqInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.spriteSequences[sprObjID2Index[item.objectID]]);
 				numSpriteSeqInstances++;
 			} else {
+				if (item.objectID == TRN.ObjectID.Lara) {
+					laraRoomIndex = roomIndex;
+				}
 				this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.moveables[m]);
 				numMoveableInstances++;
+			}
+		}
+
+		if (laraRoomIndex != -1) {
+			var meshSwapIds = [
+				this.confMgr.levelNumber(this.sc.levelShortFileName, 'meshswap > objid1', true, 0),
+				this.confMgr.levelNumber(this.sc.levelShortFileName, 'meshswap > objid2', true, 0),
+				this.confMgr.levelNumber(this.sc.levelShortFileName, 'meshswap > objid3', true, 0)
+			];
+			for (var i = 0; i < meshSwapIds.length; ++i) {
+				var mid = meshSwapIds[i];
+
+				if (mid == 0) continue;
+
+				var mindex = movObjID2Index[mid];
+				
+				if (typeof(mindex) != "undefined") {
+					this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:1 }, this.trlevel.moveables[mindex], 'meshswap' + (i+1), false);
+				}
 			}
 		}
 
