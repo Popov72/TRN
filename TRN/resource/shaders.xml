@@ -18,7 +18,7 @@
 
 			vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
 
-			vColor = color * tintColor * mix(vec3Unit, mix(vec3Unit, flickerColor, step(0.75, rnd)), flags.y);
+			vColor = color * tintColor * mix(vec3Unit, mix(vec3Unit, flickerColor, step(0.5, rnd)), flags.y);
 
 			float sum = position[0] + position[1] + position[2];
 			float time = curTime * 0.00157;
@@ -60,7 +60,7 @@
 			vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
 
 			float fcolor = max(0.0, 1.0 - 2.0 * max(0.0, lighting-flags.w));
-			vColor = vec3(fcolor, fcolor, fcolor) * tintColor * mix(vec3Unit, mix(vec3Unit, flickerColor, step(0.75, rnd)), flags.y);
+			vColor = vec3(fcolor, fcolor, fcolor) * tintColor * mix(vec3Unit, flickerColor, step(0.5, rnd));
 
 			float sum = position[0] + position[1] + position[2];
 			float time = curTime * 0.00157;
@@ -101,7 +101,7 @@
 
 			vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
 
-			vColor = color * lighting * tintColor * mix(vec3Unit, mix(vec3Unit, flickerColor, step(0.75, rnd)), flags.y);
+			vColor = color * lighting * tintColor * mix(vec3Unit, mix(vec3Unit, flickerColor, step(0.5, rnd)), flags.y);
 
 			float sum = position[0] + position[1] + position[2];
 			float time = curTime * 0.00157;
@@ -172,7 +172,7 @@
 			vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
 
 			float fcolor = max(0.0, 1.0 - 2.0 * max(0.0, lighting-flags.w));
-			vColor = vec3(fcolor, fcolor, fcolor) * tintColor * mix(vec3Unit, mix(vec3Unit, flickerColor, step(0.75, rnd)), flags.y);
+			vColor = vec3(fcolor, fcolor, fcolor) * tintColor * mix(vec3Unit, flickerColor, step(0.5, rnd));
 
 			float sum = position[0] + position[1] + position[2];
 			float time = curTime * 0.00157;
@@ -252,7 +252,7 @@
 
 			vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
 
-			vColor = tintColor * mix(vec3Unit, mix(vec3Unit, flickerColor, step(0.75, rnd)), flags.y);
+			vColor = tintColor * mix(vec3Unit, flickerColor, step(0.5, rnd));
 
 			float sum = position[0] + position[1] + position[2];
 			float time = curTime * 0.00157;
