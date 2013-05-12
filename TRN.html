@@ -68,8 +68,10 @@ var makeJSON = false;
 var level2JSON = {};
 
 function setContainerDimensions() {
-	jQuery('#container').width(window.innerWidth);
-	jQuery('#container').height(window.innerHeight);
+	if (!makeJSON) {
+		jQuery('#container').width(window.innerWidth);
+		jQuery('#container').height(window.innerHeight);
+	}
 }
 
 jQuery(window).on('resize', function() {

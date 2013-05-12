@@ -17,6 +17,19 @@ TRN.extend(TRN.Play.prototype, {
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_hand', true, 0) - 1;
 	},
 
+	findObjectById : function(idObject) {
+
+		for (var objID in this.scene.objects) {
+
+			var objJSON = this.sceneJSON.objects[objID];
+
+			if (objJSON.objectid == idObject) return this.scene.objects[objID];
+
+		}
+
+		return null;
+	},
+
 	processAnimCommands : function (trackInstance, prevFrame, curFrame, obj) {
 
 		var commands = trackInstance.track.commands;
@@ -104,9 +117,7 @@ TRN.extend(TRN.Play.prototype, {
 			}
 		}
 
-		if (updateWebGLObjects) {
-			this.renderer.initWebGLObjects(this.scene.scene);
-		}
+		this.needWebGLInit |= updateWebGLObjects;
 
 	}
 

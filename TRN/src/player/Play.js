@@ -28,6 +28,8 @@ TRN.Play = function (container) {
 	this.renderer.autoUpdateObjects = false; // to avoid having initWebGLObjects called every frame
 	//renderer.sortObjects = false;
 
+	this.needWebGLInit = false;
+
 	this.container.append( this.renderer.domElement );
 
 	this.stats = new Stats();
@@ -61,8 +63,6 @@ TRN.Play.prototype = {
 
 		var this_ = this;
 
-		this.confMgr = trlevel.confMgr;
-
 		this.progressbar.show();
 
 		if (typeof(trlevel) == 'string') {
@@ -80,7 +80,6 @@ TRN.Play.prototype = {
 
 		    request.onprogress = function(e) {
 		    	if (e.lengthComputable) {
-
 		    		var pct = 0;
 
 					if ( e.total )
@@ -127,6 +126,9 @@ TRN.Play.prototype = {
 	levelConverted : function (sc) {
 
 		this.sceneJSON = sc;
+		this.confMgr = new TRN.ConfigMgr(sc.rversion);
+
+		TRN.ObjectID.Lara = this.confMgr.levelNumber(sc.levelShortFileName, 'lara > id', true, 0);
 
 		var this_ = this;
 
@@ -194,19 +196,6 @@ TRN.Play.prototype = {
 
 	},
 
-	findObjectById : function(idObject) {
-
-		for (var objID in this.scene.objects) {
-
-			var objJSON = this.sceneJSON.objects[objID];
-
-			if (objJSON.objectid == idObject) return this.scene.objects[objID];
-
-		}
-
-		return null;
-	},
-
 	levelParsed : function (result) {
 
 		this.scene = result;
@@ -245,6 +234,8 @@ TRN.Play.prototype = {
 
 				var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
 
+				trackJSON.commands.frameStart = trackJSON.frameStart;
+
 				track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
 				track.setCommands(trackJSON.commands);
 
@@ -252,9 +243,11 @@ TRN.Play.prototype = {
 
 				for (var k = 0; k < keys.length; ++k) {
 
-					var keyJSON = keys[k], dataJSON = keyJSON.data;
+					var keyJSON = keys[k], dataJSON = keyJSON.data, bbox = keyJSON.boundingBox;
 
-					var key = new TRN.Animation.Key(keyJSON.time, keyJSON.boundingBox);
+					var boundingBox = new THREE.Box3(new THREE.Vector3(bbox.xmin, bbox.ymin, bbox.zmin), new THREE.Vector3(bbox.xmax, bbox.ymax, bbox.zmax));
+
+					var key = new TRN.Animation.Key(keyJSON.time, boundingBox);
 
 					for (var d = 0; d < dataJSON.length; ++d) {
 
@@ -566,6 +559,7 @@ TRN.Play.prototype = {
 				obj.geometry.boundingBox = boundingBox;
 
 				if (obj.boxHelper) {
+					this.needWebGLInit = true;
 					obj.boxHelper.update(obj);
 				}
 			}
@@ -722,6 +716,11 @@ TRN.Play.prototype = {
 		this.camera.updateMatrixWorld();
 
 		this.updateObjects(curTime);
+
+		if (this.needWebGLInit) {
+			this.needWebGLInit = false;
+			this.renderer.initWebGLObjects(this.scene.scene);
+		}
 
 		this.render();
 	},
