@@ -1,42 +1,143 @@
-var camera, scene, sceneJSON, renderer, stats, controls, startTime = -1;
-var clock = new THREE.Clock();
+TRN.Play = function (container) {
 
-function errorHandler(e) {
-  var msg = '';
+	this.container = jQuery(container);
 
-  switch (e.code) {
-    case FileError.QUOTA_EXCEEDED_ERR:
-      msg = 'QUOTA_EXCEEDED_ERR';
-      break;
-    case FileError.NOT_FOUND_ERR:
-      msg = 'NOT_FOUND_ERR';
-      break;
-    case FileError.SECURITY_ERR:
-      msg = 'SECURITY_ERR';
-      break;
-    case FileError.INVALID_MODIFICATION_ERR:
-      msg = 'INVALID_MODIFICATION_ERR';
-      break;
-    case FileError.INVALID_STATE_ERR:
-      msg = 'INVALID_STATE_ERR';
-      break;
-    default:
-      msg = 'Unknown Error';
-      break;
-  };
+	this.camera = null;
+	this.scene = null;
+	this.sceneJSON = null;
+	this.controls = null;
+	this.startTime = -1;
+	
+	this.panel = new TRN.Panel(this.container, this);
+	this.progressbar = new TRN.ProgressBar(this.container);
 
-  console.log('requestFileSystem Error: ' + msg);
+	this.panel.hide();
+	this.progressbar.hide();
+
+	this.quantum = 1000/TRN.baseFrameRate;
+	this.quantumTime = (new Date()).getTime();
+	this.quantumRnd = 0;
+
+	this.flickerColor = new THREE.Vector3(1.2, 1.2, 1.2);
+	this.unitVec3 = new THREE.Vector3(1.0, 1.0, 1.0);
+
+	this.clock = new THREE.Clock();
+
+	this.renderer = new THREE.WebGLRenderer({ antialias: true });
+	this.renderer.setSize(this.container.width(), this.container.height());
+	this.renderer.autoUpdateObjects = false; // to avoid having initWebGLObjects called every frame
+	//renderer.sortObjects = false;
+
+	this.container.append( this.renderer.domElement );
+
+	this.stats = new Stats();
+	this.stats.domElement.style.position = 'absolute';
+	this.stats.domElement.style.top = '0px';
+	this.stats.domElement.style.right = '0px';
+	this.stats.domElement.style.zIndex = 100;
+
+	this.container.append(this.stats.domElement);
+
+	this.lara = {};
+
 }
 
-function show(trlevel) {
-	jQuery( "#progress" ).css('display', "block");
+TRN.Play.prototype = {
 
-	var levelConverted = function(sc) {
-		sceneJSON = sc;
+	constructor : TRN.Play,
+
+	onWindowResize : function () {
+
+		this.camera.aspect = this.container.width() / this.container.height();
+		this.camera.updateProjectionMatrix();
+
+		this.renderer.setSize( this.container.width(), this.container.height() );
+
+		this.render();
+
+	},
+
+	showLevel : function (trlevel) {
+
+		var this_ = this;
+
+		this.confMgr = trlevel.confMgr;
+
+		this.progressbar.show();
+
+		if (typeof(trlevel) == 'string') {
+
+			var isZip = trlevel.indexOf('.zip') >= 0;
+
+		    var request = new XMLHttpRequest();
+
+		    request.open("GET", trlevel, true);
+		    request.responseType = isZip ? "arraybuffer" : "text";
+
+		    request.onerror = function() {
+		        console.log('Read level: XHR error', request.status, request.statusText);
+		    }
+
+		    request.onprogress = function(e) {
+		    	if (e.lengthComputable) {
+
+		    		var pct = 0;
+
+					if ( e.total )
+						pct = e.loaded / e.total;
+
+		    		this_.progressbar.progress(pct);
+
+		    	}
+		    }
+
+		    request.onreadystatechange = function() {
+		        if (request.readyState != 4) return;
+
+		        if (request.status != 200) {
+			   		console.log('Could not read the level', trlevel, request.status, request.statusText);
+		        } else {
+		        	this_.progressbar.progress(1);
+		        	var sc;
+		        	if (isZip) {
+			        	console.log('Level', trlevel, 'loaded. Unzipping...');
+			    		var zip = new JSZip();
+			    		zip.load(request.response);
+			    		var f = zip.file('level');
+			    		sc = JSON.parse(f.asText());
+			    		console.log('Level unzipped.');
+			    	} else {
+			    		sc = JSON.parse(request.response);
+			    	}
+		    		this_.levelConverted(sc);
+		        }
+		    }
+
+			request.send();
+
+		} else {
+
+			var converter = new TRN.LevelConverter(trlevel.confMgr);
+
+			converter.convert(trlevel, this.levelConverted.bind(this));
+
+		}
+	},
+
+	levelConverted : function (sc) {
+
+		this.sceneJSON = sc;
+
+		var this_ = this;
+
 		if (sc.cutScene.soundData && TRN.Browser.AudioContext) {
+
             TRN.Browser.AudioContext.decodeAudioData(
+
                 TRN.Base64Binary.decodeArrayBuffer(sc.cutScene.soundData),
+
                 function(buffer) {
+
                     if (!buffer) {
                         console.log('error decoding sound data for cut scene');
                     } else {
@@ -44,806 +145,593 @@ function show(trlevel) {
 						sc.cutScene.sound.buffer = buffer;
 						sc.cutScene.sound.connect(TRN.Browser.AudioContext.destination);
                     }
-					init();
+
+					this_.parseLevel();
                 }    
             );
+
 		} else {
-			init();
+
+			this.parseLevel();
+
 		}
-	}
+	},
 
-	if (typeof(trlevel) == 'string') {
+	parseLevel : function () {
 
-		var isZip = trlevel.indexOf('.zip') >= 0;
+		var this_ = this;
 
-	    var request = new XMLHttpRequest();
-	    request.open("GET", trlevel, true);
-	    request.responseType = isZip ? "arraybuffer" : "text";
+		var loader = new THREE.SceneLoader();
 
-	    request.onerror = function() {
-	        console.log('Read level: XHR error', request.status, request.statusText);
-	    }
+		loader.callbackProgress = function (progress, result) {
 
-	    request.onprogress = function(e) {
-	    	if (e.lengthComputable) {
-				var bar = 250;
+			var	pct = 0,
+				total = progress.totalModels + progress.totalTextures,
+				loaded = progress.loadedModels + progress.loadedTextures;
 
-				if ( e.total )
-					bar = Math.floor( bar * e.loaded / e.total );
+			if (total)
+				pct = loaded / total;
 
-				jQuery( "#bar" ).css('width', bar + "px");
+			this_.progressbar.progress(pct);
 
-	    	}
-	    }
+		};
 
-	    request.onreadystatechange = function() {
-	        if (request.readyState != 4) return;
+		loader.parse(this.sceneJSON, function(result) {
 
-	        if (request.status != 200) {
-		   		console.log('Could not read the level', trlevel, request.status, request.statusText);
-	        } else {
-				jQuery( "#bar" ).css('width', "100%");
-	        	var sc;
-	        	if (isZip) {
-		        	console.log('Level', trlevel, 'loaded. Unzipping...');
-		    		var zip = new JSZip();
-		    		zip.load(request.response);
-		    		var f = zip.file('level');
-		    		sc = JSON.parse(f.asText());
-		    		console.log('Level unzipped.');
-		    	} else {
-		    		sc = JSON.parse(request.response);
-		    	}
-	    		levelConverted(sc);
-	        }
-	    }
-
-		request.send();
-
-	} else {
-		var converter = new TRN.LevelConverter(trlevel.confMgr);
-
-		converter.convert(trlevel, levelConverted);
-
-		if (false) {
-			/*ssc = JSON.stringify(sc);
-		    var zip = new JSZip();
-		    zip.file("level", ssc);
-		    var content = zip.generate({compression:'DEFLATE', type:'blob'});
-		    console.log(ssc.length, content.size)
-
-			var requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
-			if (requestFileSystem) {
-				console.log('requestFileSystem found !');
-
-				window.webkitStorageInfo.requestQuota(PERSISTENT, 100*1024*1024, function(grantedBytes) {
-					requestFileSystem(window.PERSISTENT, 100*1024*1024, function(fs) { 
-
-						fs.root.getFile(sc.levelShortFileName + '.zip', { create:true, exclusive:false }, function(fileEntry) {
-						    fileEntry.createWriter(function(fileWriter) {
-
-						      fileWriter.onwriteend = function(e) {
-						        console.log('Write completed.');
-						      };
-
-						      fileWriter.onerror = function(e) {
-						        console.log('Write failed: ' + e.toString());
-						      };
-
-						      // Create a new Blob and write it to log.txt.
-						      //var blob = new Blob(content, {type: 'application/octet-stream'});
-
-						      fileWriter.write(content);
-
-						    }, errorHandler);					
-						}, errorHandler);
-					}, errorHandler);
-				});
-			}*/
-		}
-
-	}
-}
-
-function showInfo() {
-	jQuery('#currentroom').html(sceneJSON.curRoom);
-	jQuery('#numlights').html(sceneJSON.curRoom != -1 ? sceneJSON.objects['room'+sceneJSON.curRoom].lights.length : '');
-	jQuery('#camerapos').html(camera.position.x.toFixed(12)+','+camera.position.y.toFixed(12)+','+camera.position.z.toFixed(12));
-	jQuery('#camerarot').html(camera.quaternion.x.toFixed(12)+','+camera.quaternion.y.toFixed(12)+','+camera.quaternion.z.toFixed(12)+','+camera.quaternion.w.toFixed(12));
-	jQuery('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces);
-}
-
-function init() {
-
-	var container = document.getElementById( 'container' );
-
-	if (renderer) {
-		container.removeChild(renderer.domElement);
-	}
-	
-	renderer = new THREE.WebGLRenderer({ antialias: true });
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	//renderer.sortObjects = false;
-
-	container.appendChild( renderer.domElement );
-
-	stats = new Stats();
-	stats.domElement.style.position = 'absolute';
-	stats.domElement.style.top = '0px';
-	stats.domElement.style.right = '0px';
-	stats.domElement.style.zIndex = 100;
-	container.appendChild( stats.domElement );
-
-	var loader = new THREE.SceneLoader();
-	loader.callbackProgress = callbackProgress;
-
-	loader.parse(sceneJSON, function(result) {
-	    window.setTimeout(function() {
-		    jQuery('#message').html('Processing...');
 		    window.setTimeout(function() {
-				callbackFinished(result);
+
+		    	this_.progressbar.setMessage('Processing...');
+
+			    window.setTimeout(function() {
+
+					this_.levelParsed(result);
+
+				}, 100);
+
 			}, 100);
-		}, 100);
-	}, '');
 
-}
+		}, '');
 
-function callbackProgress(progress, result) {
-	var bar = 250,
-		total = progress.totalModels + progress.totalTextures,
-		loaded = progress.loadedModels + progress.loadedTextures;
+	},
 
-	if ( total )
-		bar = Math.floor( bar * loaded / total );
+	findObjectById : function(idObject) {
 
-	jQuery( "#bar" ).css('width', bar + "px");
-}
+		for (var objID in this.scene.objects) {
 
-function onWindowResize() {
+			var objJSON = this.sceneJSON.objects[objID];
 
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
+			if (objJSON.objectid == idObject) return this.scene.objects[objID];
 
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
-	render();
-
-}
-
-function registerAnimation(objectID, animIndex, useOrigAnimation) {
-
-	var anim = THREE.AnimationHandler.get(objectID + '_anim' + animIndex);
-	if (anim != null) return anim;
-
-	anim = useOrigAnimation ? sceneJSON.animations[animIndex] : jQuery.extend(true, {}, sceneJSON.animations[animIndex]);
-
-	var mesh = sceneJSON.embeds['moveable' + objectID];
-	var bones = mesh.bones;
-
-	for (var b = 0; b < bones.length; ++b) {
-		if (b < anim.hierarchy.length) {
-			anim.hierarchy[b].parent = bones[b].parent;
-			for (var k = 0; k < anim.hierarchy[b].keys.length; ++k) {
-				var pos = anim.hierarchy[b].keys[k].pos;
-				pos[0] += bones[b].pos_init[0];
-				pos[1] += bones[b].pos_init[1];
-				pos[2] += bones[b].pos_init[2];
-			}
-		} else {
-			console.log("Problem when creating anim #" + animIndex + " for moveable with objectId " + objectID +
-				": there are more bones (" + bones.length + ") in the moveable than in the anim (" + anim.hierarchy.length + ") !");
 		}
-	}
 
-	anim.hierarchy.length = bones.length; // in case there are more bones in the anim than in the mesh
-	anim.name = objectID + '_anim' + animIndex;
+		return null;
+	},
 
-	THREE.AnimationHandler.add( anim );
+	levelParsed : function (result) {
 
-	return anim;	
-}
+		this.scene = result;
 
-function callbackFinished(result) {
+		this.sceneJSON.curRoom = -1;
 
-	scene = result;
+		this.getLaraConfig();
 
-	jQuery('#wireframemode').on('click', function() {
-		for (var objID in scene.objects) {
-			var obj = scene.objects[objID];
-			if (!(obj instanceof THREE.Mesh)) continue;
-
-			var materials = obj.material.materials;
-			if (!materials || !materials.length) continue;
-
-			for (var i = 0; i < materials.length; ++i) {
-				var material = materials[i];
-				material.wireframe = this.checked;
-			}
+		// make sure the sky is displayed first
+		if (this.scene.objects.sky) {
+			this.scene.objects.sky.renderDepth = -1e10;
+			//scene.objects.sky.frustumCulled = false;
 		}
-	});
 
-	jQuery('#usefog').on('click', function() {
-		var shaderMgr = new TRN.ShaderMgr();
-		for (var objID in scene.objects) {
-			var obj = scene.objects[objID];
-			if (!(obj instanceof THREE.Mesh)) continue;
+		// initialize the animated textures
+		this.scene.animatedTextures = this.sceneJSON.animatedTextures;
+		
+		if (this.scene.animatedTextures) {
 
-			var materials = obj.material.materials;
-			if (!materials || !materials.length) continue;
-
-			for (var i = 0; i < materials.length; ++i) {
-				var material = materials[i];
-				material.fragmentShader = shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
-				material.needsUpdate = true;
+			for (var i = 0; i < this.scene.animatedTextures.length; ++i) {
+				var animTexture = this.scene.animatedTextures[i];
+				animTexture.progressor = new TRN.Sequence(animTexture.animcoords.length, 1.0/animTexture.animspeed);
 			}
+
 		}
-	});
 
-	jQuery('#nolights').on('click', function() {
-		var shaderMgr = new TRN.ShaderMgr();
-		for (var objID in scene.objects) {
-			var obj = scene.objects[objID];
-			if (!(obj instanceof THREE.Mesh)) continue;
+		// animations
+		if (this.sceneJSON.animTracks) {
 
-			var materials = obj.material.materials;
-			if (!materials || !materials.length) continue;
+			this.scene.animTracks = [];
 
-			for (var i = 0; i < materials.length; ++i) {
-				var material = materials[i], origMatName = material.origMatName;
-				if (!origMatName) {
-					origMatName = material.origMatName = material.name;
-					material.origVertexShader = material.vertexShader;
+			// create one track per animation
+			for (var t = 0; t < this.sceneJSON.animTracks.length; ++t) {
+
+				var trackJSON = this.sceneJSON.animTracks[t], keys = trackJSON.keys;
+
+				var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
+
+				track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
+				track.setCommands(trackJSON.commands);
+
+				this.scene.animTracks.push(track);
+
+				for (var k = 0; k < keys.length; ++k) {
+
+					var keyJSON = keys[k], dataJSON = keyJSON.data;
+
+					var key = new TRN.Animation.Key(keyJSON.time, keyJSON.boundingBox);
+
+					for (var d = 0; d < dataJSON.length; ++d) {
+
+						key.addData(dataJSON[d].position, dataJSON[d].quaternion);
+
+					}
+
+					track.addKey(key);
+
 				}
-				if (origMatName.indexOf('_l') < 0) continue;
-
-				material.vertexShader = this.checked ? shaderMgr.getVertexShader('moveable') : material.origVertexShader;
-				material.needsUpdate = true;
 			}
-		}
-	});
 
-	jQuery('#showboundingboxes').on('click', function() {
-		for (var objID in scene.objects) {
-			var obj = scene.objects[objID];
-			var objJSON = sceneJSON.objects[objID];
+			// instanciate the first track for each animated object
+			for (var objID in this.scene.objects) {
 
-			if (!objJSON.has_anims) continue;
+				var obj = this.scene.objects[objID];
+				var objJSON = this.sceneJSON.objects[objID];
 
-			if (this.checked) {
-				obj.boxHelper = new THREE.BoxHelper();
-				obj.boxHelper.update(obj);
-				scene.scene.add(obj.boxHelper);
-			} else {
-				scene.scene.remove(obj.boxHelper);
-				delete obj.boxHelper;
-			}
-		}
-	});
+				if (!objJSON.has_anims) continue;
 
-	jQuery('#fullscreen').on('click', function() {
-		if (document.fullscreenElement != null) {
-			if (document.exitFullscreen) 
-				document.exitFullscreen();
-		} else if (document.body.requestFullscreen) {
-			document.body.requestFullscreen();
-		}
-	});
+				if (this.sceneJSON.cutScene.frames) {
 
-    var prefix = ['', 'webkit', 'moz'];
-    for (var i = 0; i < prefix.length; ++i) {
-    	document.addEventListener(prefix[i] + "fullscreenchange", function() {
-    		jQuery('#fullscreen').prop('checked', document.fullscreenElement != null);
-    	}, false);
-    }
+					// register all animations we will need in the cut scene
+					var registered = {}, anmIndex = objJSON.animationStartIndex, allTrackInstances = {};
 
-	sceneJSON.curRoom = -1;
+					while (true) {
 
-	// make sure the sky is displayed first
-	if (scene.objects.sky) {
-		scene.objects.sky.renderDepth = -1e10;
-		//scene.objects.sky.frustumCulled = false;
-	}
+						if (registered[anmIndex]) break;
+						
+						registered[anmIndex] = true;
 
-	// initialize the animated textures
-	scene.animatedTextures = sceneJSON.animatedTextures;
-	if (scene.animatedTextures) {
-		for (var i = 0; i < scene.animatedTextures.length; ++i) {
-			var animTexture = scene.animatedTextures[i];
-			animTexture.progressor = new SequenceProgressor(animTexture.animcoords.length, 1.0/animTexture.animspeed);
-		}
-	}
+						var track = this.scene.animTracks[anmIndex];
+						var trackInstance = new TRN.Animation.TrackInstance(track, obj, this.sceneJSON.embeds[objJSON.geometry].bones);
 
-	// animations
-	if (sceneJSON.animTracks) {
-		scene.animTracks = [];
+						allTrackInstances[anmIndex] = trackInstance;
 
-		// create one track per animation
-		for (var t = 0; t < sceneJSON.animTracks.length; ++t) {
-			var trackJSON = sceneJSON.animTracks[t], keys = trackJSON.keys;
+						anmIndex = track.nextTrack;
 
-			var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
+					}
 
-			track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
-			track.setCommands(trackJSON.commands);
+					obj.allTrackInstances = allTrackInstances;
 
-			scene.animTracks.push(track);
+					var trackInstance = allTrackInstances[objJSON.animationStartIndex];
 
-			for (var k = 0; k < keys.length; ++k) {
-				var keyJSON = keys[k], dataJSON = keyJSON.data;
+					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
+					trackInstance.setNoInterpolationToNextAnim = true;
+					trackInstance.setNoInterpolationToNextAnimValue = this.sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
 
-				var key = new TRN.Animation.Key(keyJSON.time, keyJSON.boundingBox);
+					trackInstance.runForward(0);
+					trackInstance.interpolate();
 
-				for (var d = 0; d < dataJSON.length; ++d) {
-					key.addData(dataJSON[d].position, dataJSON[d].quaternion);
+					obj.trackInstance = trackInstance;
+
+				} else {
+
+					var animIndex = objJSON.animationStartIndex;
+
+					var track = this.scene.animTracks[animIndex];
+					var trackInstance = new TRN.Animation.TrackInstance(track, obj, this.sceneJSON.embeds[objJSON.geometry].bones);
+
+					trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
+
+					trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
+					trackInstance.interpolate();
+		
+					obj.trackInstance = trackInstance;
+
 				}
 
-				track.addKey(key);
+				obj.prevTrackInstance = obj.trackInstance;
+				obj.prevTrackInstanceFrame = 0;
+
 			}
 		}
 
-		// instanciate the first track for each animated object
-		for (var objID in scene.objects) {
-			var obj = scene.objects[objID];
-			var objJSON = sceneJSON.objects[objID];
+		// Set all objects except camera/sky + animated objects as auto update=false
+		for (var objID in this.scene.objects) {
 
-			if (!objJSON.has_anims) continue;
+			var obj = this.scene.objects[objID];
+			var objJSON = this.sceneJSON.objects[objID];
 
-			if (sceneJSON.cutScene.frames) {
-				// register all animations we will need in the cut scene
-				var registered = {}, anmIndex = objJSON.animationStartIndex, allTrackInstances = {};
-				while (true) {
-					if (registered[anmIndex]) break;
-					
-					registered[anmIndex] = true;
+			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID != 'sky') {
 
-					var track = scene.animTracks[anmIndex];
-					var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
+				obj.updateMatrix();
+				obj.matrixAutoUpdate = false;
 
-					allTrackInstances[anmIndex] = trackInstance;
+			}
+		}
 
-					anmIndex = track.nextTrack;
-				}
+		// don't flip Y coordinates in textures
+		for (var texture in this.scene.textures) {
 
-				obj.allTrackInstances = allTrackInstances;
+			if (!this.scene.textures.hasOwnProperty(texture)) continue;
 
-				var trackInstance = allTrackInstances[objJSON.animationStartIndex];
+			this.scene.textures[texture].flipY = false;
 
-				trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
-				trackInstance.setNoInterpolationToNextAnim = true;
-				trackInstance.setNoInterpolationToNextAnimValue = sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
+		}
 
-				trackInstance.runForward(0);
-				trackInstance.interpolate();
+		// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
+		for (var objID in this.scene.objects) {
 
-				obj.trackInstance = trackInstance;
-			} else {
-				var animIndex = objJSON.animationStartIndex;
+			var obj = this.scene.objects[objID];
+			var objJSON = this.sceneJSON.objects[objID];
 
-				var track = scene.animTracks[animIndex];
-				var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
+			if (!(obj instanceof THREE.Mesh)) continue;
 
-				trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
-
-				trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
-				trackInstance.interpolate();
-	
-				obj.trackInstance = trackInstance;
+			if (!objJSON.has_anims) {
+				obj.geometry.computeBoundingBox();
+				obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
 			}
 
-			obj.prevTrackInstance = obj.trackInstance;
-			obj.prevTrackInstanceFrame = 0;
-		}
-	}
+			obj.frustumCulled = true;
+			obj.dummy = objJSON.dummy;
 
-	// Set all objects except camera/sky + animated objects as auto update=false
-	for (var objID in scene.objects) {
-		var obj = scene.objects[objID];
-		var objJSON = sceneJSON.objects[objID];
+			var material = new THREE.MeshFaceMaterial();
+			obj.material = material;
 
-		if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID != 'sky') {
-			obj.updateMatrix();
-			obj.matrixAutoUpdate = false;
-		}
-	}
+			obj.geometry.computeFaceNormals();
+			obj.geometry.computeVertexNormals();
 
-	// don't flip Y coordinates in textures
-	for (var texture in scene.textures) {
-		if (!scene.textures.hasOwnProperty(texture)) continue;
+			var room = objJSON.type == 'room' ? objJSON : this.sceneJSON.objects['room' + objJSON.roomIndex];
 
-		scene.textures[texture].flipY = false;
-	}
-
-	// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
-	for (var objID in scene.objects) {
-		var obj = scene.objects[objID];
-		var objJSON = sceneJSON.objects[objID];
-
-		if (!(obj instanceof THREE.Mesh)) continue;
-
-		if (!objJSON.has_anims) {
-			obj.geometry.computeBoundingBox();
-		}
-
-		obj.frustumCulled = true;
-
-		var material = new THREE.MeshFaceMaterial();
-		obj.material = material;
-
-		obj.geometry.computeFaceNormals();
-		obj.geometry.computeVertexNormals();
-
-		var room = objJSON.isRoom ? objJSON : sceneJSON.objects['room' + objJSON.roomIndex];
-
-		var attributes = sceneJSON.embeds[sceneJSON.geometries[objJSON.geometry].id].attributes;
-		if (attributes) {
-			attributes.flags.needsUpdate = true;
-		}
-
-		for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
-			var elem = objJSON.material[mt_];
-			material.materials[mt_] = scene.materials[elem.material].clone();
-			if (elem.uniforms) {
-				material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
-			}
+			var attributes = this.sceneJSON.embeds[this.sceneJSON.geometries[objJSON.geometry].id].attributes;
 
 			if (attributes) {
-				material.materials[mt_].attributes = attributes;
+				attributes.flags.needsUpdate = true;
 			}
-			for (var mkey in elem) {
-				if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
-				material.materials[mt_][mkey] = elem[mkey];
-			}
-		}
 
-		var materials = material.materials;
-		if (!materials || !materials.length) continue;
-		for (var i = 0; i < materials.length; ++i) {
-			var material = materials[i];
-			if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
-				material.uniforms.map.value = scene.textures[material.uniforms.map.value];
-			}
-			if (room && room.filledWithWater) {
-				material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);
-			}
-			if (objJSON.has_anims && room) { // only animated objects are externally lit and need light definitions from the room
-				material.uniforms.ambientColor.value = room.ambientColor;
-				material.uniforms.pointLightPosition = { type: "v3v", value: [] };
-				material.uniforms.pointLightColor = { type: "v3v", value: [] };
-				material.uniforms.pointLightDistance = { type: "f", value: [] };
-				for (var l = 0; l < room.lights.length; ++l) {
-					var light = room.lights[l];
-					material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
-					material.uniforms.pointLightColor.value[l] = light.color;
-					material.uniforms.pointLightDistance.value[l] = light.fadeOut;
+			for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
+
+				var elem = objJSON.material[mt_];
+				material.materials[mt_] = this.scene.materials[elem.material].clone();
+				if (elem.uniforms) {
+					material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
+				}
+
+				if (attributes) {
+					material.materials[mt_].attributes = attributes;
+				}
+
+				for (var mkey in elem) {
+
+					if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
+					material.materials[mt_][mkey] = elem[mkey];
+
 				}
 			}
-			if (material.hasAlpha) {
-				isTransparent = true;
-				material.transparent = true;
-				material.blending = THREE.AdditiveBlending;
-				material.blendSrc = THREE.OneFactor;
-				material.blendDst = THREE.OneMinusSrcColorFactor;
-				material.depthWrite = false;
-				material.needsUpdate = true;
+
+			var materials = material.materials;
+
+			if (!materials || !materials.length) continue;
+
+			for (var i = 0; i < materials.length; ++i) {
+
+				var material = materials[i];
+
+				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
+					material.uniforms.map.value = this.scene.textures[material.uniforms.map.value];
+				}
+
+				if (room && room.filledWithWater) {
+					material.uniforms.tintColor.value = new THREE.Vector3(this.sceneJSON.waterColor.in.r, this.sceneJSON.waterColor.in.g, this.sceneJSON.waterColor.in.b);
+				}
+
+				if (objJSON.has_anims && room) { // only animated objects are externally lit and need light definitions from the room
+
+					material.uniforms.ambientColor.value = room.ambientColor;
+					material.uniforms.pointLightPosition = { type: "v3v", value: [] };
+					material.uniforms.pointLightColor = { type: "v3v", value: [] };
+					material.uniforms.pointLightDistance = { type: "f", value: [] };
+
+					for (var l = 0; l < room.lights.length; ++l) {
+
+						var light = room.lights[l];
+						material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
+						material.uniforms.pointLightColor.value[l] = light.color;
+						material.uniforms.pointLightDistance.value[l] = light.fadeOut;
+
+					}
+				}
+
+				if (material.hasAlpha) {
+
+					isTransparent = true;
+					material.transparent = true;
+					material.blending = THREE.AdditiveBlending;
+					material.blendSrc = THREE.OneFactor;
+					material.blendDst = THREE.OneMinusSrcColorFactor;
+					material.depthWrite = false;
+					material.needsUpdate = true;
+
+				}
 			}
 		}
-	}
 
-	camera = scene.currentCamera;
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
+		// put pistols in Lara holsters
+		var obj = this.scene.objects[this.lara.objNameForPistolAnim];
+		var lara = this.findObjectById(TRN.ObjectID.Lara);
 
-	if (true) {
-		// keel
+		if (obj && lara) {
+			this.meshSwap(lara, obj, this.lara.leftThighIndex);
+			this.meshSwap(lara, obj, this.lara.rightThighIndex);
+		}
+
+		this.camera = this.scene.currentCamera;
+		this.camera.aspect = window.innerWidth / window.innerHeight;
+		this.camera.updateProjectionMatrix();
+
 		//camera.position.set(63514.36027899013,-3527.280854978113,-57688.901507514056);
 		//camera.quaternion.set(-0.050579906399909495,-0.2148394919749775,-0.011142047403773734,0.9752750999262544);
-		// wall
-		//camera.position.set(26691.903842411888,880.9278880595274,-36502.99612845005);
-		//camera.quaternion.set(-0.024892277143903293,0.6595324248145452,0.02186211933470944,0.7509456723991692);
-		//camera.position.set(88862.25062021082,-19699.75129100216,-71066.57072532139);
-		//camera.quaternion.set(0.019547182878385066,-0.9796215753522257,-0.16025495204163037,-0.1194898618798845);
-		//camera.position.set(27301.841933835174,5789.926107567453,-40251.631452191861);
-		//camera.quaternion.set(-0.014785860024,-0.951336377231,-0.046225492867,0.304306567275);
-		// unwater
-		//camera.position.set(80344.23082910081,5708.199004460822,-48651.619581856896);
-		//camera.quaternion.set(0.005487008774905242,0.9860915773002777,0.16275151654342634,-0.03324511655818078);
-	}
 
-	if (TRN.Browser.QueryString.pos) {
-		var vals = TRN.Browser.QueryString.pos.split(',');
-		camera.position.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]));
-	}
+		if (TRN.Browser.QueryString.pos) {
 
-	if (TRN.Browser.QueryString.rot) {
-		var vals = TRN.Browser.QueryString.rot.split(',');
-		camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
-	}
+			var vals = TRN.Browser.QueryString.pos.split(',');
+			this.camera.position.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]));
 
-	camera.updateMatrix();
-	camera.updateMatrixWorld();
-	
-	var elem = document.body;
-
-	controls = new BasicControls( camera, elem );
-
-	TRN.Browser.bindRequestPointerLock(elem);
-	TRN.Browser.bindRequestFullscreen(elem);
-
-	jQuery( "#start" ).on( 'click', start );
-	jQuery( "#message" ).css('display', "none");
-	jQuery( "#progressbar" ).css('display', "none");
-	jQuery( "#panel" ).css('display', 'block');
-
-	if (TRN.Browser.QueryString.autostart == '1') {
-		start();
-	} else {
-		jQuery( "#start" ).css('display', "block");
-		jQuery( "#start" ).attr('class', "enabled");
-	}
-
-}
-
-function start() {
-	window.addEventListener( 'resize', onWindowResize, false );
-
-	onWindowResize();
-
-	jQuery( "#progress" ).css('display', "none");
-
-	if (sceneJSON.cutScene.frames != null) {
-		TRN.Helper.startSound(sceneJSON.cutScene.sound);
-	}
-
-	animate();
-}
-
-var quantum = 1000/TRN.baseFrameRate, quantumTime = (new Date()).getTime(), quantumRnd = 0;
-var flickerColor = new THREE.Vector3(1.2, 1.2, 1.2), unitVec3 = new THREE.Vector3(1.0, 1.0, 1.0);
-
-function findRoom(position) {
-	for (var objID in scene.objects) {
-		var obj = scene.objects[objID], objJSON = sceneJSON.objects[objID];
-		if (objJSON.isRoom) {
-			if (obj.geometry.boundingBox.containsPoint(position) && !objJSON.isAlternateRoom) {
-				return objJSON.roomIndex;
-			}
 		}
-	}
 
-	return -1;
-}
+		if (TRN.Browser.QueryString.rot) {
 
-function processAnimCommands(trackInstance, prevFrame, curFrame, obj) {
+			var vals = TRN.Browser.QueryString.rot.split(',');
+			this.camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
 
-	var commands = trackInstance.track.commands;
+		}
 
-	for (var i = 0; i < commands.length; ++i) {
-		var command = commands[i];
+		this.camera.updateMatrix();
+		this.camera.updateMatrixWorld();
+		
+		var elem = document.body;
 
-		switch (command.cmd) {
+		this.controls = new BasicControls( this.camera, elem );
 
-			case TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME:
+		TRN.Browser.bindRequestPointerLock(elem);
+		TRN.Browser.bindRequestFullscreen(elem);
 
-				var frame = command.params[0] - commands.frameStart, action = command.params[1];
-				if (frame < prevFrame || frame >= curFrame) { continue; }
+		this.panel.show();
 
-				//console.log(action,'done for frame',frame,obj.name)
+		if (TRN.Browser.QueryString.autostart == '1') {
+			this.start();
+		} else {
+			this.progressbar.showStart(this.start.bind(this));
+		}
 
-				switch (action) {
+	},
 
-					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1:
-					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP2:
-					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP3:
-						var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
-						var oswap = scene.objects['meshswap' + idx];
-						var g = obj.geometry, m = obj.material;
+	start : function () {
 
-						obj.geometry = oswap.geometry;
-						obj.material = oswap.material;
+		this.progressbar.hide();
 
-						oswap.geometry = g;
-						oswap.material = m;
+		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
-						delete obj.__webglInit; // make three js regenerates the webgl buffers
-						break;
-					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_HIDEOBJECT:
-						obj.visible = false;
-						break;
+		if (this.sceneJSON.cutScene.frames != null) {
+			TRN.Helper.startSound(this.sceneJSON.cutScene.sound);
+		}
 
-					case TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT:
-						obj.visible = true;
-						break;
+		this.renderer.initWebGLObjects(this.scene.scene);
+
+		this.animate();
+
+		this.onWindowResize();
+
+	},
+
+	animateObjects : function(delta) {
+
+		for (var objID in this.scene.objects) {
+
+			var obj = this.scene.objects[objID];
+
+			if (obj.trackInstance && obj.visible) {
+
+				if (!obj.trackInstance.runForward(delta)) {
+
+					// it's the end of the current track and we are in a cut scene => we link to the next track
+					var trackInstance = obj.trackInstance;
+
+					var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.interpFactor;
+					
+					trackInstance = obj.allTrackInstances[trackInstance.track.nextTrack];
+					obj.trackInstance = trackInstance;
+
+					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
+					trackInstance.setCurrentFrame(nextTrackFrame);
+
+					trackInstance.setNoInterpolationToNextAnim = this.sceneJSON.cutScene.frames != null;
+					trackInstance.setNoInterpolationToNextAnimValue = this.sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
 				}
 
-				break;
-		}
-	}
-}
+				if (obj.trackInstance != obj.prevTrackInstance) {
 
-function animate() {
+					this.processAnimCommands(obj.prevTrackInstance, obj.prevTrackInstanceFrame, 1e10, obj);
+					this.processAnimCommands(obj.trackInstance, 0, obj.trackInstance.param.curFrame, obj);
 
-	requestAnimationFrame( animate );
+				} else {
 
-	var curTime = (new Date()).getTime();
-	if (startTime == -1) startTime = curTime;
-	if (curTime - quantumTime > quantum) {
-		quantumRnd = Math.random();
-		quantumTime = curTime;
-	}
+					this.processAnimCommands(obj.trackInstance, obj.prevTrackInstanceFrame, obj.trackInstance.param.curFrame, obj);
 
-	curTime = curTime - startTime;
+				}
 
-	var delta = clock.getDelta();
+				obj.prevTrackInstance = obj.trackInstance;
+				obj.prevTrackInstanceFrame = obj.trackInstance.param.curFrame;
 
-	// animate objects
-	for (var objID in scene.objects) {
-		var obj = scene.objects[objID];
+				obj.trackInstance.interpolate();
 
-		if (obj.trackInstance && obj.visible) {
-			if (!obj.trackInstance.runForward(delta)) {
-				// it's the end of the current track and we are in a cut scene => we link to the next track
-				var trackInstance = obj.trackInstance;
+				var boundingBox = obj.trackInstance.track.keys[obj.trackInstance.param.curKey].boundingBox;
 
-				var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.interpFactor;
-				
-				trackInstance = obj.allTrackInstances[trackInstance.track.nextTrack];
-				obj.trackInstance = trackInstance;
+				boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
+				obj.geometry.boundingBox = boundingBox;
 
-				trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
-				trackInstance.setCurrentFrame(nextTrackFrame);
-
-				trackInstance.setNoInterpolationToNextAnim = sceneJSON.cutScene.frames != null;
-				trackInstance.setNoInterpolationToNextAnimValue = sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
-			}
-
-			if (obj.trackInstance != obj.prevTrackInstance) {
-
-				processAnimCommands(obj.prevTrackInstance, obj.prevTrackInstanceFrame, 1e10, obj);
-				processAnimCommands(obj.trackInstance, 0, obj.trackInstance.param.curFrame, obj);
-
-			} else {
-
-				processAnimCommands(obj.trackInstance, obj.prevTrackInstanceFrame, obj.trackInstance.param.curFrame, obj);
-
-			}
-
-			obj.prevTrackInstance = obj.trackInstance;
-			obj.prevTrackInstanceFrame = obj.trackInstance.param.curFrame;
-
-			obj.trackInstance.interpolate();
-
-			var boundingBox = obj.trackInstance.track.keys[obj.trackInstance.param.curKey].boundingBox;
-
-			boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
-			obj.geometry.boundingBox = boundingBox;
-
-			if (obj.boxHelper) {
-				obj.boxHelper.update(obj);
+				if (obj.boxHelper) {
+					obj.boxHelper.update(obj);
+				}
 			}
 		}
-	}
 
-	controls.update(delta);
-	
-	if (sceneJSON.cutScene.frames != null) {
-		sceneJSON.cutScene.curFrame += TRN.baseFrameRate * delta;
-		var cfrm = parseInt(sceneJSON.cutScene.curFrame);
-		if (cfrm < sceneJSON.cutScene.frames.length) {
-			var frm1 = sceneJSON.cutScene.frames[cfrm];
+	},
+
+	animateCutScene : function (delta) {
+
+		if (this.sceneJSON.cutScene.frames == null) { return; }
+
+		this.sceneJSON.cutScene.curFrame += TRN.baseFrameRate * delta;
+
+		var cfrm = parseInt(this.sceneJSON.cutScene.curFrame);
+
+		if (cfrm < this.sceneJSON.cutScene.frames.length) {
+
+			var frm1 = this.sceneJSON.cutScene.frames[cfrm];
 			var fov = frm1.fov * 70.0 / 16384.0;
 			var roll = -frm1.roll * 180.0 / 32768.0;
-			if (!controls.captureMouse) {
+
+			if (!this.controls.captureMouse) {
 
 				var q = new THREE.Quaternion();
-				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(sceneJSON.cutScene.origin.rotY) );
+				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sceneJSON.cutScene.origin.rotY) );
 
 				var lkat = new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ);
 				lkat.applyQuaternion(q);
 
-				camera.fov = fov;
-				camera.position.set(frm1.posX, -frm1.posY, -frm1.posZ);
-				camera.position.applyQuaternion(q);
-				camera.lookAt(lkat);
-				camera.position.add(sceneJSON.cutScene.origin);
-				camera.quaternion.multiplyQuaternions(q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(roll) ), camera.quaternion);
-				camera.updateProjectionMatrix();
+				this.camera.fov = fov;
+				this.camera.position.set(frm1.posX, -frm1.posY, -frm1.posZ);
+				this.camera.position.applyQuaternion(q);
+				this.camera.lookAt(lkat);
+				this.camera.position.add(this.sceneJSON.cutScene.origin);
+				this.camera.quaternion.multiplyQuaternions(q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(roll) ), this.camera.quaternion);
+				this.camera.updateProjectionMatrix();
 			}
+
 		} else {
-			sceneJSON.cutScene.frames = null;
+
+			this.sceneJSON.cutScene.frames = null;
+
 		}
-	}
 
-	camera.updateMatrixWorld();
+	},
 
-	if (scene.objects.sky) {
-		scene.objects.sky.position = camera.position;
-	}
+	animateTextures : function (delta) {
 
-	if (scene.animatedTextures) {
-		for (var i = 0; i < scene.animatedTextures.length; ++i) {
-			var animTexture = scene.animatedTextures[i];
+		if (!this.scene.animatedTextures) { return; }
+
+		for (var i = 0; i < this.scene.animatedTextures.length; ++i) {
+			var animTexture = this.scene.animatedTextures[i];
 			animTexture.progressor.update(delta);
 		}
-	}
 
-	var singleRoomMode = jQuery('#singleroommode').prop('checked');
+	},
 
-	sceneJSON.curRoom = -1;
+	updateObjects : function (curTime) {
 
-	for (var objID in scene.objects) {
-		var obj = scene.objects[objID], objJSON = sceneJSON.objects[objID];
+		if (this.scene.objects.sky) {
+			this.scene.objects.sky.position = this.camera.position;
+		}
 
-		if (!obj.visible) continue;
+		var singleRoomMode = this.panel.singleRoomMode();
 
-		if (objJSON.isRoom) {
-			if (obj.geometry.boundingBox.containsPoint(camera.position) && !objJSON.isAlternateRoom) {
-				sceneJSON.curRoom = objJSON.roomIndex;
+		this.sceneJSON.curRoom = -1;
+
+		for (var objID in this.scene.objects) {
+
+			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
+
+			if (obj.dummy) continue;
+
+			if (objJSON.type == 'room') {
+
+				if (obj.geometry.boundingBox.containsPoint(this.camera.position) && !objJSON.isAlternateRoom) {
+					this.sceneJSON.curRoom = objJSON.roomIndex;
+				}
+
 			}
-		}
 
-		if (singleRoomMode) {
-			obj.visible = objJSON.roomIndex == sceneJSON.curRoom && !objJSON.isAlternateRoom;
-		} else {
-			obj.visible = !objJSON.isAlternateRoom;
-		}
+			if (singleRoomMode) {
+				obj.visible = objJSON.roomIndex == this.sceneJSON.curRoom && !objJSON.isAlternateRoom;
+			} else {
+				obj.visible = !objJSON.isAlternateRoom;
+			}
 
-		if (!(obj instanceof THREE.Mesh)) continue;
+			if (obj.boxHelper) obj.boxHelper.visible = obj.visible;
 
-		if (objJSON.isSprite) {
-			// make sure the object is always facing the camera
-			obj.quaternion.set(camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w);
+			if (!(obj instanceof THREE.Mesh)) continue;
 
-			obj.updateMatrix();
-			obj.updateMatrixWorld();
-		}
+			if (objJSON.isSprite) {
 
-		var room = objJSON.isRoom ? objJSON : sceneJSON.objects['room' + objJSON.roomIndex];
+				// make sure the object is always facing the camera
+				obj.quaternion.set(this.camera.quaternion.x, this.camera.quaternion.y, this.camera.quaternion.z, this.camera.quaternion.w);
 
-		var materials = obj.material.materials;
-		if (!materials || !materials.length) continue;
-		for (var i = 0; i < materials.length; ++i) {
-			var material = materials[i], userData = material.userData;
-			if (material instanceof THREE.ShaderMaterial) {
+				obj.updateMatrix();
+				obj.updateMatrixWorld();
+			}
+
+			var materials = obj.material.materials;
+			if (!materials || !materials.length) continue;
+
+			var room = objJSON.type == 'room' ? objJSON : this.sceneJSON.objects['room' + objJSON.roomIndex];
+
+			for (var i = 0; i < materials.length; ++i) {
+
+				var material = materials[i], userData = material.userData;
+
 				material.uniforms.curTime.value = curTime;
-				material.uniforms.rnd.value = quantumRnd;
-				material.uniforms.flickerColor.value = room && room.flickering ? flickerColor : unitVec3;
+				material.uniforms.rnd.value = this.quantumRnd;
+				material.uniforms.flickerColor.value = room && room.flickering ? this.flickerColor : this.unitVec3;
+
 				if (userData.animatedTexture) {
-					var animTexture = scene.animatedTextures[userData.animatedTexture.idxAnimatedTexture];
+
+					var animTexture = this.scene.animatedTextures[userData.animatedTexture.idxAnimatedTexture];
 					var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
-					material.uniforms.map.value = scene.textures[coords.texture];
+
+					material.uniforms.map.value = this.scene.textures[coords.texture];
 					material.uniforms.offsetRepeat.value.x = coords.minU;
 					material.uniforms.offsetRepeat.value.y = coords.minV;
+
 				}
+
 			}
 		}
-	}
 
-	render();
-}
+	},
 
-function SequenceProgressor(numTiles, tileDispDuration) {	
-	this.numberOfTiles = numTiles;
-	this.tileDisplayDuration = tileDispDuration;
+	animate : function () {
 
-	// how long has the current image been displayed?
-	this.currentDisplayTime = 0;
+		requestAnimationFrame( this.animate.bind(this) );
 
-	// which image is currently being displayed?
-	this.currentTile = 0;
-		
-	this.update = function(milliSec) {
-		this.currentDisplayTime += milliSec;
-		while (this.currentDisplayTime > this.tileDisplayDuration) {
-			this.currentDisplayTime -= this.tileDisplayDuration;
-			this.currentTile++;
-			if (this.currentTile == this.numberOfTiles)
-				this.currentTile = 0;
+		var delta = this.clock.getDelta();
+		var curTime = (new Date()).getTime();
+
+		if (this.startTime == -1) this.startTime = curTime;
+
+		if (curTime - this.quantumTime > this.quantum) {
+			this.quantumRnd = Math.random();
+			this.quantumTime = curTime;
 		}
-	};
-}		
 
-function render() {
-	renderer.render( scene.scene, camera );
-	stats.update();
-	showInfo();
+		curTime = curTime - this.startTime;
+
+		this.controls.update(delta);
+
+		this.animateObjects(delta);
+
+		this.animateCutScene(delta);
+		
+		this.animateTextures(delta);
+
+		this.camera.updateMatrixWorld();
+
+		this.updateObjects(curTime);
+
+		this.render();
+	},
+
+	render : function () {
+
+		this.renderer.render( this.scene.scene, this.camera );
+
+		this.stats.update();
+
+		this.panel.showInfo();
+
+	}
 }

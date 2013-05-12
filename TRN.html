@@ -6,9 +6,9 @@
 	
 	<script src="include/jquery-1.9.1.min.js"></script>
 
-	<script src="include/encoding-indexes.js"></script>
-	<script src="include/encoding.js"></script>
-	<script src="include/DataStream.js"></script>
+	<script src="include/DataStream/encoding-indexes.js"></script>
+	<script src="include/DataStream/encoding.js"></script>
+	<script src="include/DataStream/DataStream.js"></script>
 
 	<script src="include/three/build/three.js"></script>
 	<script src="include/three/examples/Detector.js"></script>
@@ -33,91 +33,25 @@
 	<script src="TRN/src/converter/SceneConverter.js"></script>
 	<script src="TRN/src/converter/SceneConverterHelper.js"></script>
 	<script src="TRN/src/sound/Sound.js"></script>
+	<script src="TRN/src/player/Panel.js"></script>
+	<script src="TRN/src/player/ProgressBar.js"></script>
+	<script src="TRN/src/player/Sequence.js"></script>
 	<script src="TRN/src/player/BasicControls.js"></script>
 	<script src="TRN/src/player/ConfigMgr.js"></script>
 	<script src="TRN/src/player/ShaderMgr.js"></script>
 	<script src="TRN/src/player/Animation.js"></script>
 	<script src="TRN/src/player/Play.js"></script>
+	<script src="TRN/src/player/PlayUtil.js"></script>
+
+	<style type="text/css" media="all">@import "TRN/resource/panel.css";</style>
+	<style type="text/css" media="all">@import "TRN/resource/progressbar.css";</style>
 
 	<style>
-	body {
-		overflow: hidden;
-		margin: 0;
-		background-color: #000000;
-	}
-
-	.panel {
-		position: absolute;
-		top: 0px;
-		left: 0px;
-		background-color: #00FF00;
-		opacity: 0.75;
-		z-index: 100;
-		display: none;
-		font-size: 10px;
-	}
-
-	.panelhdr {
-		/*background-color: #80ff40;
-		border: 1px outset white;*/
-		font-weight: bold;
-	}
-
-	#progress {
-		color:red;
-		top:7em;
-		width: 100%;
-		font-size:3em;
-		font-variant:small-caps;
-		font-weight:bold;
-		position:absolute;
-		z-index:100;
-		text-align: center;
-		text-shadow: #000 0px 0px 10px;
-		display:none;
-	}
-
-	#start {
-		color:#fff;
-		text-shadow: #000 0px 0px 2px;
-		padding:0.1em 0.3em;
-		width:3em;
-		text-align: center;
-		display:none;
-	}
-
-	.shadow {
-		-moz-box-shadow: 0px 0px 5px #000;
-		-webkit-box-shadow: 0px 0px 5px #000;
-		box-shadow: 0px 0px 5px #000;
-	}
-
-	#progressbar {
-		text-align: center;
-		background: white;
-		width: 250px;
-		height: 10px;
-	}
-
-	#bar {
-		background:#d00;
-		width:0px;
-		height:10px;
-	}
-
-	.enabled {
-		color: lime!important;
-		cursor:pointer;
-	}
-
-	.enabled:hover {
-		text-shadow: #0f0 0px 0px 5px !important;
-	}
-
-	.disabled {
-		background:gray;
-		cursor:default;
-	}
+		body {
+			overflow: hidden;
+			margin: 0;
+			background-color: #000000;
+		}
 	</style>
 </head>
 <body>
@@ -125,45 +59,23 @@
 <input type="file" id="files" multiple='multiple' style="display: none" />
 <div id="output" style="color:white" style="display: none"></div>
 
-<div id="panel" class="panel">
-	<table>
-		<tr>
-			<td class="panelhdr">Current room</td><td><span id="currentroom"></span></td>
-			<td class="panelhdr">Num lights&nbsp;&nbsp;<span id="numlights"></span></td>
-			<td class="panelhdr">Single room mode</td><td><input type="checkbox" id="singleroommode"/></td>
-			<td class="panelhdr">No lights</td><td><input type="checkbox" id="nolights"/></td>
-		</tr>
-		<tr>
-			<td class="panelhdr">Camera position</td><td colspan="2"><span id="camerapos"></span></td>
-			<td class="panelhdr">Wireframe mode</td><td><input type="checkbox" id="wireframemode"/></td>
-			<td class="panelhdr">Full screen</td><td><input type="checkbox" id="fullscreen"/></td>
-		</tr>
-		<tr>
-			<td class="panelhdr">Camera rotation</td><td colspan="2"><span id="camerarot"></span></td>
-			<td class="panelhdr">Fog</td><td><input type="checkbox" id="usefog"/></td>
-			<td class="panelhdr">Show bounding boxes</td><td><input type="checkbox" id="showboundingboxes"/></td>
-		</tr>
-		<tr>
-			<td class="panelhdr">Calls / vertices / faces</td><td colspan="2"><span id="renderinfo"></span></td>
-		</tr>
-	</table>
-</div>
-
-<div id="progress">
-	<span id="message">Loading ...</span>
-
-	<center>
-		<div id="progressbar" class="shadow"><div id="bar" class="shadow"></div></div>
-		<div id="start" class="disabled">Start</div>
-	</center>
-</div>
-
 <div id="container"></div>
 
 <script>
 var showTiles = false;
 var makeJSON = false;
 var level2JSON = {};
+
+function setContainerDimensions() {
+	jQuery('#container').width(window.innerWidth);
+	jQuery('#container').height(window.innerHeight);
+}
+
+jQuery(window).on('resize', function() {
+	setContainerDimensions();
+})
+
+jQuery(window).on('load', setContainerDimensions);
 
 function saveJSON(rversion, levelName) {
   window.URL = window.webkitURL || window.URL;
@@ -189,7 +101,8 @@ function handleFileSelect(evt) {
 				if (!showTiles && !makeJSON) {
 					jQuery('#files').css('display', 'none');
 					jQuery('#output').css('display', 'none');
-					show(rs.json);
+					var play = new TRN.Play(document.getElementById( 'container' ));
+					play.showLevel(rs.json);
 				} else if (makeJSON) {
 					var trlevel = rs.json;
 					var converter = new TRN.LevelConverter(trlevel.confMgr);
@@ -222,7 +135,8 @@ function handleFileSelect(evt) {
 }
 
 if (TRN.Browser.QueryString.level) {
-	show('TRN/level/' + TRN.Browser.QueryString.level);
+	var play = new TRN.Play(document.getElementById( 'container' ));
+	play.showLevel('TRN/level/' + TRN.Browser.QueryString.level);
 } else {
 	document.getElementById("files").style.display = "block";
 	document.getElementById("output").style.display = "block";
