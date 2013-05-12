@@ -36,7 +36,7 @@ TRN.ProgressBar.prototype = {
 	progress : function(pct) {
 		var bar = Math.floor(this.barWidth * pct);
 
-		this.elem.find('bar').css('width', bar + 'px');
+		this.elem.find('.bar').css('width', bar + 'px');
 	},
 
 	setMessage : function(message) {
