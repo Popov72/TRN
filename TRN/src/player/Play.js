@@ -455,8 +455,9 @@ TRN.Play.prototype = {
 		var lara = this.findObjectById(TRN.ObjectID.Lara);
 
 		if (obj && lara) {
-			this.meshSwap(lara, obj, this.lara.leftThighIndex);
-			this.meshSwap(lara, obj, this.lara.rightThighIndex);
+			var mswap = new TRN.MeshSwap(obj, lara);
+
+			mswap.swap([this.lara.leftThighIndex, this.lara.rightThighIndex]);
 		}
 
 		this.camera = this.scene.currentCamera;
