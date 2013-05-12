@@ -68,7 +68,7 @@ var makeJSON = false;
 var level2JSON = {};
 
 function setContainerDimensions() {
-	if (!makeJSON) {
+	if (!makeJSON && !showTiles) {
 		jQuery('#container').width(window.innerWidth);
 		jQuery('#container').height(window.innerHeight);
 	}

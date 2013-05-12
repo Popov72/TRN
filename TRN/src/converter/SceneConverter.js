@@ -135,7 +135,7 @@ TRN.LevelConverter.prototype = {
 			        if (minU > u) minU = u; if (minV > v) minV = v;
 			    }
 
-			    anmcoords.push({ minU:(minU+0.5)/256, minV:(minV+0.5)/256, texture:"texture" + tile});
+			    anmcoords.push({ minU:(minU+0.5)/this.trlevel.atlas.width, minV:(minV+0.5)/this.trlevel.atlas.height, texture:"texture" + tile});
 			}
 			animatedTextures.push({
 				"animcoords": anmcoords,
@@ -253,15 +253,20 @@ TRN.LevelConverter.prototype = {
 		];
 		var width = (sprite.width-255)/256;
 		var height = (sprite.height-255)/256;
+		var row = 0, col = 0;
+		if (this.trlevel.atlas.make) {
+			row = Math.floor(sprite.tile / this.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.trlevel.atlas.numColPerRow;
+			sprite.tile = 0;
+		}
 		var objectTextures = [
 			{
 				attributes: 0,
 				tile: sprite.tile,
 				vertices: [
-					{ Xpixel: sprite.x, 		Ypixel: sprite.y },
-					{ Xpixel: sprite.x, 		Ypixel: sprite.y+height-1 },
-					{ Xpixel: sprite.x+width-1, Ypixel: sprite.y+height-1 },
-					{ Xpixel: sprite.x+width-1, Ypixel: sprite.y }
+					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y + row * 256 },
+					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y+height-1 + row * 256 },
+					{ Xpixel: sprite.x+width-1 + col * 256, Ypixel: sprite.y+height-1 + row * 256 },
+					{ Xpixel: sprite.x+width-1 + col * 256, Ypixel: sprite.y + row * 256 }
 				]
 			}
 		];
@@ -273,7 +278,11 @@ TRN.LevelConverter.prototype = {
 		    mapObjTexture2AnimTexture[0] = { idxAnimatedTexture:this.sc.animatedTextures.length, pos:0 };
 			for (var i = 0; i < numSprites; ++i) {
 				sprite = this.trlevel.spriteTextures[spriteIndex + i];
-			    anmcoords.push({ minU:(sprite.x+0.5)/256, minV:(sprite.y+0.5)/256, texture:"texture" + sprite.tile});
+				if (this.trlevel.atlas.make) {
+					row = Math.floor(sprite.tile / this.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.trlevel.atlas.numColPerRow;
+					sprite.tile = 0;
+				}
+			    anmcoords.push({ minU:(sprite.x + col * 256 + 0.5)/this.trlevel.atlas.width, minV:(sprite.y + row * 256 + 0.5)/this.trlevel.atlas.height, texture:"texture" + sprite.tile});
 			}
 			this.sc.animatedTextures.push({
 				"animcoords": anmcoords,

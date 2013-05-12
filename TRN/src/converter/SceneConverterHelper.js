@@ -105,8 +105,8 @@ TRN.extend(TRN.LevelConverter.prototype, {
 		if (anmTexture) {
 			minU = minV = 1;
 			for (var tv = 0; tv < vertices.length; ++tv) {
-				var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / 256.0;
-				var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / 256.0;
+				var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
+				var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
 				if (minU > u) minU = u;
 				if (minV > v) minV = v;
 			}
@@ -114,8 +114,8 @@ TRN.extend(TRN.LevelConverter.prototype, {
 		var numUVs = parseInt(obj.uvs[0].length / 2);
 		for (var tv = 0; tv < vertices.length; ++tv) {
 			obj.faces.push(numUVs++);
-			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / 256.0;
-			var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / 256.0;
+			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
+			var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
 			obj.uvs[0].push(u - minU, v - minV);
 		}
 

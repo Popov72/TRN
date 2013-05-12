@@ -168,6 +168,28 @@ TRN.Loader = {
 		if (out.textile8 && !out.textile16) numTotTextiles += out.textile8.length;
 		if (out.textile16) numTotTextiles += out.textile16.length;
 
+		out.atlas = {
+			width : 256,
+			height : 256,
+			make : true,
+			imageData : null,
+			numColPerRow : 4,
+			curRow : 0,
+			curCol : 0
+		}
+
+		if (out.atlas.make) {
+
+			out.atlas.width = out.atlas.numColPerRow * 256;
+			out.atlas.height = (Math.floor((numTotTextiles+1) / out.atlas.numColPerRow) + (((numTotTextiles+1) % out.atlas.numColPerRow) == 0 ? 0 : 1)) * 256;
+
+			jQuery('body').append('<canvas id="TRN_alltextiles" width="' + out.atlas.width + '" height="' + out.atlas.height + '" style="border: 1px solid black;display:block"></canvas>');
+			var canvas = jQuery('#TRN_alltextiles');
+			var context = canvas[0].getContext('2d');
+			
+			out.atlas.imageData = context.createImageData(canvas[0].width, canvas[0].height);
+		}
+
 		var numTextiles = 0;
 		if (out.textile8 && !out.textile16) {
 			for (var t = 0; t < out.textile8.length; ++t, ++numTextiles) {
@@ -183,6 +205,12 @@ TRN.Loader = {
 						imageData.data[j*256*4+i*4+1]=g;
 						imageData.data[j*256*4+i*4+2]=b;
 						imageData.data[j*256*4+i*4+3]=a;
+						if (out.atlas.make) {
+							out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+0]=r;
+							out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+1]=g;
+							out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+2]=b;
+							out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+3]=a;
+						}
 					}
 				}
 				context.putImageData(imageData, 0, 0);
@@ -192,6 +220,13 @@ TRN.Loader = {
 					jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
 						'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
 						'"/><span style="position:relative;left:-140px;top:-140px;background-color:white">' + numTextiles + '</span></span>');
+				}
+				if (out.atlas.make) {
+					out.atlas.curCol++;
+					if (out.atlas.curCol == out.atlas.numColPerRow) {
+						out.atlas.curCol = 0;
+						out.atlas.curRow++;
+					}
 				}
 			}
 		}
@@ -213,6 +248,12 @@ TRN.Loader = {
 					imageData.data[j*256*4+i*4+1]=g;
 					imageData.data[j*256*4+i*4+2]=b;
 					imageData.data[j*256*4+i*4+3]=a;
+					if (out.atlas.make) {
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+0]=r;
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+1]=g;
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+2]=b;
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+3]=a;
+					}
 				}
 			}
 			context.putImageData(imageData, 0, 0);
@@ -222,6 +263,46 @@ TRN.Loader = {
 				jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
 					'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
 					'"/><span style="position:relative;left:-140px;top:-140px;background-color:white">' + numTextiles + '</span></span>');
+			}
+			if (out.atlas.make) {
+				out.atlas.curCol++;
+				if (out.atlas.curCol == out.atlas.numColPerRow) {
+					out.atlas.curCol = 0;
+					out.atlas.curRow++;
+				}
+			}
+		}
+
+		if (out.atlas.make) {
+			var canvas = jQuery('#TRN_alltextiles');
+			var context = canvas[0].getContext('2d');
+
+			context.putImageData(out.atlas.imageData, 0, 0);
+			var data = canvas[0].toDataURL('image/png');
+			out.textile = [data];
+			canvas.remove();
+
+			if (showTiles) {
+				jQuery(document.body).css('overflow', 'auto');
+
+				jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_atlas\',\'' + data + '\')">' +
+					'<img title="' + canvas[0].width + 'x' + canvas[0].height + '" alt="' + out.shortfilename + '_atlas.png" style="border:1px solid red" src="' + data + '"/></span>');
+			}
+
+			for (var i = 0; i < out.objectTextures.length; ++i) {
+				var objText = out.objectTextures[i];
+
+				var row = Math.floor(objText.tile / out.atlas.numColPerRow), col = objText.tile - row * out.atlas.numColPerRow;
+
+				objText.tile = 0;
+
+				for (var j = 0; j < objText.vertices.length; ++j) {
+					var vert = objText.vertices[j];
+
+					vert.Xpixel = parseInt(vert.Xpixel) + col * 256;
+					vert.Ypixel = parseInt(vert.Ypixel) + row * 256;
+				}
+
 			}
 		}
 
