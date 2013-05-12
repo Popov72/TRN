@@ -1,0 +1,16 @@
+.panel {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	background-color: #00FF00;
+	opacity: 0.75;
+	z-index: 100;
+	display: none;
+	font-size: 10px;
+}
+
+.panelhdr {
+	/*background-color: #80ff40;
+	border: 1px outset white;*/
+	font-weight: bold;
+}

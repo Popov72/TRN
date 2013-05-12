@@ -1,0 +1,55 @@
+.progress {
+	color:red;
+	top:7em;
+	width: 100%;
+	font-size:3em;
+	font-variant:small-caps;
+	font-weight:bold;
+	position:absolute;
+	z-index:100;
+	text-align: center;
+	text-shadow: #000 0px 0px 10px;
+	display:none;
+}
+
+.progress .start {
+	color:#fff;
+	text-shadow: #000 0px 0px 2px;
+	padding:0.1em 0.3em;
+	width:3em;
+	text-align: center;
+	display:none;
+}
+
+.progress .progressbar {
+	text-align: center;
+	background: white;
+	width: 250px;
+	height: 10px;
+}
+
+.progress .progressbar.shadow {
+	-moz-box-shadow: 0px 0px 5px #000;
+	-webkit-box-shadow: 0px 0px 5px #000;
+	box-shadow: 0px 0px 5px #000;
+}
+
+.progress .bar {
+	background:#d00;
+	width:0px;
+	height:10px;
+}
+
+.progress .enabled {
+	color: lime!important;
+	cursor:pointer;
+}
+
+.progress .enabled:hover {
+	text-shadow: #0f0 0px 0px 5px !important;
+}
+
+.progress .disabled {
+	background:gray;
+	cursor:default;
+}
