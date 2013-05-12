@@ -613,15 +613,13 @@ TRN.LevelConverter.prototype = {
 
 				animKeys.push({
 					"time": 		key * anim.frameRate, 
-					"boundingBox": 	new THREE.Box3(new THREE.Vector3(BBLoX, BBHiY, BBHiZ), new THREE.Vector3(BBHiX, BBLoY, BBLoZ)),
+					"boundingBox": 	{ xmin:BBLoX, ymin:BBHiY, zmin:BBHiZ, xmax:BBHiX, ymax:BBLoY, zmax:BBLoZ },
 					"data":  		keyData
 				});
 
 			}
 
 			var animCommands = [], numAnimCommands = anim.numAnimCommands;
-
-			animCommands.frameStart = anim.frameStart;
 
 			if (numAnimCommands < 0x100) {
 				var aco = anim.animCommand;
@@ -652,7 +650,8 @@ TRN.LevelConverter.prototype = {
 				"nextTrack":  		anim.nextAnimation,
 				"nextTrackFrame": 	anim.nextFrame - this.trlevel.animations[anim.nextAnimation].frameStart,
 				"keys":  			animKeys,
-				"commands":     	animCommands
+				"commands":     	animCommands,
+				"frameStart":    	anim.frameStart
 			});
 
 		}
