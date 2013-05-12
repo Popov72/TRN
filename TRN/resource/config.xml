@@ -89,6 +89,15 @@
 				<moveables>
 					<moveable id="77">
 						<angle>90</angle>
+						<behaviour name="Lara">
+							<pistol_anim>
+								<id>1</id>
+								<left_thigh>2</left_thigh>
+								<right_thigh>5</right_thigh>
+								<left_hand>14</left_hand>
+								<right_hand>11</right_hand>
+							</pistol_anim>
+						</behaviour>
 					</moveable>
 				</moveables>
 			</level>
@@ -99,6 +108,15 @@
 				<moveables>
 					<moveable id="77">
 						<angle>-90</angle>
+						<behaviour name="Lara">
+							<pistol_anim>
+								<id>1</id>
+								<left_thigh>2</left_thigh>
+								<right_thigh>5</right_thigh>
+								<left_hand>14</left_hand>
+								<right_hand>11</right_hand>
+							</pistol_anim>
+						</behaviour>
 					</moveable>
 				</moveables>
 			</level>
@@ -106,11 +124,37 @@
 				<lara>
 					<id>77</id>
 				</lara>
+				<moveables>
+					<moveable id="77">
+						<behaviour name="Lara">
+							<pistol_anim>
+								<id>1</id>
+								<left_thigh>2</left_thigh>
+								<right_thigh>5</right_thigh>
+								<left_hand>14</left_hand>
+								<right_hand>11</right_hand>
+							</pistol_anim>
+						</behaviour>
+					</moveable>
+				</moveables>
 			</level>
 			<level id="cut4"		type="cutscene" name="Lara vs. Natla">
 				<lara>
 					<id>77</id>
 				</lara>
+				<moveables>
+					<moveable id="77">
+						<behaviour name="Lara">
+							<pistol_anim>
+								<id>1</id>
+								<left_thigh>2</left_thigh>
+								<right_thigh>5</right_thigh>
+								<left_hand>14</left_hand>
+								<right_hand>11</right_hand>
+							</pistol_anim>
+						</behaviour>
+					</moveable>
+				</moveables>
 			</level>
 			<!-- Gold levels -->
 			<level id="egypt"		type="normal"	name="Return to Egypt"		gold="1"/>
