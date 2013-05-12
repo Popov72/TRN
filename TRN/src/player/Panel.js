@@ -38,11 +38,13 @@ TRN.Panel.prototype = {
 	showInfo : function() {
 		var sceneJSON = this.parent.sceneJSON, camera = this.parent.camera, renderer = this.parent.renderer;
 
+		var numObj = this.parent.scene.scene.__objects.length;
+
 		this.elem.find('#currentroom').html(sceneJSON.curRoom);
 		this.elem.find('#numlights').html(sceneJSON.curRoom != -1 ? sceneJSON.objects['room'+sceneJSON.curRoom].lights.length : '');
 		this.elem.find('#camerapos').html(camera.position.x.toFixed(12)+','+camera.position.y.toFixed(12)+','+camera.position.z.toFixed(12));
 		this.elem.find('#camerarot').html(camera.quaternion.x.toFixed(12)+','+camera.quaternion.y.toFixed(12)+','+camera.quaternion.z.toFixed(12)+','+camera.quaternion.w.toFixed(12));
-		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces);
+		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces + ' / ' + numObj);
 	},
 
 	singleRoomMode : function() {
@@ -119,7 +121,8 @@ TRN.Panel.prototype = {
 				var obj = scene.objects[objID];
 				var objJSON = sceneJSON.objects[objID];
 
-				if (!objJSON.has_anims) continue;
+				if (!(obj instanceof THREE.Mesh)) continue;
+				//if (!objJSON.has_anims) continue;
 
 				if (this.checked) {
 					obj.boxHelper = new THREE.BoxHelper();
@@ -130,6 +133,7 @@ TRN.Panel.prototype = {
 					delete obj.boxHelper;
 				}
 			}
+			this_.parent.needWebGLInit = true;
 		});
 
 		this.elem.find('#fullscreen').on('click', function() {
