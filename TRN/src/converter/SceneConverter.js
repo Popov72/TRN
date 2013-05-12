@@ -351,17 +351,17 @@ TRN.LevelConverter.prototype = {
 				"id"  : "room" + m
 			};
 			this.sc.objects['room' + m] = {
-				"geometry" : "room" + m,
-				"material" : this.makeMaterialList(tiles2material, 'room'),
-				"position" : [ 0, 0, 0 ],
-				"quaternion" : [ 0, 0, 0, 1 ],
-				"scale"	   : [ 1, 1, 1 ],
-				"visible"  : !room.isAlternate,
-				"isAlternateRoom" : room.isAlternate,
-				"filledWithWater": isFilledWithWater,
-				"flickering": isFlickering,
-				"isRoom": true,
-				"roomIndex": m
+				"geometry" 			: "room" + m,
+				"material" 			: this.makeMaterialList(tiles2material, 'room'),
+				"position" 			: [ 0, 0, 0 ],
+				"quaternion" 		: [ 0, 0, 0, 1 ],
+				"scale"	   			: [ 1, 1, 1 ],
+				"visible"  			: !room.isAlternate,
+				"isAlternateRoom" 	: room.isAlternate,
+				"filledWithWater"	: isFilledWithWater,
+				"flickering"		: isFlickering,
+				"type"				: 'room',
+				"roomIndex"			: m
 			};
 
 			// static meshes in the room
@@ -396,15 +396,15 @@ TRN.LevelConverter.prototype = {
 				}
 				
 				this.sc.objects['room' + m + '_staticmesh' + s] = {
-					"geometry" : "mesh" + mindex,
-					"material" : materials,
-					"position" : [ x, y, z ],
-					"quaternion" : [ q.x, q.y, q.z, q.w ],
-					"scale"	   : [ 1, 1, 1 ],
-					"visible"  : !room.isAlternate,
-					"isStaticMesh": true,
-					"roomIndex": m,
-					"objectID": objectID
+					"geometry" 		: "mesh" + mindex,
+					"material" 		: materials,
+					"position" 		: [ x, y, z ],
+					"quaternion" 	: [ q.x, q.y, q.z, q.w ],
+					"scale"	   		: [ 1, 1, 1 ],
+					"visible"  		: !room.isAlternate,
+					"type"			: 'staticmesh',
+					"roomIndex"		: m,
+					"objectid"		: objectID+50000
 				};
 
 			}
@@ -425,14 +425,14 @@ TRN.LevelConverter.prototype = {
 				//console.log('room',m,'sprite',s,this.sc.embeds['sprite' + spriteIndex])
 				
 				this.sc.objects['room' + m + '_sprite' + s] = {
-					"geometry" : "sprite" + spriteIndex,
-					"material" : materials,
-					"position" : [ vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z ],
-					"quaternion" : [ 0, 0, 0, 1 ],
-					"scale"	   : [ 1, 1, 1 ],
-					"visible"  : !room.isAlternate,
-					"isSprite": true,
-					"roomIndex": m
+					"geometry" 		: "sprite" + spriteIndex,
+					"material" 		: materials,
+					"position" 		: [ vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z ],
+					"quaternion" 	: [ 0, 0, 0, 1 ],
+					"scale"	   		: [ 1, 1, 1 ],
+					"visible"  		: !room.isAlternate,
+					"type"			: 'sprite',
+					"roomIndex"		: m
 				};
 			}
 
@@ -770,19 +770,19 @@ TRN.LevelConverter.prototype = {
 		}
 
 		this.sc.objects[jsonid] = {
-			"geometry" : hasGeometry ? "moveable" + objIDForVisu : null,
-			"material" : materials,
-			"position" : [ x, y, z ],
-			"quaternion" : [ rotation.x, rotation.y, rotation.z, rotation.w ],
-			"scale"	   : [ 1, 1, 1 ],
-			"visible"  : !room.isAlternate && visible,
-			"moveable" : moveable.objectID,
-			"has_anims": true,
-			"roomIndex": roomIndex,
-			"animationStartIndex": moveable.animation,
-			"isAlternateRoom" : room.isAlternate,
-			"skin"	: true,
-			"use_vertex_texture" : false
+			"geometry" 				: hasGeometry ? "moveable" + objIDForVisu : null,
+			"material" 				: materials,
+			"position" 				: [ x, y, z ],
+			"quaternion" 			: [ rotation.x, rotation.y, rotation.z, rotation.w ],
+			"scale"	   				: [ 1, 1, 1 ],
+			"visible"  				: !room.isAlternate && visible,
+			"objectid" 				: moveable.objectID,
+			"type"   				: 'moveable',
+			"has_anims"				: true,
+			"roomIndex"				: roomIndex,
+			"animationStartIndex"	: moveable.animation,
+			"skin"					: true,
+			"use_vertex_texture" 	: false
 		};
 
 		var spriteSeqObjID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
@@ -793,6 +793,8 @@ TRN.LevelConverter.prototype = {
 				this.createSpriteSeqInstance(itemIndex, roomIndex, x, y, z, 0, null, spriteSeq);
 			}
 		}
+
+		return this.sc.objects[jsonid];
 	},
 
 	createSpriteSeqInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, spriteSeq) {
@@ -817,14 +819,15 @@ TRN.LevelConverter.prototype = {
 			}
 			
 			this.sc.objects['spriteseq' + spriteSeq.objectID + '_' + itemIndex] = {
-				"geometry" : spriteid,
-				"material" : materials,
-				"position" : [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
-				"quaternion" : [ 0, 0, 0, 1 ],
-				"scale"	   : [ 1, 1, 1 ],
-				"visible"  : !room.isAlternate,
-				"isSprite": true,
-				"roomIndex": roomIndex
+				"geometry" 	: spriteid,
+				"material" 	: materials,
+				"position" 	: [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
+				"quaternion": [ 0, 0, 0, 1 ],
+				"scale"	   	: [ 1, 1, 1 ],
+				"visible"  	: !room.isAlternate,
+				"objectid" 	: spriteSeq.objectID,
+				"isSprite" 	: 'sprite',
+				"roomIndex"	: roomIndex
 			};
 		}
 	},
@@ -878,10 +881,25 @@ TRN.LevelConverter.prototype = {
 				var mindex = movObjID2Index[mid];
 				
 				if (typeof(mindex) != "undefined") {
-					this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:1 }, this.trlevel.moveables[mindex], 'meshswap' + (i+1), false);
+					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:1 }, this.trlevel.moveables[mindex], 'meshswap' + (i+1), false);
+
+					mobj.dummy = true;
+				}
+			}
+
+			var pistolAnimId = 
+				this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > id', true, -1);
+			if (pistolAnimId != -1) {
+				var mindex = movObjID2Index[pistolAnimId];
+
+				if (typeof(mindex) != "undefined") {
+					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:1 }, this.trlevel.moveables[mindex], 'pistolanim', false);
+
+					mobj.dummy = true;
 				}
 			}
 		}
+
 
 		// specific handling of the sky
 		var skyId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > objectid', true, 0);
@@ -898,17 +916,18 @@ TRN.LevelConverter.prototype = {
 
 			var skyNoAnim = this.confMgr.levelBoolean(this.sc.levelShortFileName, 'sky > noanim', true, false);
 			this.sc.objects['sky'] = {
-				"geometry" : "moveable" + moveable.objectID,
-				"material" : materials,
-				"position" : [ 0, 0, 0 ],
-				"quaternion" : [ 0, 0, 0, 1 ],
-				"scale"	   : [ 1, 1, 1 ],
-				"visible"  : true,
-				"moveable" : moveable.objectID,
-				"animationStartIndex": moveable.animation,
-				"has_anims": !skyNoAnim,
-				"skin"	: true,
-				"use_vertex_texture" : false
+				"geometry" 				: "moveable" + moveable.objectID,
+				"material" 				: materials,
+				"position" 				: [ 0, 0, 0 ],
+				"quaternion" 			: [ 0, 0, 0, 1 ],
+				"scale"	   				: [ 1, 1, 1 ],
+				"visible"  				: true,
+				"objectid" 				: moveable.objectID,
+				"type"     				: 'moveable',
+				"animationStartIndex"	: moveable.animation,
+				"has_anims"				: !skyNoAnim,
+				"skin"					: true,
+				"use_vertex_texture" 	: false
 			};
 			numMoveableInstances++;	
 		}
@@ -1039,7 +1058,7 @@ TRN.LevelConverter.prototype = {
 			for (var objID in this.sc.objects) {
 				var objJSON = this.sc.objects[objID];
 
-				if (objJSON.moveable == TRN.ObjectID.Lara || (objJSON.moveable >= min && objJSON.moveable <= max)) {
+				if (objJSON.objectid == TRN.ObjectID.Lara || (objJSON.objectid >= min && objJSON.objectid <= max)) {
 					objJSON.position = [ this.sc.cutScene.origin.x, this.sc.cutScene.origin.y, this.sc.cutScene.origin.z ];
 					var q = new THREE.Quaternion();
 					q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sc.cutScene.origin.rotY) );
