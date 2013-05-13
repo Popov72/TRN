@@ -349,7 +349,7 @@
 			vec4 texelColor = texture2D( map, vUv );
 			gl_FragColor = texelColor;
 			if ( gl_FragColor.a < 0.5 ) discard;
-			gl_FragColor = gl_FragColor * vec4( vColor, opacity );
+			gl_FragColor = gl_FragColor * vec4( vColor, 1.0/*opacity*/ );
 
 			float depth = gl_FragCoord.z / gl_FragCoord.w;
 			float fogFactor = smoothstep( fogNear, fogFar, depth );
