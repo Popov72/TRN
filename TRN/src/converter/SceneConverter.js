@@ -907,8 +907,11 @@ TRN.LevelConverter.prototype = {
 				}
 			}
 
-			var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > startanim', true, 0);
-			laraMoveable.animationStartIndex = startAnim;
+			if (this.sc.cutScene.frames == null) {
+				var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > startanim', true, 0);
+				
+				laraMoveable.animationStartIndex = startAnim;
+			}
 
 			var startTrans = this.confMgr.levelVector3(this.sc.levelShortFileName, 'behaviour[name="Lara"] > starttrans', true, null);
 			if (startTrans != null) {
