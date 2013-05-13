@@ -121,6 +121,7 @@
 				</moveables>
 			</level>
 			<level id="cut3"		type="cutscene" name="Natla installs Scion">
+				<globaltintcolor><r>25</r><g>25</g><b>25</b></globaltintcolor>
 				<lara>
 					<id>77</id>
 				</lara>

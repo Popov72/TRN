@@ -42,6 +42,8 @@ TRN.Play = function (container) {
 
 	this.lara = {};
 
+	this.globalTintColor = null;
+
 }
 
 TRN.Play.prototype = {
@@ -129,6 +131,12 @@ TRN.Play.prototype = {
 		this.confMgr = new TRN.ConfigMgr(sc.rversion);
 
 		TRN.ObjectID.Lara = this.confMgr.levelNumber(sc.levelShortFileName, 'lara > id', true, 0);
+
+		var tintColor = this.confMgr.levelColor(sc.levelShortFileName, 'globaltintcolor', true, null);
+
+		if (tintColor != null) {
+			this.globalTintColor = new THREE.Vector3(tintColor.r, tintColor.g, tintColor.b);
+		}
 
 		var this_ = this;
 
@@ -410,6 +418,11 @@ TRN.Play.prototype = {
 
 				if (room && room.filledWithWater) {
 					material.uniforms.tintColor.value = new THREE.Vector3(this.sceneJSON.waterColor.in.r, this.sceneJSON.waterColor.in.g, this.sceneJSON.waterColor.in.b);
+				}
+
+				if (this.globalTintColor != null) {
+					// used in cut scene 3 in TR1
+					material.uniforms.tintColor.value = this.globalTintColor;
 				}
 
 				if (objJSON.has_anims && room) { // only animated objects are externally lit and need light definitions from the room

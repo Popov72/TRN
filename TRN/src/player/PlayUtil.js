@@ -49,6 +49,11 @@ TRN.extend(TRN.Play.prototype, {
 
 					switch (action) {
 
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_COLORFLASH: {
+							this.globalTintColor.x = this.globalTintColor.y = this.globalTintColor.z = (this.globalTintColor.x < 0.5 ? 1.0 : 0.1);
+							break;
+						}
+
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
 							var obj = this.scene.objects[this.lara.objNameForPistolAnim];
 							var lara = this.findObjectById(TRN.ObjectID.Lara);
