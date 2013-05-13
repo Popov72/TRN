@@ -43,6 +43,9 @@
 							<left_hand>14</left_hand>
 							<right_hand>11</right_hand>
 						</pistol_anim>
+						<behaviour name="Lara">
+							<startanim>103</startanim>
+						</behaviour>
 					</behaviour>
 					<behaviour name="Flare">
 						<offset><x>0</x><y>0</y><z>0</z></offset>
@@ -64,21 +67,29 @@
 			<level id="gym"			type="normal"	name="Lara's Home"/>
 			<level id="level1"		type="normal"	name="Caves"/>
 			<level id="level2"		type="normal"	name="City of Vilcabamba"/>
-			<level id="level3a"		type="normal"	name="The Lost Valley">
-				<rendering>
-					<texture_correction>2</texture_correction>
-				</rendering>
-			</level>
+			<level id="level3a"		type="normal"	name="The Lost Valley"/>
 			<level id="level3b"		type="normal"	name="Tomb of Qualopec"/>
 			<level id="level4"		type="normal"	name="St Francis' Folly"/>
 			<level id="level5"		type="normal"	name="Colosseum"/>
-			<level id="level6"		type="normal"	name="Palace Midas"/>
+			<level id="level6"		type="normal"	name="Palace Midas">
+				<behaviour name="Lara">
+					<startanim>86</startanim>
+				</behaviour>
+			</level>
 			<level id="level7a"		type="normal"	name="Cistern"/>
-			<level id="level7b"		type="normal"	name="Tomb of Tihocan"/>
+			<level id="level7b"		type="normal"	name="Tomb of Tihocan">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
 			<level id="level8a"		type="normal"	name="City of Khamoon"/>
 			<level id="level8b"		type="normal"	name="Obelisk of Khamoon"/>
 			<level id="level8c"		type="normal"	name="Sanctuary of the Scion"/>
-			<level id="level10a"	type="normal"	name="Natla's Mines"/>
+			<level id="level10a"	type="normal"	name="Natla's Mines">
+				<behaviour name="Lara">
+					<startanim>86</startanim>
+				</behaviour>
+			</level>
 			<level id="level10b"	type="normal"	name="Atlantis"/>
 			<level id="level10c"	type="normal"	name="The Great Pyramid"/>
 			<level id="title"		type="normal"	name="Title display"/>
@@ -158,9 +169,21 @@
 				</moveables>
 			</level>
 			<!-- Gold levels -->
-			<level id="egypt"		type="normal"	name="Return to Egypt"		gold="1"/>
-			<level id="cat"			type="normal"	name="Temple of the Cat"	gold="1"/>
-			<level id="end"			type="normal"	name="Atlantean Stronghold" gold="1"/>
+			<level id="egypt"		type="normal"	name="Return to Egypt"		gold="1">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
+			<level id="cat"			type="normal"	name="Temple of the Cat"	gold="1">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
+			<level id="end"			type="normal"	name="Atlantean Stronghold" gold="1">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
 			<level id="end2"		type="normal"	name="The Hive"				gold="1"/>
 		</levels>
 	</game>
@@ -211,6 +234,7 @@
 							<left_hand>14</left_hand>
 							<right_hand>11</right_hand>
 						</pistol_anim>
+						<startanim>103</startanim>
 					</behaviour>
 					<behaviour name="Flare">
 						<offset><x>0</x><y>0</y><z>0</z></offset>
@@ -238,6 +262,9 @@
 			<!-- Standard levels -->
 			<level id="assault"		type="normal"	name="Lara's Home"/>
 			<level id="wall"		type="normal"	name="The Great Wall">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
 				<moveables>
 					<moveable id="253">
 						<behaviour name="ParticleSystem">
@@ -247,14 +274,31 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="boat"		type="normal"	name="Venice"/>
+			<level id="boat"		type="normal"	name="Venice">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
 			<level id="venice"		type="normal"	name="Bartoli's Hideout"/>
-			<level id="opera"		type="normal"	name="Opera House"/>
+			<level id="opera"		type="normal"	name="Opera House">
+				<behaviour name="Lara">
+					<startanim>70</startanim>
+				</behaviour>
+			</level>
 			<level id="rig"			type="normal"	name="Offshore Rig"/>
 			<level id="platform"	type="normal"	name="Diving Area"/>
-			<level id="unwater"		type="normal"	name="40 Fathoms"/>
+			<level id="unwater"		type="normal"	name="40 Fathoms">
+				<behaviour name="Lara">
+					<startanim>86</startanim>
+				</behaviour>
+			</level>
 			<level id="keel"		type="normal"	name="Wreck of the Maria Doria"/>
-			<level id="living"		type="normal"	name="Living Quarters"/>
+			<level id="living"		type="normal"	name="Living Quarters">
+				<behaviour name="Lara">
+					<startanim>86</startanim>
+					<starttrans><x>0</x><y>500</y><z>0</z></starttrans>
+				</behaviour>
+			</level>
 			<level id="deck"		type="normal"	name="The Deck"/>
 			<level id="skidoo"		type="normal"	name="Tibetan Foothills"/>
 			<level id="monastry"	type="normal"	name="Barkhang Monastery">
@@ -297,9 +341,17 @@
 				</moveables>
 			</level>
 			<!-- Gold levels -->
-			<level id="level1"		type="normal"	name="The Cold War"			gold="1"/>
+			<level id="level1"		type="normal"	name="The Cold War"			gold="1">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
 			<level id="level2"		type="normal"	name="Fool's Gold"			gold="1"/>
-			<level id="level3"		type="normal"	name="Furnace of the Gods"	gold="1"/>
+			<level id="level3"		type="normal"	name="Furnace of the Gods"	gold="1">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
 			<level id="level4"		type="normal"	name="Kingdom"				gold="1"/>
 			<level id="level5"		type="normal"	name="Nightmare in Vegas"	gold="1"/>
 		</levels>
@@ -353,6 +405,9 @@
 							<left_hand>14</left_hand>
 							<right_hand>11</right_hand>
 						</pistol_anim>
+						<behaviour name="Lara">
+							<startanim>103</startanim>
+						</behaviour>
 					</behaviour>
 					<behaviour name="Flare">
 						<offset><x>0</x><y>0</y><z>0</z></offset>
@@ -376,17 +431,30 @@
 			<level id="temple"		type="normal"	name="Temple Ruins"/>
 			<level id="quadchas"	type="normal"	name="The River Ganges"/>
 			<level id="tonyboss"	type="normal"	name="Caves of Kaliya"/>
-			<level id="shore"		type="normal"	name="Coastal Village"/>
+			<level id="shore"		type="normal"	name="Coastal Village">
+				<behaviour name="Lara">
+					<startanim>86</startanim>
+					<starttrans><x>0</x><y>500</y><z>0</z></starttrans>
+				</behaviour>
+			</level>
 			<level id="crash"		type="normal"	name="Crash Site"/>
 			<level id="rapids"		type="normal"	name="Madubu Gorge"/>
 			<level id="triboss"		type="normal"	name="Temple of Puna"/>
 			<level id="roofs"		type="normal"	name="Thames Wharf"/>
-			<level id="sewer"		type="normal"	name="Aldwych"/>
+			<level id="sewer"		type="normal"	name="Aldwych">
+				<behaviour name="Lara">
+					<startanim>23</startanim>
+				</behaviour>
+			</level>
 			<level id="tower"		type="normal"	name="Lud's Gate"/>
 			<level id="office"		type="normal"	name="City">
 				<sky><noanim>false</noanim></sky>
 			</level>
-			<level id="nevada"		type="normal"	name="Nevada Desert"/>
+			<level id="nevada"		type="normal"	name="Nevada Desert">
+				<behaviour name="Lara">
+					<startanim>70</startanim>
+				</behaviour>
+			</level>
 			<level id="compound"	type="normal"	name="High Security Compound"/>
 			<level id="area51"		type="normal"	name="Area 51"/>
 			<level id="antarc"		type="normal"	name="Antarctica"/>
@@ -397,6 +465,9 @@
 			</level>
 			<level id="stpaul"		type="normal"	name="All Hallows">
 				<sky><noanim>false</noanim></sky>
+				<behaviour name="Lara">
+					<startanim>70</startanim>
+				</behaviour>
 			</level>
 			<level id="title"		type="normal"	name="Title display"/>
 			<level id="cut1"		type="cutscene"	name="Lara Meets Amputated Mercenary"/>

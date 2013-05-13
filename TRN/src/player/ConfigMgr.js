@@ -51,6 +51,14 @@ TRN.ConfigMgr.prototype = {
 		return r != null && g != null && b != null ? { r:r/255, g:g/255, b:b/255 } : null;
 	},
 
+	levelVector3 : function(levelname, path, checkinglobal) {
+		var x = this.levelParam(levelname, path + ' > x', checkinglobal);
+		var y = this.levelParam(levelname, path + ' > y', checkinglobal);
+		var z = this.levelParam(levelname, path + ' > z', checkinglobal);
+		
+		return x != null && y != null && z != null ? { x:parseFloat(x), y:parseFloat(y), z:parseFloat(z) } : null;
+	},
+
 	levelFloat : function(levelname, path, checkinglobal, defvalue) {
 		var v = this.levelParam(levelname, path, checkinglobal);
 		

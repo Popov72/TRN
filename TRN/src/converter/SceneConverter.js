@@ -278,7 +278,7 @@ TRN.LevelConverter.prototype = {
 		    mapObjTexture2AnimTexture[0] = { idxAnimatedTexture:this.sc.animatedTextures.length, pos:0 };
 			for (var i = 0; i < numSprites; ++i) {
 				sprite = this.trlevel.spriteTextures[spriteIndex + i];
-				if (this.trlevel.atlas.make) {
+				if (this.trlevel.atlas.make && i != 0) {
 					row = Math.floor(sprite.tile / this.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.trlevel.atlas.numColPerRow;
 					sprite.tile = 0;
 				}
@@ -853,7 +853,7 @@ TRN.LevelConverter.prototype = {
 			sprObjID2Index[spriteSeq.objectID] = sq;
 		}
 
-		var laraRoomIndex = -1;
+		var laraMoveable = null;
 		var numMoveableInstances = 0, numSpriteSeqInstances = 0;
 		for (var i = 0; i < this.trlevel.items.length; ++i) {
 			var item = this.trlevel.items[i];
@@ -867,15 +867,16 @@ TRN.LevelConverter.prototype = {
 				this.createSpriteSeqInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.spriteSequences[sprObjID2Index[item.objectID]]);
 				numSpriteSeqInstances++;
 			} else {
+				var mvb = this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.moveables[m]);
 				if (item.objectID == TRN.ObjectID.Lara) {
-					laraRoomIndex = roomIndex;
+					laraMoveable = mvb;
 				}
-				this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.moveables[m]);
 				numMoveableInstances++;
 			}
 		}
 
-		if (laraRoomIndex != -1) {
+		if (laraMoveable != null) {
+			var laraRoomIndex = laraMoveable.roomIndex;
 			var meshSwapIds = [
 				this.confMgr.levelNumber(this.sc.levelShortFileName, 'meshswap > objid1', true, 0),
 				this.confMgr.levelNumber(this.sc.levelShortFileName, 'meshswap > objid2', true, 0),
@@ -895,8 +896,7 @@ TRN.LevelConverter.prototype = {
 				}
 			}
 
-			var pistolAnimId = 
-				this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > id', true, -1);
+			var pistolAnimId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > pistol_anim > id', true, -1);
 			if (pistolAnimId != -1) {
 				var mindex = movObjID2Index[pistolAnimId];
 
@@ -906,6 +906,17 @@ TRN.LevelConverter.prototype = {
 					mobj.dummy = true;
 				}
 			}
+
+			var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > startanim', true, 0);
+			laraMoveable.animationStartIndex = startAnim;
+
+			var startTrans = this.confMgr.levelVector3(this.sc.levelShortFileName, 'behaviour[name="Lara"] > starttrans', true, null);
+			if (startTrans != null) {
+				laraMoveable.position[0] += startTrans.x;
+				laraMoveable.position[1] += startTrans.y;
+				laraMoveable.position[2] += startTrans.z;
+			}
+
 		}
 
 
@@ -1018,8 +1029,8 @@ TRN.LevelConverter.prototype = {
 
 		var camPos = { x:laraPos.x, y:laraPos.y, z:laraPos.z, rotY:laraPos.rotY }
 		if (!this.sc.cutScene.frames) {
-			var ofstDir = this.confMgr.levelFloat(this.sc.levelShortFileName, 'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > dirdist', true, 0.0);
-			var ofstUp = this.confMgr.levelFloat(this.sc.levelShortFileName, 'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > updist', true, 0.0);
+			var ofstDir = this.confMgr.levelFloat(this.sc.levelShortFileName, 'behaviour[name="Lara"] > dirdist', true, 0.0);
+			var ofstUp = this.confMgr.levelFloat(this.sc.levelShortFileName, 'behaviour[name="Lara"] > updist', true, 0.0);
 
 			var v3 = new THREE.Vector3(0, ofstUp, ofstDir);
 			var q = new THREE.Quaternion();
