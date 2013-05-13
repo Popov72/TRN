@@ -56,8 +56,8 @@ TRN.extend(TRN.LevelConverter.prototype, {
 		var strengthEffect = ((attribute & 0x1E)-16)/16;
 
 		if (moveVertex) moveLight = 1;
-		if (this.trlevel.rversion == 'TR2' && isFilledWithWater) moveLight = 1;
-		if (this.trlevel.rversion == 'TR2' && isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
+		if ((this.trlevel.rversion == 'TR1' || this.trlevel.rversion == 'TR2') && isFilledWithWater) moveLight = 1;
+		if ((this.trlevel.rversion == 'TR1' || this.trlevel.rversion == 'TR2') && isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
 
 		return {
 			x: vertex.x, y: -vertex.y, z: -vertex.z,
