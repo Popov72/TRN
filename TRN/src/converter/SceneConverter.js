@@ -1071,8 +1071,6 @@ TRN.LevelConverter.prototype = {
 
 		this.createAnimations();
 
-		this.sc.animations_ = this.trlevel.animations; // to be removed but needed for the time being for the cut scenes
-
 		if (this.sc.cutScene.frames) {
 			// update position/quaternion for some specific items if we play a cut scene
 			var min = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animminid', true, 0);
@@ -1088,6 +1086,7 @@ TRN.LevelConverter.prototype = {
 				}
 			}
 
+			// get the sound for this cut scene
 			var this_ = this;
 			var binaryBuffer = new TRN.BinaryBuffer(
 				[
