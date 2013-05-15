@@ -55,11 +55,10 @@ TRN.extend(TRN.Play.prototype, {
 						}
 
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
-							var obj = this.scene.objects[this.lara.objNameForPistolAnim];
-							var lara = this.findObjectById(TRN.ObjectID.Lara);
+							var oswap = this.scene.objects[this.lara.objNameForPistolAnim];
 
-							if (obj && lara) {
-								var mswap = new TRN.MeshSwap(obj, lara);
+							if (oswap) {
+								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([this.lara.leftThighIndex, this.lara.leftHandIndex]);
 
@@ -69,11 +68,10 @@ TRN.extend(TRN.Play.prototype, {
 						}
 
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
-							var obj = this.scene.objects[this.lara.objNameForPistolAnim];
-							var lara = this.findObjectById(TRN.ObjectID.Lara);
+							var oswap = this.scene.objects[this.lara.objNameForPistolAnim];
 
-							if (obj && lara) {
-								var mswap = new TRN.MeshSwap(obj, lara);
+							if (oswap) {
+								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([this.lara.rightThighIndex, this.lara.rightHandIndex]);
 
@@ -87,17 +85,11 @@ TRN.extend(TRN.Play.prototype, {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP3: {
 							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
 							var oswap = this.scene.objects['meshswap' + idx];
-							var g = obj.geometry, m = obj.material;
 
 							if (oswap) {
-								obj.geometry = oswap.geometry;
-								obj.material = oswap.material;
+								var mswap = new TRN.MeshSwap(obj, oswap);
 
-								oswap.geometry = g;
-								oswap.material = m;
-
-								delete obj.__webglInit; // make three js regenerates the webgl buffers
-								delete oswap.__webglInit;
+								mswap.swapall();
 
 								updateWebGLObjects = true;
 							} else {

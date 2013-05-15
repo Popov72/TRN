@@ -36,6 +36,19 @@ TRN.MeshSwap.prototype = {
 
 	},
 
+	swapall : function() {
+		var g = this.obj1.geometry, m = this.obj1.material;
+
+		this.obj1.geometry = this.obj2.geometry;
+		this.obj1.material = this.obj2.material;
+
+		this.obj2.geometry = g;
+		this.obj2.material = m;
+
+		delete this.obj1.__webglInit; // make three js regenerates the webgl buffers
+		delete this.obj2.__webglInit;
+	},
+
 	findIndices : function (geometry, meshIdx) {
 
 		// get the start and end index of this mesh in the skin indices/weights/vertices buffers
@@ -213,8 +226,10 @@ TRN.MeshSwap.prototype = {
 		geometry.uvsNeedUpdate = true;
 		geometry.normalsNeedUpdate = true;
 
-		delete geometry.geometryGroups;
-		delete geometry.__webglInit;
+		geometry.dispose();
+
+		//delete geometry.geometryGroups;
+		//delete geometry.__webglInit;
 		delete obj1.__webglInit;
 
 	}
