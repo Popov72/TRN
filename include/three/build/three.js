@@ -19028,6 +19028,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 			}
 
+			delete geometry.geometryGroups; // popov
+
 		}
 
 		deleteCustomAttributesBuffers( geometry );
