@@ -45,6 +45,7 @@ TRN.Panel.prototype = {
 		this.elem.find('#camerapos').html(camera.position.x.toFixed(12)+','+camera.position.y.toFixed(12)+','+camera.position.z.toFixed(12));
 		this.elem.find('#camerarot').html(camera.quaternion.x.toFixed(12)+','+camera.quaternion.y.toFixed(12)+','+camera.quaternion.z.toFixed(12)+','+camera.quaternion.w.toFixed(12));
 		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces + ' / ' + numObj);
+		this.elem.find('#memoryinfo').html(renderer.info.memory.geometries + ' / ' + renderer.info.memory.programs + ' / ' + renderer.info.memory.textures);
 	},
 
 	singleRoomMode : function() {
