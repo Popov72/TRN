@@ -15,7 +15,7 @@ TRN.Play = function (container) {
 	this.progressbar.hide();
 
 	this.quantum = 1000/TRN.baseFrameRate;
-	this.quantumTime = (new Date()).getTime();
+	this.quantumTime = -1;
 	this.quantumRnd = 0;
 
 	this.flickerColor = new THREE.Vector3(1.2, 1.2, 1.2);
@@ -519,6 +519,8 @@ TRN.Play.prototype = {
 
 		this.renderer.initWebGLObjects(this.scene.scene);
 
+		this.startTime = this.quantumTime = (new Date()).getTime();
+
 		this.animate();
 
 		this.onWindowResize();
@@ -709,8 +711,6 @@ TRN.Play.prototype = {
 		var delta = this.clock.getDelta();
 		var curTime = (new Date()).getTime();
 
-		if (this.startTime == -1) this.startTime = curTime;
-
 		if (curTime - this.quantumTime > this.quantum) {
 			this.quantumRnd = Math.random();
 			this.quantumTime = curTime;
@@ -736,6 +736,7 @@ TRN.Play.prototype = {
 		}
 
 		this.render();
+
 	},
 
 	render : function () {
