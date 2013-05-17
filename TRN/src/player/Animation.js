@@ -277,13 +277,15 @@ TRN.Animation.TrackInstance.prototype = {
 			    	buffer[numData].position.z += this.bonesStartingPos[numData].pos_init[2];
 			    }
 
-				THREE.Quaternion.slerp(dataCurKey.quaternion, dataNextKey.quaternion, this.obj.bones[numData].quaternion, this.param.interpFactor);
+				THREE.Quaternion.slerp(dataCurKey.quaternion, dataNextKey.quaternion, buffer[numData].quaternion, this.param.interpFactor);
 			}
 	    } else {
             this.nextTrackInstance.pushState();
             this.nextTrackInstance.setCurrentFrame(this.nextTrackInstanceFrame);
 
             this.nextTrackInstance.interpolate(this.interpolatedData, true);
+
+            this.nextTrackInstance.popState();
 
 			for (var numData = 0; numData < this.track.numDataPerKey; ++numData) {
 			    var dataCurKey  = this.track.keys[curKey].data[numData];
@@ -299,9 +301,9 @@ TRN.Animation.TrackInstance.prototype = {
 			    	buffer[numData].position.z += this.bonesStartingPos[numData].pos_init[2];
 			    }
 
+				THREE.Quaternion.slerp(dataCurKey.quaternion, dataNextKey.quaternion, buffer[numData].quaternion, this.param.interpFactor);
 			}
 
-            this.nextTrackInstance.popState();
 	    }
 
 	}

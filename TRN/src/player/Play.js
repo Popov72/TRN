@@ -301,8 +301,7 @@ TRN.Play.prototype = {
 					var trackInstance = allTrackInstances[objJSON.animationStartIndex];
 
 					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
-					trackInstance.setNoInterpolationToNextAnim = true;
-					trackInstance.setNoInterpolationToNextAnimValue = this.sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
+					trackInstance.setNoInterpolationToNextTrack = true;
 
 					trackInstance.runForward(0);
 					trackInstance.interpolate();
@@ -540,7 +539,7 @@ TRN.Play.prototype = {
 					// it's the end of the current track and we are in a cut scene => we link to the next track
 					var trackInstance = obj.trackInstance;
 
-					var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.interpFactor;
+					var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.curFrame - trackInstance.track.numFrames;//trackInstance.param.interpFactor;
 					
 					trackInstance = obj.allTrackInstances[trackInstance.track.nextTrack];
 					obj.trackInstance = trackInstance;
@@ -548,12 +547,11 @@ TRN.Play.prototype = {
 					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
 					trackInstance.setCurrentFrame(nextTrackFrame);
 
-					trackInstance.setNoInterpolationToNextAnim = this.sceneJSON.cutScene.frames != null;
-					trackInstance.setNoInterpolationToNextAnimValue = this.sceneJSON.rversion == 'TR2' ? 1.0 : 0.0;
+					trackInstance.setNoInterpolationToNextTrack = this.sceneJSON.cutScene.frames != null;
+
 				}
 
 				if (obj.trackInstance != obj.prevTrackInstance) {
-
 					this.processAnimCommands(obj.prevTrackInstance, obj.prevTrackInstanceFrame, 1e10, obj);
 					this.processAnimCommands(obj.trackInstance, 0, obj.trackInstance.param.curFrame, obj);
 
