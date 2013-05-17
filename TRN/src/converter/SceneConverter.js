@@ -373,6 +373,23 @@ TRN.LevelConverter.prototype = {
 				"roomIndex"			: m
 			};
 
+			// portal in the room
+			var portals = [];
+			for (var p = 0; p < room.portals.length; ++p) {
+				var portal = room.portals[p];
+				portals.push({
+					"adjoiningRoom": portal.adjoiningRoom,
+					"normal": { x:portal.normal.x, y:-portal.normal.y, z:-portal.normal.z },
+					"vertices": [
+						{ x:portal.vertices[0].x, y:-portal.vertices[0].y, z:-portal.vertices[0].z },
+						{ x:portal.vertices[1].x, y:-portal.vertices[1].y, z:-portal.vertices[1].z },
+						{ x:portal.vertices[2].x, y:-portal.vertices[2].y, z:-portal.vertices[2].z },
+						{ x:portal.vertices[3].x, y:-portal.vertices[3].y, z:-portal.vertices[3].z }
+					]
+				});
+			}
+			this.sc.objects['room' + m].portals = portals;
+
 			// static meshes in the room
 			for (var s = 0; s < room.staticMeshes.length; ++s) {
 				var staticMesh = room.staticMeshes[s];
@@ -877,6 +894,8 @@ TRN.LevelConverter.prototype = {
 
 		if (laraMoveable != null) {
 			var laraRoomIndex = laraMoveable.roomIndex;
+
+			// create the 'meshswap' moveables
 			var meshSwapIds = [
 				this.confMgr.levelNumber(this.sc.levelShortFileName, 'meshswap > objid1', true, 0),
 				this.confMgr.levelNumber(this.sc.levelShortFileName, 'meshswap > objid2', true, 0),
@@ -896,6 +915,7 @@ TRN.LevelConverter.prototype = {
 				}
 			}
 
+			// create the 'pistol anim' moveable
 			var pistolAnimId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > pistol_anim > id', true, -1);
 			if (pistolAnimId != -1) {
 				var mindex = movObjID2Index[pistolAnimId];
@@ -907,12 +927,29 @@ TRN.LevelConverter.prototype = {
 				}
 			}
 
+			// create the 'ponytail' moveable
+			/*var ponytailId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
+			if (ponytailId != -1) {
+				var mindex = movObjID2Index[ponytailId];
+
+				if (typeof(mindex) != "undefined") {
+					var mobj = this.createMoveableInstance(0, laraRoomIndex, laraMoveable.position[0], laraMoveable.position[1]+500, laraMoveable.position[2]-200, -1, 
+						{ x:laraMoveable.quaternion[0], y:laraMoveable.quaternion[1], z:laraMoveable.quaternion[2], w:laraMoveable.quaternion[3] }, 
+						this.trlevel.moveables[mindex], 'ponytail', true);
+
+					mobj.dummy = true;
+					mobj.has_anims = false;
+				}
+			}*/
+
+			// if not a cut scene, we set a specific start anim for Lara
 			if (this.sc.cutScene.frames == null) {
 				var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > startanim', true, 0);
 				
 				laraMoveable.animationStartIndex = startAnim;
 			}
 
+			// translate starting position of Lara
 			var startTrans = this.confMgr.levelVector3(this.sc.levelShortFileName, 'behaviour[name="Lara"] > starttrans', true, null);
 			if (startTrans != null) {
 				laraMoveable.position[0] += startTrans.x;
@@ -921,7 +958,6 @@ TRN.LevelConverter.prototype = {
 			}
 
 		}
-
 
 		// specific handling of the sky
 		var skyId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > objectid', true, 0);
