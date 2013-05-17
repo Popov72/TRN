@@ -34,6 +34,7 @@
 						<dirdist>1430</dirdist>
 						<updist>1000</updist>
 						<lara>
+							<animid>0</animid>
 							<height>750</height>
 						</lara>
 						<pistol_anim>
@@ -225,6 +226,7 @@
 						<lara>
 							<animid>0</animid>
 							<visuid>0</visuid>
+							<ponytailid>2</ponytailid>
 							<height>750</height>
 						</lara>
 						<pistol_anim>
@@ -396,6 +398,7 @@
 						<updist>1000</updist>
 						<lara>
 							<animid>0</animid>
+							<ponytailid>2</ponytailid>
 							<height>750</height>
 						</lara>
 						<pistol_anim>
