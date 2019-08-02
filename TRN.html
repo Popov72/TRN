@@ -83,6 +83,14 @@ jQuery(window).on('resize', function() {
 
 jQuery(window).on('load', setContainerDimensions);
 
+jQuery(document).on('keydown', function(event) {
+	//console.log(event.which)
+	if (event.which == 72) { // H
+		jQuery("#panel").css('display', jQuery('#panel').css('display') == 'block' ? 'none' : 'block');
+		jQuery("#stats").css('display', jQuery('#stats').css('display') == 'block' ? 'none' : 'block');
+	}
+});
+
 function saveJSON(rversion, levelName) {
   window.URL = window.webkitURL || window.URL;
 
