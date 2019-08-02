@@ -1,7 +1,8 @@
 var TRN = {};
 
 TRN.ObjectID = {
-	"Lara" : 0
+	"Lara" : 0,
+	"Ponytail" : 2
 }
 
 TRN.baseFrameRate = 30.0;

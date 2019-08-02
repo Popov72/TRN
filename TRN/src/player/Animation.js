@@ -267,6 +267,8 @@ TRN.Animation.TrackInstance.prototype = {
 			    var dataCurKey  = this.track.keys[curKey].data[numData];
 			    var dataNextKey = this.track.keys[nextKey].data[numData];
 
+			    if (!buffer[numData] || !dataCurKey || !dataNextKey) continue; // without this line, the lost artifact TR3 levels bug
+
 			    buffer[numData].position.x = dataCurKey.position.x + (dataNextKey.position.x - dataCurKey.position.x) * this.param.interpFactor;
 			    buffer[numData].position.y = dataCurKey.position.y + (dataNextKey.position.y - dataCurKey.position.y) * this.param.interpFactor;
 			    buffer[numData].position.z = dataCurKey.position.z + (dataNextKey.position.z - dataCurKey.position.z) * this.param.interpFactor;
@@ -290,6 +292,8 @@ TRN.Animation.TrackInstance.prototype = {
 			for (var numData = 0; numData < this.track.numDataPerKey; ++numData) {
 			    var dataCurKey  = this.track.keys[curKey].data[numData];
 			    var dataNextKey = this.interpolatedData[numData];
+
+			    if (!buffer[numData] || !dataCurKey || !dataNextKey) continue; // without this line, the lost artifact TR3 levels bug
 
 			    buffer[numData].position.x = dataCurKey.position.x + (dataNextKey.position.x - dataCurKey.position.x) * this.param.interpFactor;
 			    buffer[numData].position.y = dataCurKey.position.y + (dataNextKey.position.y - dataCurKey.position.y) * this.param.interpFactor;

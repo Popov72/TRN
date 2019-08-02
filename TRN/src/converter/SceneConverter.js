@@ -667,18 +667,19 @@ TRN.LevelConverter.prototype = {
 				console.log('Invalid num anim commands (' + numAnimCommands + ') ! ', anim);
 			}
 
-			animTracks.push({
-				"name": 			"anim" + anm,
-				"numKeys":  		animNumKeys,
-				"numFrames":  		numFrames,
-				"frameRate": 		anim.frameRate,
-				"fps":  			animFPS,
-				"nextTrack":  		anim.nextAnimation,
-				"nextTrackFrame": 	anim.nextFrame - this.trlevel.animations[anim.nextAnimation].frameStart,
-				"keys":  			animKeys,
-				"commands":     	animCommands,
-				"frameStart":    	anim.frameStart
-			});
+			if (this.trlevel.animations[anim.nextAnimation] != undefined) // to avoid bugging for lost artifact TR3 levels
+				animTracks.push({
+					"name": 			"anim" + anm,
+					"numKeys":  		animNumKeys,
+					"numFrames":  		numFrames,
+					"frameRate": 		anim.frameRate,
+					"fps":  			animFPS,
+					"nextTrack":  		anim.nextAnimation,
+					"nextTrackFrame": 	anim.nextFrame - this.trlevel.animations[anim.nextAnimation].frameStart,
+					"keys":  			animKeys,
+					"commands":     	animCommands,
+					"frameStart":    	anim.frameStart
+				});
 
 		}
 
@@ -762,6 +763,108 @@ TRN.LevelConverter.prototype = {
 		}
 
 		console.log('Num moveables=', numMoveables)
+	},
+
+	createMoveableAsMultiMeshes : function (m, roomIndex, ofst) {
+
+		var moveable = this.trlevel.moveables[m];
+		var room = this.trlevel.rooms[roomIndex];
+
+		var numMeshes = moveable.numMeshes, meshIndex = moveable.startingMesh, meshTree = moveable.meshTree;
+
+		var stackIdx = 0, stack = [], parent = -1, bones = [];
+		var px = 0, py = 0, pz = 0;
+
+		for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
+			if (idx != 0) {
+				var sflag = this.trlevel.meshTrees[meshTree++].coord;
+				px = this.trlevel.meshTrees[meshTree++].coord;
+				py = this.trlevel.meshTrees[meshTree++].coord;
+				pz = this.trlevel.meshTrees[meshTree++].coord;
+				if (sflag & 1) {
+					if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
+					parent = stack[--stackIdx];
+				}
+				if (sflag & 2) {
+					stack[stackIdx++] = parent;
+				}
+			}
+
+			/*var meshJSON = this.createNewJSONEmbed();
+			var attributes = {
+				flags: { type:"v4", value:[] }
+			};
+			var tiles2material = {};
+
+			meshJSON.attributes = attributes;*/
+
+			this.createMesh(meshIndex);
+/*			var mesh = this.trlevel.meshes[meshIndex];
+
+			var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
+
+			var moveableIsExternallyLit = !internalLit;*/
+			
+			bones.push({
+				"parent": parent,
+				"pos_init": [ px, -py, -pz ]
+			});
+
+			parent = idx;
+
+/*			meshJSON.moveableIsInternallyLit = !moveableIsExternallyLit;
+
+			meshJSON._materials = this.makeMaterialList(tiles2material, 'mesh');
+			for (var m = 0; m < meshJSON._materials.length; ++m) {
+				if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
+					meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
+				} else {
+					meshJSON._materials[m].uniforms.lighting = { type: "f", value: 0.0 }
+				}
+			}
+
+			var mid = 'moveable' + moveable.objectID + '_mesh' + idx;
+			this.sc.embeds[mid] = meshJSON;
+			this.sc.geometries[mid] = {
+				"type": "embedded",
+				"id"  : mid
+			};*/
+
+		}
+
+		meshIndex = moveable.startingMesh;
+		for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
+
+			var mid = 'mesh' + meshIndex;
+
+			var materials = [];
+			for (var mat = 0; mat < this.sc.embeds[mid]._materials.length; ++mat) {
+				var material = jQuery.extend(true, {}, this.sc.embeds[mid]._materials[mat]);
+				material.uniforms.lighting.value = this.convertIntensity(0);
+				materials.push(material);
+			}
+
+			var px = py = pz = 0, idx_ = idx;
+			while (idx_ != -1) {
+				px += bones[idx_].pos_init[0];
+				py += bones[idx_].pos_init[1];
+				pz += bones[idx_].pos_init[2];
+				idx_ = bones[idx_].parent;
+			}
+
+			this.sc.objects['moveable' + moveable.objectID + '_mesh' + idx] = {
+				"geometry" 		: mid,
+				"material" 		: materials,
+				"position" 		: [ px+ofst.x, py+ofst.y, pz+ofst.z ],
+				"quaternion" 	: [ 0, 0, 0, 1 ],
+				"scale"	   		: [ 1, 1, 1 ],
+				"visible"  		: !room.isAlternate,
+				"type"			: 'mesh',
+				"roomIndex"		: roomIndex
+			};
+
+		}
+
 	},
 
 	createMoveableInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, moveable, jsonid, visible) {
@@ -928,19 +1031,79 @@ TRN.LevelConverter.prototype = {
 			}
 
 			// create the 'ponytail' moveable
-			/*var ponytailId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
+			var ponytailId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
 			if (ponytailId != -1) {
 				var mindex = movObjID2Index[ponytailId];
 
 				if (typeof(mindex) != "undefined") {
-					var mobj = this.createMoveableInstance(0, laraRoomIndex, laraMoveable.position[0], laraMoveable.position[1]+500, laraMoveable.position[2]-200, -1, 
-						{ x:laraMoveable.quaternion[0], y:laraMoveable.quaternion[1], z:laraMoveable.quaternion[2], w:laraMoveable.quaternion[3] }, 
-						this.trlevel.moveables[mindex], 'ponytail', true);
+
+					this.createMoveableAsMultiMeshes(mindex, laraRoomIndex, { x:-2, y:15, z:55 });
+
+					/*var q1 = new THREE.Quaternion();
+					var q1b = new THREE.Quaternion();
+
+					q1.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(180) );
+					q1b.setFromAxisAngle( {x:1,y:0,z:0}, THREE.Math.degToRad(-90) );
+					q1.multiply(q1b);
+
+					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:0 }, this.trlevel.moveables[mindex], 'ponytail', true);
 
 					mobj.dummy = true;
-					mobj.has_anims = false;
+					console.log(mobj, this.sc.embeds['moveable2'])
+
+					var animKeys = [
+						{
+							"time": 		0, 
+							"boundingBox": 	{ xmin:0, ymin:0, zmin:0, xmax:500, ymax:500, zmax:500 },
+							"data":  		[
+								{
+									"position": 	{ x:-2, y:15, z:55 },
+									"quaternion_":	{ x:q1.x, y:q1.y, z:q1.z, w:q1.w },
+									"quaternion":	{ x:0, y:0, z:0, w:0 }
+								},
+								{
+									"position": 	{ x:0, y:0, z:0 },
+									"quaternion":	{ x:0, y:0, z:0, w:1 }
+								},
+								{
+									"position": 	{ x:0, y:0, z:0 },
+									"quaternion":	{ x:0, y:0, z:0, w:1 }
+								},
+								{
+									"position": 	{ x:0, y:0, z:0 },
+									"quaternion":	{ x:0, y:0, z:0, w:1 }
+								},
+								{
+									"position": 	{ x:0, y:0, z:0 },
+									"quaternion":	{ x:0, y:0, z:0, w:1 }
+								},
+								{
+									"position": 	{ x:0, y:0, z:0 },
+									"quaternion":	{ x:0, y:0, z:0, w:1 }
+								}
+							]
+						}
+					];
+
+					var tracks = this.sc.animTracks;
+					var track = {
+						"name": 			"animponytail",
+						"numKeys":  		1,
+						"numFrames":  		1,
+						"frameRate": 		1,
+						"fps":  			1.0,
+						"nextTrack":  		tracks.length,
+						"nextTrackFrame": 	0,
+						"keys":  			animKeys,
+						"commands":     	[],
+						"frameStart":    	0
+					};
+
+					tracks.push(track);
+
+					mobj.animationStartIndex = tracks.length-1;*/
 				}
-			}*/
+			}
 
 			// if not a cut scene, we set a specific start anim for Lara
 			if (this.sc.cutScene.frames == null) {
@@ -1103,9 +1266,9 @@ TRN.LevelConverter.prototype = {
 
 		this.createMoveables();
 
-		this.createItems();
-
 		this.createAnimations();
+
+		this.createItems();
 
 		if (this.sc.cutScene.frames) {
 			// update position/quaternion for some specific items if we play a cut scene

@@ -1,4 +1,4 @@
-if(!document.hasOwnProperty("pointerLockElement")) {
+if(!("pointerLockElement" in document)) {
     var getter = (function() {
         // These are the functions that match the spec, and should be preferred
         if("webkitPointerLockElement" in document) {
@@ -17,7 +17,7 @@ if(!document.hasOwnProperty("pointerLockElement")) {
     });
 }
 
-if(!document.hasOwnProperty("fullscreenElement")) {
+if(!("fullscreenElement" in document)) {
     var getter = (function() {
         if("webkitFullscreenElement" in document) {
             return function() { return document.webkitFullscreenElement; };

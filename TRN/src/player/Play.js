@@ -44,11 +44,46 @@ TRN.Play = function (container) {
 
 	this.globalTintColor = null;
 
+	this.initPhysics();
 }
 
 TRN.Play.prototype = {
 
 	constructor : TRN.Play,
+
+	initPhysics : function() {
+
+        this.world = new CANNON.World();
+        this.world.quatNormalizeSkip = 0;
+        this.world.quatNormalizeFast = false;
+
+        var solver = new CANNON.GSSolver();
+
+        this.world.defaultContactMaterial.contactEquationStiffness = 1e9;
+        this.world.defaultContactMaterial.contactEquationRegularizationTime = 4;
+
+        solver.iterations = 7;
+        solver.tolerance = 0.1;
+        var split = true;
+        if(split)
+            this.world.solver = new CANNON.SplitSolver(solver);
+        else
+            this.world.solver = solver;
+
+        this.world.gravity.set(0,-30*20,0);
+        this.world.broadphase = new CANNON.NaiveBroadphase();
+
+        // Create a slippery material (friction coefficient = 0.0)
+        physicsMaterial = new CANNON.Material("slipperyMaterial");
+        var physicsContactMaterial = new CANNON.ContactMaterial(physicsMaterial,
+                                                                physicsMaterial,
+                                                                0.0, // friction coefficient
+                                                                0.3  // restitution
+                                                                );
+        // We must add the contact materials to the world
+        this.world.addContactMaterial(physicsContactMaterial);
+
+	},
 
 	onWindowResize : function () {
 
@@ -131,6 +166,7 @@ TRN.Play.prototype = {
 		this.confMgr = new TRN.ConfigMgr(sc.rversion);
 
 		TRN.ObjectID.Lara = this.confMgr.levelNumber(sc.levelShortFileName, 'lara > id', true, 0);
+		TRN.ObjectID.Ponytail = this.confMgr.levelNumber(sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
 
 		var tintColor = this.confMgr.levelColor(sc.levelShortFileName, 'globaltintcolor', true, null);
 
@@ -315,13 +351,14 @@ TRN.Play.prototype = {
 					var track = this.scene.animTracks[animIndex];
 					var trackInstance = new TRN.Animation.TrackInstance(track, obj, this.sceneJSON.embeds[objJSON.geometry].bones);
 
-					trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
+					if (track) { // to avoid bugging for lost artifact TR3 levels
+						trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
 
-					trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
-					trackInstance.interpolate();
-		
-					obj.trackInstance = trackInstance;
-
+						trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
+						trackInstance.interpolate();
+			
+						obj.trackInstance = trackInstance;
+					}
 				}
 
 				obj.prevTrackInstance = obj.trackInstance;
@@ -336,6 +373,9 @@ TRN.Play.prototype = {
 			var obj = this.scene.objects[objID];
 			var objJSON = this.sceneJSON.objects[objID];
 
+			obj.initPos = new THREE.Vector3();
+			obj.initPos.copy(obj.position);
+
 			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID != 'sky') {
 
 				obj.updateMatrix();
@@ -343,6 +383,9 @@ TRN.Play.prototype = {
 
 			}
 		}
+
+		// init the ponytail object
+		this.ponytail = new THREE.Ponytail(this.findObjectById(TRN.ObjectID.Lara), this.scene, this.world);
 
 		// don't flip Y coordinates in textures
 		for (var texture in this.scene.textures) {
@@ -576,6 +619,10 @@ TRN.Play.prototype = {
 					obj.boxHelper.update(obj);
 				}
 			}
+		}
+
+		if (TRN.ObjectID.Ponytail != -1) {
+			this.ponytail.update(delta);
 		}
 
 	},

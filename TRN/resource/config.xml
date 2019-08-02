@@ -497,13 +497,12 @@
 			<level id="cut11" 		type="cutscene"	name="Lara meets Sophia Lee"/>
 			<level id="cut12" 		type="cutscene"	name="Lara watches Willard transform"/>
 			<!-- Gold levels -->
-			<level id="chunnel"		type="normal"	name="" gold="1"/>
-			<level id="scotland"	type="normal"	name="" gold="1"/>
-			<level id="slinc"		type="normal"	name="" gold="1"/>
-			<level id="title"		type="normal"	name="" gold="1"/>
-			<level id="undersea"	type="normal"	name="" gold="1"/>
-			<level id="willsden"	type="normal"	name="" gold="1"/>
-			<level id="zoo"			type="normal"	name="" gold="1"/>
+			<level id="01-Highland-Fling"			type="normal"	name="Highland Fling" gold="1"/>
+			<level id="02-Willards-Lair"			type="normal"	name="Willard's Lair" gold="1"/>
+			<level id="03-Shakespeare-Cliff"		type="normal"	name="Shakespeare Cliff" gold="1"/>
+			<level id="04-Sleeping-with-the-Fishes"	type="normal"	name="Sleeping with the Fishes" gold="1"/>
+			<level id="05-Its-A-Madhouse"			type="normal"	name="It's a Madhouse" gold="1"/>
+			<level id="06-Reunion"					type="normal"	name="Reunion" gold="1"/>
 		</levels>
 	</game>
 	
