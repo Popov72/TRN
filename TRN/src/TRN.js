@@ -7,6 +7,8 @@ TRN.ObjectID = {
 
 TRN.baseFrameRate = 30.0;
 
+if (typeof(THREE) != "undefined") {
+
 // replaces the loadTexture in three js by our own one =>  url can be something like data:XXX and not only a real url
 THREE.ImageUtils.loadTexture = function ( url, mapping, onLoad, onError ) {
 
@@ -79,6 +81,8 @@ THREE.Frustum.prototype.intersectsObject = function () {
 	};
 
 }();
+
+}
 
 // stolen from threejs !
 TRN.extend = function ( obj, source ) {
