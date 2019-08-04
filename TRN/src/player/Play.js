@@ -763,6 +763,8 @@ TRN.Play.prototype = {
 
 		curTime = curTime - this.startTime;
 
+		if (delta > 0.1) delta = 0.1;
+
 		this.controls.update(delta);
 
 		this.animateObjects(delta);
