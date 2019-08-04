@@ -49,6 +49,7 @@
 
 	<style type="text/css" media="all">@import "TRN/resource/panel.css";</style>
 	<style type="text/css" media="all">@import "TRN/resource/progressbar.css";</style>
+	<style type="text/css" media="all">@import "TRN/resource/help.css";</style>
 
 	<style>
 		body {
@@ -85,9 +86,22 @@ jQuery(window).on('load', setContainerDimensions);
 
 jQuery(document).on('keydown', function(event) {
 	//console.log(event.which)
-	if (event.which == 72) { // H
-		jQuery("#panel").css('display', jQuery('#panel').css('display') == 'block' ? 'none' : 'block');
-		jQuery("#stats").css('display', jQuery('#stats').css('display') == 'block' ? 'none' : 'block');
+	switch(event.which) {
+		case 72: // H
+			jQuery("#help").css('display', jQuery('#help').css('display') == 'block' ? 'none' : 'block');
+			break;
+		case 13: // Enter
+			jQuery("#panel").css('display', jQuery('#panel').css('display') == 'block' ? 'none' : 'block');
+			jQuery("#stats").css('display', jQuery('#stats').css('display') == 'block' ? 'none' : 'block');
+			break;
+		case 36: // Home
+			var qgame = TRN.Browser.QueryString.trgame, prm = '';
+			
+			if (qgame) {
+				prm = '?trgame=' + qgame;
+			}
+			document.location.href = 'index.html' + prm;
+			break;
 	}
 });
 
@@ -149,6 +163,17 @@ function handleFileSelect(evt) {
 }
 
 if (TRN.Browser.QueryString.level) {
+	var html;
+	jQuery.ajax({
+		type: "GET",
+		url: 'TRN/resource/help.html',
+		dataType: "html",
+		cache: false,
+		async: false
+	}).done(function(data) { html = data; });
+
+	jQuery(html).appendTo(document.body);
+
 	var play = new TRN.Play(document.getElementById( 'container' ));
 	play.showLevel('TRN/level/' + TRN.Browser.QueryString.level);
 } else {
