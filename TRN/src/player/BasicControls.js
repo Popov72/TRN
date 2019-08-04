@@ -1,8 +1,9 @@
 var BasicControls = function ( object, domElement ) {
 
 	var _this = this;
-	var STATES = { FASTER:0, FORWARD:1, LEFT:2, RIGHT:3, BACKWARD:4, UP:5, DOWN:6, ROTY:7, ROTNY:8, ROTX:9, ROTNX:10, SLOWER:11 };
-	var KEYS = { MOUSENX:300, MOUSEX:301, MOUSENY:302, MOUSEY:303 };
+
+	this.STATES = { FASTER:0, FORWARD:1, LEFT:2, RIGHT:3, BACKWARD:4, UP:5, DOWN:6, ROTY:7, ROTNY:8, ROTX:9, ROTNX:10, SLOWER:11 };
+	this.KEYS = { MOUSENX:300, MOUSEX:301, MOUSENY:302, MOUSEY:303 };
 
 	this.object = object;
 	this.domElement = ( domElement !== undefined ) ? domElement : document.body;
@@ -12,23 +13,23 @@ var BasicControls = function ( object, domElement ) {
 	object.useQuaternion = true;
 
 	this.states = { 
-		16: {state:STATES.FASTER,   on:false}, // SHIFT
-		17: {state:STATES.SLOWER,   on:false}, // CTRL
-		90: {state:STATES.FORWARD,  on:false}, // Z
-		38: {state:STATES.FORWARD,  on:false}, // CURSOR UP
-		81: {state:STATES.LEFT,     on:false}, // Q
-		68: {state:STATES.RIGHT,    on:false}, // D
-		83: {state:STATES.BACKWARD, on:false}, // S
-		40: {state:STATES.BACKWARD, on:false}, // CURSOR DOWN
-		32: {state:STATES.UP,       on:false}, // SPACE
-		88: {state:STATES.DOWN,     on:false}, // X
-		37: {state:STATES.ROTY,     on:false}, // CURSOR LEFT
-		39: {state:STATES.ROTNY,    on:false}  // CURSOR RIGHT
+		16: {state:this.STATES.FASTER,   on:false}, // SHIFT
+		17: {state:this.STATES.SLOWER,   on:false}, // CTRL
+		90: {state:this.STATES.FORWARD,  on:false}, // Z
+		38: {state:this.STATES.FORWARD,  on:false}, // CURSOR UP
+		81: {state:this.STATES.LEFT,     on:false}, // Q
+		68: {state:this.STATES.RIGHT,    on:false}, // D
+		83: {state:this.STATES.BACKWARD, on:false}, // S
+		40: {state:this.STATES.BACKWARD, on:false}, // CURSOR DOWN
+		32: {state:this.STATES.UP,       on:false}, // SPACE
+		88: {state:this.STATES.DOWN,     on:false}, // X
+		37: {state:this.STATES.ROTY,     on:false}, // CURSOR LEFT
+		39: {state:this.STATES.ROTNY,    on:false}  // CURSOR RIGHT
 	};
-	this.states[KEYS.MOUSENX] = {state:STATES.ROTY,    on:false}; // mouse move -X
-	this.states[KEYS.MOUSEX] =  {state:STATES.ROTNY,   on:false}; // mouse move +X
-	this.states[KEYS.MOUSENY] = {state:STATES.ROTX,    on:false}; // mouse move -Y
-	this.states[KEYS.MOUSEY] =  {state:STATES.ROTNX,   on:false}; // mouse move +Y
+	this.states[this.KEYS.MOUSENX] = {state:this.STATES.ROTY,    on:false}; // mouse move -X
+	this.states[this.KEYS.MOUSEX] =  {state:this.STATES.ROTNY,   on:false}; // mouse move +X
+	this.states[this.KEYS.MOUSENY] = {state:this.STATES.ROTX,    on:false}; // mouse move -Y
+	this.states[this.KEYS.MOUSEY] =  {state:this.STATES.ROTNX,   on:false}; // mouse move +Y
 	
 	this.factor = 1.0;
 	this.moveFactor = 4000;
@@ -89,10 +90,10 @@ var BasicControls = function ( object, domElement ) {
 			_this._mouseY = curMouseY;        
 		}
         
-        if (_this.states[KEYS.MOUSENX]) _this.states[KEYS.MOUSENX].on = _this._mouseDeltaX < 0;
-        if (_this.states[KEYS.MOUSEX])  _this.states[KEYS.MOUSEX].on  = _this._mouseDeltaX > 0;
-        if (_this.states[KEYS.MOUSENY]) _this.states[KEYS.MOUSENY].on = _this._mouseDeltaY < 0;
-        if (_this.states[KEYS.MOUSEY])  _this.states[KEYS.MOUSEY].on  = _this._mouseDeltaY > 0;
+        if (_this.states[_this.KEYS.MOUSENX]) _this.states[_this.KEYS.MOUSENX].on = _this._mouseDeltaX < 0;
+        if (_this.states[_this.KEYS.MOUSEX])  _this.states[_this.KEYS.MOUSEX].on  = _this._mouseDeltaX > 0;
+        if (_this.states[_this.KEYS.MOUSENY]) _this.states[_this.KEYS.MOUSENY].on = _this._mouseDeltaY < 0;
+        if (_this.states[_this.KEYS.MOUSEY])  _this.states[_this.KEYS.MOUSEY].on  = _this._mouseDeltaY > 0;
 	}
 		
 	function mousedown( event ) {
@@ -124,56 +125,56 @@ var BasicControls = function ( object, domElement ) {
 			if (!ostate.on) continue;
 			
 			switch(ostate.state) {
-				case STATES.FASTER:
+				case _this.STATES.FASTER:
 					moveScale *= 3;
 					rotScale *= 3;
 					rotMouseScale *= 3;
 					break;
-				case STATES.SLOWER:
+				case _this.STATES.SLOWER:
 					moveScale /= 3;
 					rotScale /= 3;
 					rotMouseScale /= 3;
 					break;
-				case STATES.FORWARD:
+				case _this.STATES.FORWARD:
 					translate.z = -moveScale;
 					break;
-				case STATES.BACKWARD:
+				case _this.STATES.BACKWARD:
 					translate.z = moveScale;
 					break;
-				case STATES.LEFT:
+				case _this.STATES.LEFT:
 					translate.x = -moveScale;
 					break;
-				case STATES.RIGHT:
+				case _this.STATES.RIGHT:
 					translate.x = moveScale;
 					break;
-				case STATES.UP:
+				case _this.STATES.UP:
 					translate.y = moveScale;
 					break;
-				case STATES.DOWN:
+				case _this.STATES.DOWN:
 					translate.y = -moveScale;
 					break;
-				case STATES.ROTY:
+				case _this.STATES.ROTY:
 					if (isMouse) {
 						rotY -= _this._mouseDeltaX * rotMouseScale;
 					} else {
 						rotY += rotScale;
 					}
 					break;
-				case STATES.ROTNY:
+				case _this.STATES.ROTNY:
 					if (isMouse) {
 						rotY -= _this._mouseDeltaX * rotMouseScale;
 					} else {
 						rotY -= rotScale;
 					}
 					break;
-				case STATES.ROTX:
+				case _this.STATES.ROTX:
 					if (isMouse) {
 						rotX -= _this._mouseDeltaY * rotMouseScale;
 					} else {
 						rotX += rotScale;
 					}
 					break;
-				case STATES.ROTNX:
+				case _this.STATES.ROTNX:
 					if (isMouse) {
 						rotX -= _this._mouseDeltaY * rotMouseScale;
 					} else {
@@ -184,10 +185,10 @@ var BasicControls = function ( object, domElement ) {
 		}
 
 		_this._mouseDeltaX = _this._mouseDeltaY = 0;
-        if (_this.states[KEYS.MOUSENX]) _this.states[KEYS.MOUSENX].on = false;
-        if (_this.states[KEYS.MOUSEX])  _this.states[KEYS.MOUSEX].on  = false;
-        if (_this.states[KEYS.MOUSENY]) _this.states[KEYS.MOUSENY].on = false;
-        if (_this.states[KEYS.MOUSEY])  _this.states[KEYS.MOUSEY].on  = false;
+        if (_this.states[_this.KEYS.MOUSENX]) _this.states[_this.KEYS.MOUSENX].on = false;
+        if (_this.states[_this.KEYS.MOUSEX])  _this.states[_this.KEYS.MOUSEX].on  = false;
+        if (_this.states[_this.KEYS.MOUSENY]) _this.states[_this.KEYS.MOUSENY].on = false;
+        if (_this.states[_this.KEYS.MOUSEY])  _this.states[_this.KEYS.MOUSEY].on  = false;
 		
 		var q = new THREE.Quaternion();
 		q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(rotY) );

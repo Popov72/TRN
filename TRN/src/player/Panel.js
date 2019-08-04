@@ -42,8 +42,8 @@ TRN.Panel.prototype = {
 
 		this.elem.find('#currentroom').html(sceneJSON.curRoom);
 		this.elem.find('#numlights').html(sceneJSON.curRoom != -1 ? sceneJSON.objects['room'+sceneJSON.curRoom].lights.length : '');
-		this.elem.find('#camerapos').html(camera.position.x.toFixed(12)+','+camera.position.y.toFixed(12)+','+camera.position.z.toFixed(12));
-		this.elem.find('#camerarot').html(camera.quaternion.x.toFixed(12)+','+camera.quaternion.y.toFixed(12)+','+camera.quaternion.z.toFixed(12)+','+camera.quaternion.w.toFixed(12));
+		this.elem.find('#camerapos').html(camera.position.x.toFixed(5)+','+camera.position.y.toFixed(5)+','+camera.position.z.toFixed(5));
+		this.elem.find('#camerarot').html(camera.quaternion.x.toFixed(5)+','+camera.quaternion.y.toFixed(5)+','+camera.quaternion.z.toFixed(5)+','+camera.quaternion.w.toFixed(5));
 		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces + ' / ' + numObj);
 		this.elem.find('#memoryinfo').html(renderer.info.memory.geometries + ' / ' + renderer.info.memory.programs + ' / ' + renderer.info.memory.textures);
 	},
@@ -143,6 +143,21 @@ TRN.Panel.prototype = {
 					document.exitFullscreen();
 			} else if (document.body.requestFullscreen) {
 				document.body.requestFullscreen();
+			}
+		});
+
+		this.elem.find('#useqwerty').on('click', function() {
+			var bc = this_.parent.controls;
+			if (this.checked) {
+				bc.states[87] = {state:bc.STATES.FORWARD, on:false}; // W
+				bc.states[65] = {state:bc.STATES.LEFT,    on:false}; // A
+				delete bc.states[90]; // Z
+				delete bc.states[81]; // Q
+			} else {
+				bc.states[90] = {state:bc.STATES.FORWARD, on:false}; // W
+				bc.states[81] = {state:bc.STATES.LEFT,    on:false}; // A
+				delete bc.states[87]; // W
+				delete bc.states[65]; // A
 			}
 		});
 
