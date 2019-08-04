@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+	<script src="include/jquery-1.9.1.min.js"></script>
+
+	<script src="TRN/src/TRN.js"></script>
+	<script src="TRN/src/util/Browser.js"></script>
+	<script src="TRN/src/player/ConfigMgr.js"></script>
+
+	<style>
+		body {
+			margin: 0;
+			background-color: #8AB7FF;
+		}
+
+		#logo {
+			display: block;
+			text-align: center;
+		}
+
+		#logo img {
+			width: 320px;
+		}
+
+		#container {
+			text-align: center;
+		}
+
+		#levels {
+			margin-top: 30px;
+			text-align: center;
+		}
+
+		.thumbnail {
+			display: inline-block;
+			position: relative;
+			margin-right: 30px;
+			margin-bottom: 30px;
+		}
+
+		.hvr-pulse {
+			display: block;
+		}
+
+		.hvr-pulse:hover {
+			animation: pulse 2s infinite;
+			animation-name: hvr-pulse;
+			animation-timing-function: linear;
+			cursor: pointer;
+		}
+
+		@keyframes hvr-pulse {
+		  0% {
+		    transform: scale(1);
+		  }
+		  25% {
+		    transform: scale(1.08);
+		  }
+		  50% {
+		    transform: scale(1.0);
+		  }
+		  75% {
+		    transform: scale(0.9);
+		  }
+		  100% {
+		    transform: scale(1);
+		  }
+		}
+
+		.cutscene {
+			width: 26px;
+			display: inline;
+			position: absolute;
+			right: 2px;
+			bottom: 0px;
+		}
+
+		.gametitle .text {
+			display: inline-block;
+			margin-top: 8px;
+			text-shadow: -1px -1px 0px rgba(255,255,255,0.2), 1px 1px 0px rgba(0,0,0,1);
+			color: white;
+		}
+	</style>
+</head>
+<body>
+
+<div id="container">
+	<span id="logo"><img src="resources/logo.png"/></span>
+	<select id="trgame">
+		<option value="TR1">Tomb Raider 1</option>
+		<option value="TR2">Tomb Raider 2</option>
+		<option value="TR3">Tomb Raider 3</option>
+	</select>
+	<div id="levels"></div>
+</div>
+
+<script>
+	var game = 'TR1';
+
+	function showLevels() {
+		var confMgr = new TRN.ConfigMgr(game);
+		var levels = jQuery(confMgr.root).find('game[id="' + game + '"] > levels > level');
+		var js = [];
+		for (var l = 0; l < levels.length; ++l) {
+			var level = levels[l], id = level.attributes['id'].nodeValue, tp = level.attributes['type'].nodeValue, name = level.attributes['name'].nodeValue, img = '';
+			if (tp == 'cutscene') {
+				img = '<img class="cutscene" src="resources/movie.png"/>';
+			}
+			js.push(
+				'<span class="thumbnail" level="' + id + '">' +
+				'<span class="timage"><img class="hvr-pulse" src="resources/' + game + '/' + id + '.png"/></span>' +
+				'<span class="gametitle">' + img + '<span class="text">' + name + '</span></span>' +
+				'</span>'
+			);
+		}
+		jQuery('#levels').html(js.join(''));
+	}
+
+	jQuery(window).on('load', function() {
+		var qgame = TRN.Browser.QueryString.trgame;
+		
+		if (qgame) {
+			jQuery('#trgame').val(qgame);
+			game = qgame;
+		}
+
+		jQuery('#trgame').on('change', function(event) {
+			game = this.options[this.selectedIndex].value;
+			showLevels();
+		});
+
+		jQuery('#levels').on('click', function(event) {
+			var ot = jQuery(event.target).closest('.thumbnail');
+			if (ot.length > 0) {
+				var level = ot.attr('level');
+				document.location.href = 'TRN.html?trgame=' + game + '&level=' + game.toLowerCase() + '/' + level + '&autostart=1';
+			}
+		});
+
+		showLevels();
+	});
+</script>
+
+</body>
+</html>
