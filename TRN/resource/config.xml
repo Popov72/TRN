@@ -93,7 +93,7 @@
 			</level>
 			<level id="level10b"	type="normal"	name="Atlantis"/>
 			<level id="level10c"	type="normal"	name="The Great Pyramid"/>
-			<level id="title"		type="normal"	name="Title display"/>
+			<!--level id="title"		type="normal"	name="Title display"/-->
 			<level id="cut1"		type="cutscene" name="Larson vs. Lara">
 				<lara>
 					<id>77</id>
@@ -319,7 +319,7 @@
 			<level id="floating"	type="normal"	name="Floating Islands"/>
 			<level id="xian"		type="normal"	name="Dragon's Lair"/>
 			<level id="house"		type="normal"	name="Home Sweet Home"/>
-			<level id="title"		type="normal"	name="Title display"/>
+			<!--level id="title"		type="normal"	name="Title display"/-->
 			<level id="cut1"		type="cutscene"	name="At the Fancy Door">
 				<moveables>
 					<moveable id="253">
@@ -472,7 +472,7 @@
 					<startanim>70</startanim>
 				</behaviour>
 			</level>
-			<level id="title"		type="normal"	name="Title display"/>
+			<!--level id="title"		type="normal"	name="Title display"/-->
 			<level id="cut1"		type="cutscene"	name="Lara Meets Amputated Mercenary"/>
 			<level id="cut2"		type="cutscene"	name="Saved by the Bell">
 				<moveables>
@@ -781,7 +781,7 @@
 			<level id="semer2"		type="normal"	name="Guardian Of Semerket"/>
 			<level id="settomb1"		type="normal"	name="The Tomb Of Seth"/>
 			<level id="settomb2"		type="normal"	name="Burial Chambers"/>
-			<level id="title"		type="normal"	name=""/>
+			<!--level id="title"		type="normal"	name=""/-->
 			<level id="train"		type="normal"	name="Desert Railroad"/>
 			<level id="title2"		type="normal"	name="">
 				<sky>
