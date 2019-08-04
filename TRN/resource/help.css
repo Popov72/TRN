@@ -1,0 +1,19 @@
+.help {
+	position: absolute;
+	top: 150px;
+	left: 200px;
+	background-color: #00FF00;
+	opacity: 0.75;
+	z-index: 200;
+	display: none;
+	font-size: 25px;
+}
+
+.helphdr {
+	font-weight: bold;
+	width: 300px;
+}
+
+.helpvalue {
+	width: 400px;
+}
