@@ -23,7 +23,8 @@ Levels used in the web site linked above have been converted to a JSON format (u
 - not too much, maybe TR4 support...
 
 ## Screenshots
-Click on the picture to view the corresponding level.
+Click on the picture to view the corresponding level.<br>
+Note: you won't have sound in the cutscenes when clicking on the screenshots below. Use the [above link](http://www.evpopov.com) to play cutscenes with sound.
 
 <a href="http://www.evpopov.com/TRN.html?trgame=TR1&level=tr1/level2&autostart=1"><img title="City of Vilcabamba" src="resources/TR1_big/level2.jpg"/></a>
 
