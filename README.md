@@ -25,20 +25,20 @@ Levels used in the web site linked above have been converted to a JSON format (u
 ## Screenshots
 Click on the picture to view the corresponding level.
 
-[![City of Vilcabamba](resources/TR1/level2.png)](http://www.evpopov.com/TRN.html?level=tr1/level2&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR1&level=tr1/level2&autostart=1"><img title="City of Vilcabamba" src="resources/TR1_big/level2.jpg"/></a>
 
-[![Atlantis](resources/TR1/level10b.png)](http://www.evpopov.com/TRN.html?level=tr1/level10b&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR1&level=tr1/level10b&autostart=1"><img title="Atlantis" src="resources/TR1_big/level10b.jpg"/></a>
 
-[![Lara vs. Natla](resources/TR1/cut4.png)](http://www.evpopov.com/TRN.html?level=tr1/cut4&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR1&level=tr1/cut4&autostart=1"><img title="Lara vs. Natla" src="resources/TR1_big/cut4.jpg"/></a>
 
-[![Venice](resources/TR2/boat.png)](http://www.evpopov.com/TRN.html?level=tr2/boat&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR2&level=tr2/boat&autostart=1"><img title="Venice" src="resources/TR1_big/boat.jpg"/></a>
 
-[![Dragon's Lair](resources/TR2/xian.png)](http://www.evpopov.com/TRN.html?level=tr2/xian&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR2&level=tr2/xian&autostart=1"><img title="Dragon's Lair" src="resources/TR1_big/xian.jpg"/></a>
 
-[!["Bartoli vs. Monk](resources/TR2/cut3.png)](http://www.evpopov.com/TRN.html?level=tr2/cut3&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR2&level=tr2/cut3&autostart=1"><img title="Bartoli vs. Monk" src="resources/TR1_big/cut3.jpg"/></a>
 
-[![Nevada Desert](resources/TR3/nevada.png)](http://www.evpopov.com/TRN.html?level=tr3/nevada&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR3&level=tr3/nevada&autostart=1"><img title="Nevada Desert" src="resources/TR1_big/nevada.jpg"/></a>
 
-[![Lost City of Tinnos](resources/TR3/city.png)](http://www.evpopov.com/TRN.html?level=tr3/city&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR3&level=tr3/city&autostart=1"><img title="Lost City of Tinnos" src="resources/TR1_big/city.jpg"/></a>
 
-[![Saved by the Bell](resources/TR3/cut2.png)](http://www.evpopov.com/TRN.html?level=tr3/cut2&autostart=1)
+<a href="http://www.evpopov.com/TRN.html?trgame=TR3&level=tr3/cut2&autostart=1"><img title="Saved by the Bell" src="resources/TR1_big/cut2.jpg"/></a>
