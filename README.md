@@ -23,20 +23,22 @@ Levels used in the web site linked above have been converted to a JSON format (u
 - not too much, maybe TR4 support...
 
 ## Screenshots
+Click on the picture to view the corresponding level.
+
 [![City of Vilcabamba](resources/TR1/level2.png)](http://www.evpopov.com/TRN.html?level=tr1/level2&autostart=1)
 
-![Atlantis](resources/TR1/level10b.png)
+[![Atlantis](resources/TR1/level10b.png)](http://www.evpopov.com/TRN.html?level=tr1/level10b&autostart=1)
 
-![Lara vs. Natla](resources/TR1/cut4.png)
+[![Lara vs. Natla](resources/TR1/cut4.png)](http://www.evpopov.com/TRN.html?level=tr1/cut4&autostart=1)
 
-![Venice](resources/TR2/boat.png)
+[![Venice](resources/TR2/boat.png)](http://www.evpopov.com/TRN.html?level=tr2/boat&autostart=1)
 
-![Dragon's Lair](resources/TR2/xian.png)
+[![Dragon's Lair](resources/TR2/xian.png)](http://www.evpopov.com/TRN.html?level=tr2/xian&autostart=1)
 
-!["Bartoli vs. Monk](resources/TR2/cut3.png)
+[!["Bartoli vs. Monk](resources/TR2/cut3.png)](http://www.evpopov.com/TRN.html?level=tr2/cut3&autostart=1)
 
-![Nevada Desert](resources/TR3/nevada.png)
+[![Nevada Desert](resources/TR3/nevada.png)](http://www.evpopov.com/TRN.html?level=tr3/nevada&autostart=1)
 
-![Lost City of Tinnos](resources/TR3/city.png)
+[![Lost City of Tinnos](resources/TR3/city.png)](http://www.evpopov.com/TRN.html?level=tr3/city&autostart=1)
 
-![Saved by the Bell](resources/TR3/cut2.png)
+[![Saved by the Bell](resources/TR3/cut2.png)](http://www.evpopov.com/TRN.html?level=tr3/cut2&autostart=1)
