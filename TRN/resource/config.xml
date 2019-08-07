@@ -511,6 +511,8 @@
 		<global>
 			<sky>
 				<color><r>255</r><g>255</g><b>255</b></color>
+				<objectid>459</objectid>
+				<noanim>true</noanim>
 			</sky>
 			<water>
 				<colorin><r>255</r><g>255</g><b>255</b></colorin>
@@ -542,7 +544,7 @@
 					<behaviour name="Pick"/>
 					<behaviour name="Lara">
 						<dirdist>1430</dirdist>
-						<updist>-600</updist>
+						<updist>800</updist>
 						<lara>
 							<animid>0</animid>
 							<height>750</height>

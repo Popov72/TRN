@@ -1258,6 +1258,11 @@ TRN.LevelConverter.prototype = {
 			"quaternion": [ q.x, q.y, q.z, q.w ]
 		}
 
+		// remove the bit #15 on tile attribute (which indicates that this objectTextures is used for a tri-face: we don't need this information)
+		for (var i = 0; i < this.trlevel.objectTextures.length; ++i) {
+			this.trlevel.objectTextures[i].tile &= 0x7FFF;
+		}
+
 		this.createTextures();
 
 		this.createAnimatedTextures();

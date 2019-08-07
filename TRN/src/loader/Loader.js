@@ -200,7 +200,7 @@ TRN.Loader = {
 			out.textile32 = out.textile32.concat(out.textile32misc);
 			delete out.textile32misc;
 		}
-		
+
 		var numTotTextiles = 0;
 		if (out.textile8 && !out.textile16) numTotTextiles += out.textile8.length;
 		if (out.textile16) numTotTextiles += out.textile16.length;
@@ -373,8 +373,9 @@ TRN.Loader = {
 
 			for (var i = 0; i < out.objectTextures.length; ++i) {
 				var objText = out.objectTextures[i];
+				var tile = objText.tile & 0x7FFF;
 
-				var row = Math.floor(objText.tile / out.atlas.numColPerRow), col = objText.tile - row * out.atlas.numColPerRow;
+				var row = Math.floor(tile / out.atlas.numColPerRow), col = tile - row * out.atlas.numColPerRow;
 
 				objText.tile = 0;
 
@@ -384,7 +385,6 @@ TRN.Loader = {
 					vert.Xpixel = parseInt(vert.Xpixel) + col * 256;
 					vert.Ypixel = parseInt(vert.Ypixel) + row * 256;
 				}
-
 			}
 		}
 
