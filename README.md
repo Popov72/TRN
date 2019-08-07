@@ -23,11 +23,24 @@ Levels used in the web site linked above have been converted to a JSON format (u
 You can install the project locally (on your own computer) by doing these steps:
 * Click on the **Clone or download** button in this page (see above) and download a zip archive of the project
 * Uncompress this zip file on your computer (say in *c:\Projects\TRN*)
-* Install Python on your computer if you not already has it. To check if you already have Python installed:
+* Install Python on your computer if you not already have it. To check if you already have Python installed:
   * Start a command line (type **cmd** in the search input of Windows and hit ENTER)
-  * type **python** then ENTER: if you get an error message, you don't have Python installed. To install it:
+  * Type **python** then ENTER: if you get an error message, you don't have Python installed. To install it:
     * Download the package from the [Python web site](https://www.python.org/downloads/)
-    * Launch the installation. Important: check the **Add Python 3.7 to PATH** checkbox that you can see at the bottom of the first screen! If you don't do it, you will have to put the Python path to the global PATH variable yourself
+    * Launch the installation.
+    * **__Important__**: check the **Add Python 3.7 to PATH** checkbox that you can see at the bottom of the first screen! If you don't do it, you will have to put the Python path to the global **PATH** variable yourself
+* Start Python has a simple HTTP server:
+  * Start a command line (type **cmd** in the search input of Windows and hit ENTER)
+  * Go to the directory where you installed TRN (for eg: **cd c:\Projects\TRN** + ENTER)
+  * If your version of Python is 3.x or more, type:
+    * **python -m http.server** + ENTER
+  * else type:
+    * **python -m SimpleHTTPServer** + ENTER
+* In your browser, browse the url http://localhost:8000
+
+Note that you can use any web server for this matter. I described how to use Python to do that, but if you have another web server already installed on your computer, go for it.
+
+You can also use PHP in much the same way than Python to start a simple HTTP server: install PHP on your computer (if not already installed), then use the command **PHP -S localhost:8000** from the TRN directory to start a simple web server.
 
 ## Roadmap
 - not too much, maybe TR4 support...
