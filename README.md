@@ -19,6 +19,16 @@ You can browse local levels on your hard drive by browsing the **TRN.html** page
 
 Levels used in the web site linked above have been converted to a JSON format (used by threeJS) thanks to the **TRN.html** page (set the *makeJSON* variable to *true* in this page and browse it if you want to convert some TR levels to JSON format for your own use).
 
+## Install
+You can install the project locally (on your own computer) by doing these steps:
+* Click on the **Clone or download** button in this page (see above) and download a zip archive of the project
+* Uncompress this zip file on your computer (say in *c:\Projects\TRN*)
+* Install Python on your computer if you not already has it. To check if you already have Python installed:
+  * Start a command line (type **cmd** in the search input of Windows and hit ENTER)
+  * type **python** then ENTER: if you get an error message, you don't have Python installed. To install it:
+    * Download the package from the [Python web site](https://www.python.org/downloads/)
+    * Launch the installation. Important: check the **Add Python 3.7 to PATH** checkbox that you can see at the bottom of the first screen! If you don't do it, you will have to put the Python path to the global PATH variable yourself
+
 ## Roadmap
 - not too much, maybe TR4 support...
 
