@@ -31,6 +31,7 @@ TRN.Helper = {
 	},
 
 	flattenArray : function (a) {
+		if (!a) return;
 		var res = [];
 		for (var i = 0; i < a.length; ++i) {
 			res.push(a[i]);
@@ -40,6 +41,7 @@ TRN.Helper = {
 
 	flatten : function (obj, fpath) {
 		function flatten_sub(o, parts, p) {
+			if (!o) return;
 			for (; p < parts.length-1; ++p) {
 				o = o[parts[p]];
 				if (jQuery.isArray(o)) {
@@ -49,6 +51,7 @@ TRN.Helper = {
 					return;
 				}
 			}
+			if (!o) return;
 			if (jQuery.isArray(o[parts[p]])) {
 				for (var i = 0; i < o[parts[p]].length; ++i) {
 					o[parts[p]][i] = TRN.Helper.flattenArray(o[parts[p]][i]);

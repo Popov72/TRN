@@ -100,6 +100,26 @@ TRN.Loader = {
 	    return newTile;
 	},
 
+	unzip : function(ds, struct, dlength) {
+		// unzip chunk of data
+		//console.log(ds, struct, dlength);
+		var arr = new Uint8Array(dlength);
+		DataStream.memcpy(arr.buffer, 0, ds.buffer, ds.byteOffset+ds.position, dlength);
+		var unzipped = pako.inflate(arr);
+
+		// recreate a buffer and replace the compressed data with the uncompressed one
+		var buf = new Uint8Array(ds.byteLength + unzipped.length - dlength), ofst = 0;
+		var src = new Uint8Array(ds.buffer, 0, ds.byteOffset + ds.position);
+		buf.set(src, ofst);
+		ofst += src.length;
+		buf.set(unzipped, ofst);
+		ofst += unzipped.length;
+		src = new Uint8Array(ds.buffer, ds.byteOffset + ds.position + dlength);
+		buf.set(src, ofst);
+		ds.buffer = buf.buffer.slice(buf.byteOffset, buf.byteLength + buf.byteOffset);
+		buf = src = unzipped = arr = null;
+	},
+
 	loadLevel : function(data, fname) {
 		var ds = new DataStream(data);
 		ds.endianness = DataStream.LITTLE_ENDIAN;
@@ -125,32 +145,44 @@ TRN.Loader = {
 			rversionLoader = 'TR1TUB';
 		}
 
-		var out = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part1);
+		try {
+			var out = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part1);
 
-		var savepos = ds.position;
-		ds.position += out.numMeshData*2;
+			//console.log('first part ok', out);
 
-		out.numMeshPointers = ds.readUint32();
-		out.meshPointers = ds.readUint32Array(out.numMeshPointers);
-		out.meshes = [];
+			var savepos = ds.position;
+			ds.position += out.numMeshData*2;
 
-		var savepos2 = ds.position;
-		for (var m = 0; m < out.numMeshPointers; ++m) {
-			ds.position = savepos + out.meshPointers[m];
+			out.numMeshPointers = ds.readUint32();
+			out.meshPointers = ds.readUint32Array(out.numMeshPointers);
+			out.meshes = [];
 
-			var mesh = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part2);
+			var savepos2 = ds.position;
+			for (var m = 0; m < out.numMeshPointers; ++m) {
+				ds.position = savepos + out.meshPointers[m];
+
+				var mesh = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part2);
+				
+				out.meshes[m] = mesh;
+				out.meshes[m].dummy = out.meshPointers[m] == 0;
+				//if (out.meshPointers[m] == 0) console.log(mesh)
+			}
 			
-			out.meshes[m] = mesh;
-			out.meshes[m].dummy = out.meshPointers[m] == 0;
-			//if (out.meshPointers[m] == 0) console.log(mesh)
-		}
-		
-		ds.position = savepos2;
-		
-		var nextPart = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part3);
-		
-		for (var attr in nextPart) {
-			out[attr] = nextPart[attr]
+			ds.position = savepos2;
+
+			//console.log('second part ok', out);
+			
+			var nextPart = ds.readStruct(TRN.gameFormatDescr[rversionLoader].part3);
+			
+			//console.log('third part ok', out);
+
+			for (var attr in nextPart) {
+				out[attr] = nextPart[attr]
+			}
+		} catch (e) {
+			console.log('An error occurred while parsing the level! ds.failurePosition=', ds.failurePosition);
+			console.log(ds);
+			throw e;
 		}
 
 		// -------------------
@@ -164,9 +196,15 @@ TRN.Loader = {
 
 		out.confMgr = new TRN.ConfigMgr(out.rversion);
 
+		if (out.textile32misc != undefined) {
+			out.textile32 = out.textile32.concat(out.textile32misc);
+			delete out.textile32misc;
+		}
+		
 		var numTotTextiles = 0;
 		if (out.textile8 && !out.textile16) numTotTextiles += out.textile8.length;
 		if (out.textile16) numTotTextiles += out.textile16.length;
+		if (out.textile32) numTotTextiles += out.textile32.length;
 
 		out.atlas = {
 			width : 256,
@@ -190,6 +228,7 @@ TRN.Loader = {
 			out.atlas.imageData = context.createImageData(canvas[0].width, canvas[0].height);
 		}
 
+		// Handle 8-bit textures
 		var numTextiles = 0;
 		if (out.textile8 && !out.textile16) {
 			for (var t = 0; t < out.textile8.length; ++t, ++numTextiles) {
@@ -231,8 +270,10 @@ TRN.Loader = {
 			}
 		}
 
+		// Handle 16-bit textures
 		if (!out.textile16) out.textile16 = [];
-		out.textile16.push(TRN.Loader.replaceColouredPolys(out, numTotTextiles));
+		var newtile = TRN.Loader.replaceColouredPolys(out, numTotTextiles);
+		if (newtile != undefined) out.textile16.push(newtile);
 
 		for (var t = 0; t < out.textile16.length; ++t, ++numTextiles) {
 			jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
@@ -245,6 +286,47 @@ TRN.Loader = {
 					var a = pix & 0x8000, r = ((pix & 0x7c00) >> 10) << 3, g = ((pix & 0x03e0) >> 5) << 3, b = (pix & 0x001f) << 3;
 					if (a) a = 0xFF;
 					imageData.data[j*256*4+i*4+0]=r;
+					imageData.data[j*256*4+i*4+1]=g;
+					imageData.data[j*256*4+i*4+2]=b;
+					imageData.data[j*256*4+i*4+3]=a;
+					if (out.atlas.make) {
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+0]=r;
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+1]=g;
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+2]=b;
+						out.atlas.imageData.data[(j+out.atlas.curRow*256)*4*out.atlas.width+(i+out.atlas.curCol*256)*4+3]=a;
+					}
+				}
+			}
+			context.putImageData(imageData, 0, 0);
+			out.textile[numTextiles] = canvas[0].toDataURL('image/png');
+			canvas.remove();
+			if (showTiles) {
+				jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
+					'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
+					'"/><span style="position:relative;left:-140px;top:-140px;background-color:white">' + numTextiles + '</span></span>');
+			}
+			if (out.atlas.make) {
+				out.atlas.curCol++;
+				if (out.atlas.curCol == out.atlas.numColPerRow) {
+					out.atlas.curCol = 0;
+					out.atlas.curRow++;
+				}
+			}
+		}
+
+		// Handle 32-bit textures
+		if (!out.textile32) out.textile32 = [];
+
+		for (var t = 0; t < out.textile32.length; ++t, ++numTextiles) {
+			jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
+			var canvas = jQuery('#TRN_textile' + numTextiles);
+			var context = canvas[0].getContext('2d');
+			var imageData = context.createImageData(canvas[0].width, canvas[0].height);
+			for (var j = 0; j < 256; ++j) {
+				for (var i = 0; i < 256; ++i) {
+					var pix = out.textile32[t][j*256+i];
+					var a = ((pix & 0xff000000) >> 24) & 0xFF, r = (pix & 0x00ff0000) >> 16, g = (pix & 0x0000ff00) >> 8, b = (pix & 0x000000ff);
+					imageData.data[j*256*4+i*4]=r;
 					imageData.data[j*256*4+i*4+1]=g;
 					imageData.data[j*256*4+i*4+2]=b;
 					imageData.data[j*256*4+i*4+3]=a;
@@ -309,6 +391,7 @@ TRN.Loader = {
 		delete out.palette;
 		delete out.textile8;
 		delete out.textile16;
+		delete out.textile32;
 
 		TRN.Helper.flatten(out, 'rooms.roomData.rectangles.vertices');
 		TRN.Helper.flatten(out, 'rooms.roomData.triangles.vertices');
@@ -320,10 +403,12 @@ TRN.Loader = {
 		TRN.Helper.flatten(out, 'meshes.colouredRectangles.vertices');
 		TRN.Helper.flatten(out, 'meshes.colouredTriangles.vertices');
 		TRN.Helper.flatten(out, 'frames');
+		TRN.Helper.flatten(out, 'spr');
 		TRN.Helper.flatten(out, 'overlaps');
 		TRN.Helper.flatten(out, 'zones');
 		TRN.Helper.flatten(out, 'animatedTextures');
 		TRN.Helper.flatten(out, 'lightmap');
+		TRN.Helper.flatten(out, 'tex');
 		TRN.Helper.flatten(out, 'demoData');
 		TRN.Helper.flatten(out, 'soundMap');
 		TRN.Helper.flatten(out, 'sampleIndices');
