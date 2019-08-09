@@ -70,5 +70,12 @@ TRN.Helper = {
 			if (o.hasOwnProperty(a)) num++;
 		}
 		return num;
+	},
+
+	lerp : function(a, b, t) {
+    	if (t <= 0.0) return a;
+    	if (t >= 1.0) return b;
+    	return a + (b - a) * t;
 	}
+
 }
