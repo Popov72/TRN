@@ -1,3 +1,8 @@
+/*
+	Read the raw level files (meaning the .phd / .tub / .tr2 / ... files)
+	The result is a JSON tree with all data read
+*/
+
 TRN.gameFormatDescr = {};
 
 TRN.Loader = {
@@ -120,7 +125,7 @@ TRN.Loader = {
 		buf = src = unzipped = arr = null;
 	},
 
-	loadLevel : function(data, fname) {
+	loadRawLevel : function(data, fname) {
 		var ds = new DataStream(data);
 		ds.endianness = DataStream.LITTLE_ENDIAN;
 

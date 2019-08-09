@@ -1,4 +1,4 @@
-THREE.Ponytail = function(lara, scene, world) {
+TRN.Ponytail = function(lara, scene, world) {
 
 	this.m4 = new THREE.Matrix4();
 
@@ -12,9 +12,9 @@ THREE.Ponytail = function(lara, scene, world) {
 	
 }
 
-THREE.Ponytail.prototype = {
+TRN.Ponytail.prototype = {
 
-	constructor : THREE.Ponytail,
+	constructor : TRN.Ponytail,
 
 	init : function() {
 

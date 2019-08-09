@@ -1,4 +1,7 @@
-TRN.LevelConverter = function(confMgr) {
+/*
+	Convert the JSON object created by the raw level loader to a ThreeJS JSON scene
+*/
+TRN.SceneConverter = function(confMgr) {
 
 	this.confMgr = confMgr;
 	this.shaderMgr = new TRN.ShaderMgr();
@@ -6,9 +9,9 @@ TRN.LevelConverter = function(confMgr) {
 	return this;
 };
 
-TRN.LevelConverter.prototype = {
+TRN.SceneConverter.prototype = {
 
-	constructor : TRN.LevelConverter,
+	constructor : TRN.SceneConverter,
 
 	getMaterial : function (objType, numLights) {
 		var matName = '';
@@ -694,7 +697,7 @@ TRN.LevelConverter.prototype = {
 			var moveable = this.trlevel.moveables[m];
 
 			var numMeshes = moveable.numMeshes, meshIndex = moveable.startingMesh, meshTree = moveable.meshTree;
-			var isDummy = numMeshes == 1 && this.trlevel.meshes[meshIndex].dummy && !moveable.objectID == TRN.ObjectID.Lara;
+			var isDummy = numMeshes == 1 && this.trlevel.meshes[meshIndex].dummy && !moveable.objectID == this.laraObjectID;
 
 			if (this.sc.geometries['moveable' + moveable.objectID] || isDummy) continue;
 
@@ -988,7 +991,7 @@ TRN.LevelConverter.prototype = {
 				numSpriteSeqInstances++;
 			} else {
 				var mvb = this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.moveables[m]);
-				if (item.objectID == TRN.ObjectID.Lara) {
+				if (item.objectID == this.laraObjectID) {
 					laraMoveable = mvb;
 				}
 				numMoveableInstances++;
@@ -1031,80 +1034,82 @@ TRN.LevelConverter.prototype = {
 			}
 
 			// create the 'ponytail' moveable
-			var ponytailId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
-			if (ponytailId != -1) {
-				var mindex = movObjID2Index[ponytailId];
+			if (false) {
+				var ponytailId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
+				if (ponytailId != -1) {
+					var mindex = movObjID2Index[ponytailId];
 
-				if (typeof(mindex) != "undefined") {
+					if (typeof(mindex) != "undefined") {
 
-					this.createMoveableAsMultiMeshes(mindex, laraRoomIndex, { x:-2, y:15, z:55 });
+						this.createMoveableAsMultiMeshes(mindex, laraRoomIndex, { x:-2, y:15, z:55 });
 
-					/*var q1 = new THREE.Quaternion();
-					var q1b = new THREE.Quaternion();
+						/*var q1 = new THREE.Quaternion();
+						var q1b = new THREE.Quaternion();
 
-					q1.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(180) );
-					q1b.setFromAxisAngle( {x:1,y:0,z:0}, THREE.Math.degToRad(-90) );
-					q1.multiply(q1b);
+						q1.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(180) );
+						q1b.setFromAxisAngle( {x:1,y:0,z:0}, THREE.Math.degToRad(-90) );
+						q1.multiply(q1b);
 
-					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:0 }, this.trlevel.moveables[mindex], 'ponytail', true);
+						var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:0 }, this.trlevel.moveables[mindex], 'ponytail', true);
 
-					mobj.dummy = true;
-					console.log(mobj, this.sc.embeds['moveable2'])
+						mobj.dummy = true;
+						console.log(mobj, this.sc.embeds['moveable2'])
 
-					var animKeys = [
-						{
-							"time": 		0, 
-							"boundingBox": 	{ xmin:0, ymin:0, zmin:0, xmax:500, ymax:500, zmax:500 },
-							"data":  		[
-								{
-									"position": 	{ x:-2, y:15, z:55 },
-									"quaternion_":	{ x:q1.x, y:q1.y, z:q1.z, w:q1.w },
-									"quaternion":	{ x:0, y:0, z:0, w:0 }
-								},
-								{
-									"position": 	{ x:0, y:0, z:0 },
-									"quaternion":	{ x:0, y:0, z:0, w:1 }
-								},
-								{
-									"position": 	{ x:0, y:0, z:0 },
-									"quaternion":	{ x:0, y:0, z:0, w:1 }
-								},
-								{
-									"position": 	{ x:0, y:0, z:0 },
-									"quaternion":	{ x:0, y:0, z:0, w:1 }
-								},
-								{
-									"position": 	{ x:0, y:0, z:0 },
-									"quaternion":	{ x:0, y:0, z:0, w:1 }
-								},
-								{
-									"position": 	{ x:0, y:0, z:0 },
-									"quaternion":	{ x:0, y:0, z:0, w:1 }
-								}
-							]
-						}
-					];
+						var animKeys = [
+							{
+								"time": 		0, 
+								"boundingBox": 	{ xmin:0, ymin:0, zmin:0, xmax:500, ymax:500, zmax:500 },
+								"data":  		[
+									{
+										"position": 	{ x:-2, y:15, z:55 },
+										"quaternion_":	{ x:q1.x, y:q1.y, z:q1.z, w:q1.w },
+										"quaternion":	{ x:0, y:0, z:0, w:0 }
+									},
+									{
+										"position": 	{ x:0, y:0, z:0 },
+										"quaternion":	{ x:0, y:0, z:0, w:1 }
+									},
+									{
+										"position": 	{ x:0, y:0, z:0 },
+										"quaternion":	{ x:0, y:0, z:0, w:1 }
+									},
+									{
+										"position": 	{ x:0, y:0, z:0 },
+										"quaternion":	{ x:0, y:0, z:0, w:1 }
+									},
+									{
+										"position": 	{ x:0, y:0, z:0 },
+										"quaternion":	{ x:0, y:0, z:0, w:1 }
+									},
+									{
+										"position": 	{ x:0, y:0, z:0 },
+										"quaternion":	{ x:0, y:0, z:0, w:1 }
+									}
+								]
+							}
+						];
 
-					var tracks = this.sc.animTracks;
-					var track = {
-						"name": 			"animponytail",
-						"numKeys":  		1,
-						"numFrames":  		1,
-						"frameRate": 		1,
-						"fps":  			1.0,
-						"nextTrack":  		tracks.length,
-						"nextTrackFrame": 	0,
-						"keys":  			animKeys,
-						"commands":     	[],
-						"frameStart":    	0
-					};
+						var tracks = this.sc.animTracks;
+						var track = {
+							"name": 			"animponytail",
+							"numKeys":  		1,
+							"numFrames":  		1,
+							"frameRate": 		1,
+							"fps":  			1.0,
+							"nextTrack":  		tracks.length,
+							"nextTrackFrame": 	0,
+							"keys":  			animKeys,
+							"commands":     	[],
+							"frameStart":    	0
+						};
 
-					tracks.push(track);
+						tracks.push(track);
 
-					mobj.animationStartIndex = tracks.length-1;*/
+						mobj.animationStartIndex = tracks.length-1;*/
+					}
 				}
 			}
-
+			
 			// if not a cut scene, we set a specific start anim for Lara
 			if (this.sc.cutScene.frames == null) {
 				var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > startanim', true, 0);
@@ -1203,13 +1208,13 @@ TRN.LevelConverter.prototype = {
 		this.sc.soundPath = "TRN/sound/" + this.trlevel.rversion.toLowerCase() + "/";
 		this.sc.rversion = this.trlevel.rversion;
 
-		TRN.ObjectID.Lara = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
+		this.laraObjectID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
 
 		// get Lara's position => camera starting point
 		var laraPos = { x:0, y:0, z:0, rotY:0 };
 		for (var i = 0; i < this.trlevel.items.length; ++i) {
 			var item = this.trlevel.items[i];
-			if (item.objectID == TRN.ObjectID.Lara) {
+			if (item.objectID == this.laraObjectID) {
 				laraPos.x = item.x;
 				laraPos.y = -item.y;
 				laraPos.z = -item.z;
@@ -1218,7 +1223,7 @@ TRN.LevelConverter.prototype = {
 			}
 		}
 
-		var laraAngle = this.confMgr.levelFloat(this.sc.levelShortFileName, 'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > angle');
+		var laraAngle = this.confMgr.levelFloat(this.sc.levelShortFileName, 'moveables > moveable[id="' + this.laraObjectID + '"] > angle');
 		if (laraAngle != undefined) {
 			laraPos.rotY = laraAngle;
 		}
@@ -1282,7 +1287,7 @@ TRN.LevelConverter.prototype = {
 			for (var objID in this.sc.objects) {
 				var objJSON = this.sc.objects[objID];
 
-				if (objJSON.objectid == TRN.ObjectID.Lara || (objJSON.objectid >= min && objJSON.objectid <= max)) {
+				if (objJSON.objectid == this.laraObjectID || (objJSON.objectid >= min && objJSON.objectid <= max)) {
 					objJSON.position = [ this.sc.cutScene.origin.x, this.sc.cutScene.origin.y, this.sc.cutScene.origin.z ];
 					var q = new THREE.Quaternion();
 					q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sc.cutScene.origin.rotY) );

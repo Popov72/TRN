@@ -23,7 +23,7 @@
 	<script src="include/pako/pako_deflate.js"></script>
 	<script src="include/pako/pako_inflate.js"></script>
 
-	<script src="include/cannon/build/cannon.js"></script>
+	<!--script src="include/cannon/build/cannon.js"></script-->
 
 	<script src="TRN/src/TRN.js"></script>
 	<script src="TRN/src/util/Helper.js?ver=3"></script>
@@ -37,8 +37,10 @@
 	<script src="TRN/src/loader/TR2Loader.js"></script>
 	<script src="TRN/src/loader/TR3Loader.js"></script>
 	<script src="TRN/src/loader/TR4Loader.js"></script>
-	<script src="TRN/src/converter/SceneConverter.js?ver=3"></script>
-	<script src="TRN/src/converter/SceneConverterHelper.js?ver=3"></script>
+	<script src="TRN/src/loader/Scene.js"></script>
+	<script src="TRN/src/loader/MasterLoader.js"></script>
+	<script src="TRN/src/converter/SceneConverter.js?ver=4"></script>
+	<script src="TRN/src/converter/SceneConverterHelper.js?ver=4"></script>
 	<script src="TRN/src/sound/Sound.js"></script>
 	<script src="TRN/src/player/Panel.js"></script>
 	<script src="TRN/src/player/ProgressBar.js"></script>
@@ -47,9 +49,8 @@
 	<script src="TRN/src/player/ConfigMgr.js"></script>
 	<script src="TRN/src/player/ShaderMgr.js"></script>
 	<script src="TRN/src/player/Animation.js?ver=3"></script>
-	<script src="TRN/src/player/Play.js?ver=7"></script>
-	<script src="TRN/src/player/Ponytail.js"></script>
-	<script src="TRN/src/player/PlayUtil.js"></script>
+	<script src="TRN/src/player/Play.js?ver=10"></script>
+	<!--script src="TRN/src/player/Ponytail.js"></script-->
 	<script src="TRN/src/player/MeshSwap.js"></script>
 
 	<style type="text/css" media="all">@import "TRN/resource/panel.css";</style>
@@ -129,25 +130,39 @@ function handleFileSelect(evt) {
 		var freader = new FileReader();
 		freader.onload = (function(theFile) {
 			return function(e) {
-				var rs = TRN.Loader.loadLevel(e.target.result, theFile.name);
-
 				if (!showTiles && !makeJSON) {
-					jQuery('#files').css('display', 'none');
-					jQuery('#output').css('display', 'none');
-					var play = new TRN.Play(document.getElementById( 'container' ));
-					play.showLevel(rs.json);
+					var progressbar = new TRN.ProgressBar(jQuery('#container'));
+					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name}, progressbar, function(oscene) {
+						jQuery('#files').css('display', 'none');
+						jQuery('#output').css('display', 'none');
+						var play = new TRN.Play(document.getElementById( 'container' ));
+						if (TRN.Browser.QueryString.autostart == '1') {
+							play.start(oscene);
+						} else {
+							progressbar.showStart(function() { progressbar.hide(); play.start(oscene)});
+						}
+					});
 				} else if (makeJSON) {
-					var trlevel = rs.json;
-					var converter = new TRN.LevelConverter(trlevel.confMgr);
-
-					converter.convert(trlevel, function(sc) {
-						level2JSON[sc.levelShortFileName] = JSON.stringify(sc);
+					var progressbar = new TRN.ProgressBar(jQuery('#container'));
+					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name, noPostProcessing:true}, progressbar, function(oscene) {
+						progressbar.hide();
+						level2JSON[oscene.sceneJSON.levelShortFileName] = JSON.stringify(oscene.sceneJSON);
 
 						jQuery('body').append(
-							'<div style="color:white;cursor:pointer" onclick="saveJSON(\'' + trlevel.rversion + '\', \'' + sc.levelShortFileName + '\')">' +
-							idx + '/' + files.length + ' - Click to download ' + sc.levelShortFileNameOrig + '<div>'
+							'<div style="color:white;cursor:pointer" onclick="saveJSON(\'' + oscene.sceneJSON.rversion + '\', \'' + oscene.sceneJSON.levelShortFileName + '\')">' +
+							idx + '/' + files.length + ' - Click to download ' + oscene.sceneJSON.levelShortFileNameOrig + '<div>'
 						);
 
+						if (idx++ < files.length) {
+							window.setTimeout(function() {
+								readFile(idx);
+							}, 100);
+						}
+					});
+				} else if (showTiles) {
+					var progressbar = new TRN.ProgressBar(jQuery('#container'));
+					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name, noConversion:true}, progressbar, function(oscene) {
+						progressbar.hide();
 						if (idx++ < files.length) {
 							window.setTimeout(function() {
 								readFile(idx);
@@ -179,8 +194,16 @@ if (TRN.Browser.QueryString.level) {
 
 	jQuery(html).appendTo(document.body);
 
-	var play = new TRN.Play(document.getElementById( 'container' ));
-	play.showLevel('TRN/level/' + TRN.Browser.QueryString.level);
+	var progressbar = new TRN.ProgressBar(jQuery('#container'));
+	var oscene = TRN.MasterLoader.loadLevel('TRN/level/' + TRN.Browser.QueryString.level, progressbar, function(oscene) {
+		var play = new TRN.Play(document.getElementById( 'container' ));
+		if (TRN.Browser.QueryString.autostart == '1') {
+			progressbar.hide();
+			play.start(oscene);
+		} else {
+			progressbar.showStart(progressbar.showStart(function() { progressbar.hide(); play.start(oscene)}));
+		}
+	});
 } else {
 	document.getElementById("files").style.display = "block";
 	document.getElementById("output").style.display = "block";

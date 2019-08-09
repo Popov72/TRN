@@ -1,4 +1,4 @@
-TRN.extend(TRN.LevelConverter.prototype, {
+TRN.extend(TRN.SceneConverter.prototype, {
 
 	createNewJSONEmbed : function () {
 		return {

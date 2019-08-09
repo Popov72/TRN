@@ -7,12 +7,10 @@ TRN.Play = function (container) {
 	this.sceneJSON = null;
 	this.controls = null;
 	this.startTime = -1;
-	
+
 	this.panel = new TRN.Panel(this.container, this);
-	this.progressbar = new TRN.ProgressBar(this.container);
 
 	this.panel.hide();
-	this.progressbar.hide();
 
 	this.quantum = 1000/TRN.baseFrameRate;
 	this.quantumTime = -1;
@@ -40,11 +38,12 @@ TRN.Play = function (container) {
 
 	this.container.append(this.stats.domElement);
 
-	this.lara = {};
-
 	this.globalTintColor = null;
 
-	this.initPhysics();
+	//this.initPhysics();
+
+	TRN.Browser.bindRequestPointerLock(document.body);
+	TRN.Browser.bindRequestFullscreen(document.body);
 }
 
 TRN.Play.prototype = {
@@ -96,468 +95,27 @@ TRN.Play.prototype = {
 
 	},
 
-	showLevel : function (trlevel) {
+	start : function (oscene) {
 
-		var this_ = this;
+		this.oscene = oscene;
+		this.sceneJSON = oscene.sceneJSON;
+		this.scene = oscene.scene;
+		this.camera = oscene.camera;
 
-		this.progressbar.show();
+		this.controls = new BasicControls( this.camera, document.body );
 
-		if (typeof(trlevel) == 'string') {
-
-			var isZip = trlevel.indexOf('.zip') >= 0;
-
-		    var request = new XMLHttpRequest();
-
-		    request.open("GET", trlevel, true);
-		    request.responseType = isZip ? "arraybuffer" : "text";
-
-		    request.onerror = function() {
-		        console.log('Read level: XHR error', request.status, request.statusText);
-		    }
-
-		    request.onprogress = function(e) {
-		    	if (e.lengthComputable) {
-		    		var pct = 0;
-
-					if ( e.total )
-						pct = e.loaded / e.total;
-
-		    		this_.progressbar.progress(pct);
-
-		    	}
-		    }
-
-		    request.onreadystatechange = function() {
-		        if (request.readyState != 4) return;
-
-		        if (request.status != 200) {
-			   		console.log('Could not read the level', trlevel, request.status, request.statusText);
-		        } else {
-		        	this_.progressbar.progress(1);
-		        	var sc;
-		        	if (isZip) {
-			        	console.log('Level', trlevel, 'loaded. Unzipping...');
-			    		var zip = new JSZip();
-			    		zip.load(request.response);
-			    		var f = zip.file('level');
-			    		sc = JSON.parse(f.asText());
-			    		console.log('Level unzipped.');
-			    	} else {
-			    		sc = JSON.parse(request.response);
-			    	}
-		    		this_.levelConverted(sc);
-		        }
-		    }
-
-			request.send();
-
-		} else {
-
-			var converter = new TRN.LevelConverter(trlevel.confMgr);
-
-			converter.convert(trlevel, this.levelConverted.bind(this));
-
-		}
-	},
-
-	levelConverted : function (sc) {
-
-		this.sceneJSON = sc;
-		this.confMgr = new TRN.ConfigMgr(sc.rversion);
-
-		TRN.ObjectID.Lara = this.confMgr.levelNumber(sc.levelShortFileName, 'lara > id', true, 0);
-		TRN.ObjectID.Ponytail = this.confMgr.levelNumber(sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
-
-		var tintColor = this.confMgr.levelColor(sc.levelShortFileName, 'globaltintcolor', true, null);
+		var confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
+		var tintColor = confMgr.levelColor(this.sceneJSON.levelShortFileName, 'globaltintcolor', true, null);
 
 		if (tintColor != null) {
 			this.globalTintColor = new THREE.Vector3(tintColor.r, tintColor.g, tintColor.b);
 		}
 
-		var this_ = this;
-
-		if (sc.cutScene.soundData && TRN.Browser.AudioContext) {
-
-            TRN.Browser.AudioContext.decodeAudioData(
-
-                TRN.Base64Binary.decodeArrayBuffer(sc.cutScene.soundData),
-
-                function(buffer) {
-
-                    if (!buffer) {
-                        console.log('error decoding sound data for cut scene');
-                    } else {
-						sc.cutScene.sound = TRN.Browser.AudioContext.createBufferSource();
-						sc.cutScene.sound.buffer = buffer;
-						sc.cutScene.sound.connect(TRN.Browser.AudioContext.destination);
-                    }
-
-					this_.parseLevel();
-                }    
-            );
-
-		} else {
-
-			this.parseLevel();
-
-		}
-	},
-
-	parseLevel : function () {
-
-		var this_ = this;
-
-		var loader = new THREE.SceneLoader();
-
-		loader.callbackProgress = function (progress, result) {
-
-			var	pct = 0,
-				total = progress.totalModels + progress.totalTextures,
-				loaded = progress.loadedModels + progress.loadedTextures;
-
-			if (total)
-				pct = loaded / total;
-
-			this_.progressbar.progress(pct);
-
-		};
-
-		loader.parse(this.sceneJSON, function(result) {
-
-		    window.setTimeout(function() {
-
-		    	this_.progressbar.setMessage('Processing...');
-
-			    window.setTimeout(function() {
-
-					this_.levelParsed(result);
-
-				}, 100);
-
-			}, 100);
-
-		}, '');
-
-	},
-
-	levelParsed : function (result) {
-
-		this.scene = result;
-
-		this.sceneJSON.curRoom = -1;
-
-		this.getLaraConfig();
-
-		// make sure the sky is displayed first
-		if (this.scene.objects.sky) {
-			this.scene.objects.sky.renderDepth = -1e10;
-			//scene.objects.sky.frustumCulled = false;
-		}
-
-		// initialize the animated textures
-		this.scene.animatedTextures = this.sceneJSON.animatedTextures;
-		
-		if (this.scene.animatedTextures) {
-
-			for (var i = 0; i < this.scene.animatedTextures.length; ++i) {
-				var animTexture = this.scene.animatedTextures[i];
-				animTexture.progressor = new TRN.Sequence(animTexture.animcoords.length, 1.0/animTexture.animspeed);
-			}
-
-		}
-
-		// animations
-		if (this.sceneJSON.animTracks) {
-
-			this.scene.animTracks = [];
-
-			// create one track per animation
-			for (var t = 0; t < this.sceneJSON.animTracks.length; ++t) {
-
-				var trackJSON = this.sceneJSON.animTracks[t], keys = trackJSON.keys;
-
-				var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
-
-				trackJSON.commands.frameStart = trackJSON.frameStart;
-
-				track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
-				track.setCommands(trackJSON.commands);
-
-				this.scene.animTracks.push(track);
-
-				for (var k = 0; k < keys.length; ++k) {
-
-					var keyJSON = keys[k], dataJSON = keyJSON.data, bbox = keyJSON.boundingBox;
-
-					var boundingBox = new THREE.Box3(new THREE.Vector3(bbox.xmin, bbox.ymin, bbox.zmin), new THREE.Vector3(bbox.xmax, bbox.ymax, bbox.zmax));
-
-					var key = new TRN.Animation.Key(keyJSON.time, boundingBox);
-
-					for (var d = 0; d < dataJSON.length; ++d) {
-
-						key.addData(dataJSON[d].position, dataJSON[d].quaternion);
-
-					}
-
-					track.addKey(key);
-
-				}
-			}
-
-			// instanciate the first track for each animated object
-			for (var objID in this.scene.objects) {
-
-				var obj = this.scene.objects[objID];
-				var objJSON = this.sceneJSON.objects[objID];
-
-				if (!objJSON.has_anims) continue;
-
-				if (this.sceneJSON.cutScene.frames) {
-
-					// register all animations we will need in the cut scene
-					var registered = {}, anmIndex = objJSON.animationStartIndex, allTrackInstances = {};
-
-					while (true) {
-
-						if (registered[anmIndex]) break;
-						
-						registered[anmIndex] = true;
-
-						var track = this.scene.animTracks[anmIndex];
-						var trackInstance = new TRN.Animation.TrackInstance(track, obj, this.sceneJSON.embeds[objJSON.geometry].bones);
-
-						allTrackInstances[anmIndex] = trackInstance;
-
-						anmIndex = track.nextTrack;
-
-					}
-
-					obj.allTrackInstances = allTrackInstances;
-
-					var trackInstance = allTrackInstances[objJSON.animationStartIndex];
-
-					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
-					trackInstance.setNoInterpolationToNextTrack = true;
-
-					trackInstance.runForward(0);
-					trackInstance.interpolate();
-
-					obj.trackInstance = trackInstance;
-
-				} else {
-
-					var animIndex = objJSON.animationStartIndex;
-
-					var track = this.scene.animTracks[animIndex];
-					var trackInstance = new TRN.Animation.TrackInstance(track, obj, this.sceneJSON.embeds[objJSON.geometry].bones);
-
-					if (track) { // to avoid bugging for lost artifact TR3 levels
-						trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
-
-						trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
-						trackInstance.interpolate();
-			
-						obj.trackInstance = trackInstance;
-					}
-				}
-
-				obj.prevTrackInstance = obj.trackInstance;
-				obj.prevTrackInstanceFrame = 0;
-
-			}
-		}
-
-		// Set all objects except camera/sky + animated objects as auto update=false
-		for (var objID in this.scene.objects) {
-
-			var obj = this.scene.objects[objID];
-			var objJSON = this.sceneJSON.objects[objID];
-
-			obj.initPos = new THREE.Vector3();
-			obj.initPos.copy(obj.position);
-
-			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID != 'sky') {
-
-				obj.updateMatrix();
-				obj.matrixAutoUpdate = false;
-
-			}
-		}
-
-		// init the ponytail object
-		this.ponytail = new THREE.Ponytail(this.findObjectById(TRN.ObjectID.Lara), this.scene, this.world);
-
-		// don't flip Y coordinates in textures
-		for (var texture in this.scene.textures) {
-
-			if (!this.scene.textures.hasOwnProperty(texture)) continue;
-
-			this.scene.textures[texture].flipY = false;
-
-		}
-
-		// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
-		for (var objID in this.scene.objects) {
-
-			var obj = this.scene.objects[objID];
-			var objJSON = this.sceneJSON.objects[objID];
-
-			if (!(obj instanceof THREE.Mesh)) continue;
-
-			if (!objJSON.has_anims) {
-				obj.geometry.computeBoundingBox();
-				obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
-			}
-
-			obj.frustumCulled = true;
-			obj.dummy = objJSON.dummy;
-
-			var material = new THREE.MeshFaceMaterial();
-			obj.material = material;
-
-			obj.geometry.computeFaceNormals();
-			obj.geometry.computeVertexNormals();
-
-			var room = objJSON.type == 'room' ? objJSON : this.sceneJSON.objects['room' + objJSON.roomIndex];
-
-			var attributes = this.sceneJSON.embeds[this.sceneJSON.geometries[objJSON.geometry].id].attributes;
-
-			if (attributes) {
-				attributes.flags.needsUpdate = true;
-			}
-
-			for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
-
-				var elem = objJSON.material[mt_];
-				material.materials[mt_] = this.scene.materials[elem.material].clone();
-				if (elem.uniforms) {
-					material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
-				}
-
-				if (attributes) {
-					material.materials[mt_].attributes = attributes;
-				}
-
-				for (var mkey in elem) {
-
-					if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
-					material.materials[mt_][mkey] = elem[mkey];
-
-				}
-			}
-
-			var materials = material.materials;
-
-			if (!materials || !materials.length) continue;
-
-			for (var i = 0; i < materials.length; ++i) {
-
-				var material = materials[i];
-
-				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
-					material.uniforms.map.value = this.scene.textures[material.uniforms.map.value];
-				}
-
-				if (room && room.filledWithWater) {
-					material.uniforms.tintColor.value = new THREE.Vector3(this.sceneJSON.waterColor.in.r, this.sceneJSON.waterColor.in.g, this.sceneJSON.waterColor.in.b);
-				}
-
-				if (this.globalTintColor != null) {
-					// used in cut scene 3 in TR1
-					material.uniforms.tintColor.value = this.globalTintColor;
-				}
-
-				if (objJSON.has_anims && room) { // only animated objects are externally lit and need light definitions from the room
-
-					material.uniforms.ambientColor.value = room.ambientColor;
-					material.uniforms.pointLightPosition = { type: "v3v", value: [] };
-					material.uniforms.pointLightColor = { type: "v3v", value: [] };
-					material.uniforms.pointLightDistance = { type: "f", value: [] };
-
-					for (var l = 0; l < room.lights.length; ++l) {
-
-						var light = room.lights[l];
-						material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
-						material.uniforms.pointLightColor.value[l] = light.color;
-						material.uniforms.pointLightDistance.value[l] = light.fadeOut;
-
-					}
-				}
-
-				if (material.hasAlpha) {
-
-					isTransparent = true;
-					material.transparent = true;
-					material.blending = THREE.AdditiveBlending;
-					material.blendSrc = THREE.OneFactor;
-					material.blendDst = THREE.OneMinusSrcColorFactor;
-					material.depthWrite = false;
-					material.needsUpdate = true;
-
-				}
-			}
-		}
-
-		// put pistols in Lara holsters
-		var obj = this.scene.objects[this.lara.objNameForPistolAnim];
-		var lara = this.findObjectById(TRN.ObjectID.Lara);
-
-		if (obj && lara) {
-			var mswap = new TRN.MeshSwap(obj, lara);
-
-			mswap.swap([this.lara.leftThighIndex, this.lara.rightThighIndex]);
-		}
-
-		this.camera = this.scene.currentCamera;
-		this.camera.aspect = window.innerWidth / window.innerHeight;
-		this.camera.updateProjectionMatrix();
-
-		//camera.position.set(63514.36027899013,-3527.280854978113,-57688.901507514056);
-		//camera.quaternion.set(-0.050579906399909495,-0.2148394919749775,-0.011142047403773734,0.9752750999262544);
-
-		if (TRN.Browser.QueryString.pos) {
-
-			var vals = TRN.Browser.QueryString.pos.split(',');
-			this.camera.position.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]));
-
-		}
-
-		if (TRN.Browser.QueryString.rot) {
-
-			var vals = TRN.Browser.QueryString.rot.split(',');
-			this.camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
-
-		}
-
-		this.camera.updateMatrix();
-		this.camera.updateMatrixWorld();
-		
-		var elem = document.body;
-
-		this.controls = new BasicControls( this.camera, elem );
-
-		TRN.Browser.bindRequestPointerLock(elem);
-		TRN.Browser.bindRequestFullscreen(elem);
+		//this.ponytail = new THREE.Ponytail(oscene.findObjectById(TRN.ObjectID.Lara), this.scene, this.world);
 
 		this.panel.show();
 
-		if (TRN.Browser.QueryString.autostart == '1') {
-			this.start();
-		} else {
-			this.progressbar.showStart(this.start.bind(this));
-		}
-
-	},
-
-	start : function () {
-
-		this.progressbar.hide();
-
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
-
-		if (this.sceneJSON.cutScene.frames != null) {
-			TRN.Helper.startSound(this.sceneJSON.cutScene.sound);
-		}
 
 		this.renderer.initWebGLObjects(this.scene.scene);
 
@@ -566,6 +124,57 @@ TRN.Play.prototype = {
 		this.animate();
 
 		this.onWindowResize();
+
+		if (this.sceneJSON.cutScene.frames != null) {
+			TRN.Helper.startSound(this.sceneJSON.cutScene.sound);
+		}
+	},
+
+
+	animate : function () {
+
+		requestAnimationFrame( this.animate.bind(this) );
+
+		var delta = this.clock.getDelta();
+		var curTime = (new Date()).getTime();
+
+		if (curTime - this.quantumTime > this.quantum) {
+			this.quantumRnd = Math.random();
+			this.quantumTime = curTime;
+		}
+
+		curTime = curTime - this.startTime;
+
+		if (delta > 0.1) delta = 0.1;
+
+		this.controls.update(delta);
+
+		this.animateObjects(delta);
+
+		this.animateCutScene(delta);
+		
+		this.animateTextures(delta);
+
+		this.camera.updateMatrixWorld();
+
+		this.updateObjects(curTime);
+
+		if (this.needWebGLInit) {
+			this.needWebGLInit = false;
+			this.renderer.initWebGLObjects(this.scene.scene);
+		}
+
+		this.render();
+
+	},
+
+	render : function () {
+
+		this.renderer.render( this.scene.scene, this.camera );
+
+		this.stats.update();
+
+		this.panel.showInfo();
 
 	},
 
@@ -621,9 +230,9 @@ TRN.Play.prototype = {
 			}
 		}
 
-		if (TRN.ObjectID.Ponytail != -1) {
+		/*if (TRN.ObjectID.Ponytail != -1) {
 			this.ponytail.update(delta);
-		}
+		}*/
 
 	},
 
@@ -745,6 +354,9 @@ TRN.Play.prototype = {
 
 				var material = materials[i], userData = material.userData;
 
+				if (this.globalTintColor != null) {
+					material.uniforms.tintColor.value = this.globalTintColor;
+				}
 				material.uniforms.curTime.value = curTime;
 				material.uniforms.rnd.value = this.quantumRnd;
 				material.uniforms.flickerColor.value = room && room.flickering ? this.flickerColor : this.unitVec3;
@@ -765,50 +377,91 @@ TRN.Play.prototype = {
 
 	},
 
-	animate : function () {
+	processAnimCommands : function (trackInstance, prevFrame, curFrame, obj) {
 
-		requestAnimationFrame( this.animate.bind(this) );
+		var commands = trackInstance.track.commands;
+		var updateWebGLObjects = false;
 
-		var delta = this.clock.getDelta();
-		var curTime = (new Date()).getTime();
+		for (var i = 0; i < commands.length; ++i) {
+			var command = commands[i];
 
-		if (curTime - this.quantumTime > this.quantum) {
-			this.quantumRnd = Math.random();
-			this.quantumTime = curTime;
+			switch (command.cmd) {
+
+				case TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME: {
+
+					var frame = command.params[0] - commands.frameStart, action = command.params[1];
+					if (frame < prevFrame || frame >= curFrame) { continue; }
+
+					//console.log(action,'done for frame',frame,obj.name)
+
+					switch (action) {
+
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_COLORFLASH: {
+							this.globalTintColor.x = this.globalTintColor.y = this.globalTintColor.z = (this.globalTintColor.x < 0.5 ? 1.0 : 0.1);
+							break;
+						}
+
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
+							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
+
+							if (oswap) {
+								var mswap = new TRN.MeshSwap(oswap, obj);
+
+								mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.leftHandIndex]);
+
+								updateWebGLObjects = true;
+							}
+							break;
+						}
+
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
+							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
+
+							if (oswap) {
+								var mswap = new TRN.MeshSwap(oswap, obj);
+
+								mswap.swap([TRN.Consts.rightThighIndex, TRN.Consts.rightHandIndex]);
+
+								updateWebGLObjects = true;
+							}
+							break;
+						}
+
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1:
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP2:
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP3: {
+							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
+							var oswap = this.scene.objects['meshswap' + idx];
+
+							if (oswap) {
+								var mswap = new TRN.MeshSwap(obj, oswap);
+
+								mswap.swapall();
+
+								updateWebGLObjects = true;
+							} else {
+								console.log('Could not apply anim command meshswap (' , action, '): object meshswap' + idx + ' not found.');
+							}
+							break;
+						}
+
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_HIDEOBJECT: {
+							obj.visible = false;
+							break;
+						}
+
+						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT: {
+							obj.visible = true;
+							break;
+						}
+					}
+
+					break;
+				}
+			}
 		}
 
-		curTime = curTime - this.startTime;
-
-		if (delta > 0.1) delta = 0.1;
-
-		this.controls.update(delta);
-
-		this.animateObjects(delta);
-
-		this.animateCutScene(delta);
-		
-		this.animateTextures(delta);
-
-		this.camera.updateMatrixWorld();
-
-		this.updateObjects(curTime);
-
-		if (this.needWebGLInit) {
-			this.needWebGLInit = false;
-			this.renderer.initWebGLObjects(this.scene.scene);
-		}
-
-		this.render();
-
-	},
-
-	render : function () {
-
-		this.renderer.render( this.scene.scene, this.camera );
-
-		this.stats.update();
-
-		this.panel.showInfo();
+		this.needWebGLInit |= updateWebGLObjects;
 
 	}
 }
