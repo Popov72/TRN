@@ -633,24 +633,40 @@ TRN.Play.prototype = {
 
 		this.sceneJSON.cutScene.curFrame += TRN.baseFrameRate * delta;
 
-		var cfrm = parseInt(this.sceneJSON.cutScene.curFrame);
+		var t = this.sceneJSON.cutScene.curFrame - parseInt(this.sceneJSON.cutScene.curFrame);
+		var cfrmA = Math.min(parseInt(this.sceneJSON.cutScene.curFrame), this.sceneJSON.cutScene.frames.length-3);
+		var cfrmB = Math.min(cfrmA+1, this.sceneJSON.cutScene.frames.length-3);
 
-		if (cfrm < this.sceneJSON.cutScene.frames.length) {
-
-			var frm1 = this.sceneJSON.cutScene.frames[cfrm];
-			var fov = frm1.fov * 70.0 / 16384.0;
-			var roll = -frm1.roll * 180.0 / 32768.0;
+		if (cfrmA < this.sceneJSON.cutScene.frames.length-3) {
 
 			if (!this.controls.captureMouse) {
+
+				var frm1 = this.sceneJSON.cutScene.frames[cfrmA];
+				var frm2 = this.sceneJSON.cutScene.frames[cfrmB];
+				var maxDelta = 512.0 * 512.0, fovMult = 60.0 / 16384.0, rollMult = -90.0 / 16384.0;
+
+                var dp = (new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ)).sub(new THREE.Vector3(frm2.posX, -frm2.posY, -frm1.posZ)).lengthSq();
+                var dt = (new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ)).sub(new THREE.Vector3(frm2.targetX, -frm2.targetY, -frm1.targetZ)).lengthSq();
+                
+                var eyePos = new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ);
+                var lkat = new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ);
+                var fov = frm1.fov * fovMult;
+				var roll = frm1.roll * rollMult;
+
+                if (dp <= maxDelta && dt <= maxDelta) {
+                    eyePos.lerp(new THREE.Vector3(frm2.posX, -frm2.posY, -frm2.posZ), t);
+                    lkat.lerp(new THREE.Vector3(frm2.targetX, -frm2.targetY, -frm2.targetZ), t);
+                    fov = TRN.Helper.lerp(frm1.fov * fovMult, frm2.fov * fovMult, t);
+                    roll = TRN.Helper.lerp(frm1.roll * rollMult, frm2.roll * rollMult, t);
+                }
 
 				var q = new THREE.Quaternion();
 				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sceneJSON.cutScene.origin.rotY) );
 
-				var lkat = new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ);
 				lkat.applyQuaternion(q);
 
 				this.camera.fov = fov;
-				this.camera.position.set(frm1.posX, -frm1.posY, -frm1.posZ);
+				this.camera.position = eyePos;
 				this.camera.position.applyQuaternion(q);
 				this.camera.lookAt(lkat);
 				this.camera.position.add(this.sceneJSON.cutScene.origin);
