@@ -58,7 +58,7 @@ TRN.Animation.Key = function(time, boundingBox) {
 
 TRN.Animation.Key.prototype = {
 
-	constructor : TRN.Animation.AnimKey,
+	constructor : TRN.Animation.Key,
 
 	addData : function(pos, rot) {
 		this.data.push({
@@ -91,7 +91,7 @@ TRN.Animation.Track._counter = 0;
 
 TRN.Animation.Track.prototype = {
 
-	constructor : TRN.Animation.AnimTrack,
+	constructor : TRN.Animation.Track,
 
 	addKey : function(key) {
 		this.keys.push(key);
