@@ -38,9 +38,9 @@
 	<script src="TRN/src/loader/TR3Loader.js"></script>
 	<script src="TRN/src/loader/TR4Loader.js"></script>
 	<script src="TRN/src/loader/Scene.js"></script>
-	<script src="TRN/src/loader/MasterLoader.js"></script>
-	<script src="TRN/src/converter/SceneConverter.js?ver=4"></script>
-	<script src="TRN/src/converter/SceneConverterHelper.js?ver=4"></script>
+	<script src="TRN/src/loader/MasterLoader.js?ver=5"></script>
+	<script src="TRN/src/converter/SceneConverter.js?ver=7"></script>
+	<script src="TRN/src/converter/SceneConverterHelper.js?ver=6"></script>
 	<script src="TRN/src/sound/Sound.js"></script>
 	<script src="TRN/src/player/Panel.js"></script>
 	<script src="TRN/src/player/ProgressBar.js"></script>
@@ -53,9 +53,9 @@
 	<!--script src="TRN/src/player/Ponytail.js"></script-->
 	<script src="TRN/src/player/MeshSwap.js"></script>
 
-	<style type="text/css" media="all">@import "TRN/resource/panel.css";</style>
+	<style type="text/css" media="all">@import "TRN/resource/panel.css?ver=3";</style>
 	<style type="text/css" media="all">@import "TRN/resource/progressbar.css";</style>
-	<style type="text/css" media="all">@import "TRN/resource/help.css";</style>
+	<style type="text/css" media="all">@import "TRN/resource/help.css?ver=2";</style>
 
 	<style>
 		body {
@@ -181,6 +181,17 @@ function handleFileSelect(evt) {
 
 	readFile(1);
 }
+
+var html;
+jQuery.ajax({
+	type: "GET",
+	url: 'TRN/resource/help.html',
+	dataType: "html",
+	cache: false,
+	async: false
+}).done(function(data) { html = data; });
+
+jQuery(html).appendTo(document.body);
 
 if (TRN.Browser.QueryString.level) {
 	var html;
