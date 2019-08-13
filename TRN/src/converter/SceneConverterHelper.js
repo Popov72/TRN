@@ -16,6 +16,93 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		};
 	},
 
+	getMaterial : function (objType, numLights) {
+		var matName = '';
+		if (typeof(numLights) == 'undefined') numLights = -1;
+
+		switch(objType) {
+			case 'room':
+				matName = 'TR_room';
+				if (!this.sc.materials[matName]) {
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"curTime": { type: "f", value: 0.0 },
+								"rnd": { type: "f", value: 0.0 },
+								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
+							},
+							"vertexShader": this.shaderMgr.getVertexShader('room'),
+							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
+							"vertexColors" : true
+						}
+					};
+				}
+				break;
+			case 'mesh':
+				matName = 'TR_mesh';
+				if (!this.sc.materials[matName]) {
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"curTime": { type: "f", value: 0.0 },
+								"rnd": { type: "f", value: 0.0 },
+								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
+								"lighting": { type: "f", value: 0.0 }
+							},
+							"vertexShader": this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4' ? this.shaderMgr.getVertexShader('mesh2') : this.shaderMgr.getVertexShader('mesh'),
+							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
+							"vertexColors" : true
+						}
+					};
+				}				
+				break;
+			case 'moveable':
+				matName = 'TR_moveable' + (numLights >= 0 ? '_l' + numLights : '');
+				if (!this.sc.materials[matName]) {
+					var vertexShader;
+
+					if (numLights >= 0) {
+						vertexShader = this.shaderMgr.getVertexShader('moveable_with_lights');
+						vertexShader = vertexShader.replace(/##num_lights##/g, numLights);
+					} else {
+						vertexShader = this.shaderMgr.getVertexShader('moveable');
+					}
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"curTime": { type: "f", value: 0.0 },
+								"rnd": { type: "f", value: 0.0 },
+								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
+								"lighting": { type: "f", value: 0.0 }
+							},
+							"vertexShader": vertexShader,
+							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
+							"vertexColors" : true,
+							"skinning": true
+						}
+					};
+				}
+				break;
+		}
+
+		return matName;
+	},
+
 	convertIntensity : function(intensity) {
 		var l = intensity/8192.0;
 
@@ -25,6 +112,21 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		}
 
 		return l;
+	},
+
+	getBoundingBox : function(vertices) {
+		var xmin = ymin = zmin = 1e20;
+		var xmax = ymax = zmax = -1e20;
+		for (var i = 0; i < vertices.length; ++i) {
+			var vertex = vertices[i].vertex;
+			if (xmin > vertex.x) xmin = vertex.x;
+			if (xmax < vertex.x) xmax = vertex.x;
+			if (ymin > vertex.y) ymin = vertex.y;
+			if (ymax < vertex.y) ymax = vertex.y;
+			if (zmin > vertex.z) zmin = vertex.z;
+			if (zmax < vertex.z) zmax = vertex.z;
+		}
+		return [xmin,xmax,ymin,ymax,zmin,zmax];
 	},
 
 	processRoomVertex : function(rvertex, isFilledWithWater, isFlickering) {
@@ -66,7 +168,9 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		};
 	},
 
-	makeFace : function (obj, vertices, isQuad, tiles2material, texture, tex, ofstvert, mapObjTexture2AnimTexture, fidx) {
+	makeFace : function (obj, oface, tiles2material, tex, ofstvert, mapObjTexture2AnimTexture, fidx) {
+		var vertices = oface.vertices, texture = oface.texture & 0x7FFF, isQuad = vertices.length == 4, tile = tex.tile & 0x7FFF;
+
 		obj.faces.push(isQuad ? 139 : 138); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
 
 		// vertex indices
@@ -75,7 +179,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		}
 
 		// material
-		var imat, anmTexture = false, alpha = tex.attributes & 2 ? 'alpha' : '';
+		var imat, anmTexture = false, alpha = (tex.attributes & 2 || oface.effects & 1) ? 'alpha' : '';
 		if (mapObjTexture2AnimTexture && mapObjTexture2AnimTexture[texture]) {
 			var animTexture = mapObjTexture2AnimTexture[texture];
 			var matName = 'anmtext' + alpha + '_' + animTexture.idxAnimatedTexture + '_' + animTexture.pos;
@@ -85,30 +189,33 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				tiles2material[matName] = imat;
 			}
 			anmTexture = true;
-		} else if (tex.attributes & 2) {
-			imat = tiles2material['alpha' + tex.tile];
+		} else if (alpha) {
+			imat = tiles2material['alpha' + tile];
 			if (typeof(imat) == 'undefined') {
 				imat = TRN.Helper.objSize(tiles2material);
-				tiles2material['alpha' + tex.tile] = imat;
+				tiles2material['alpha' + tile] = imat;
 			}
 		} else {
-			imat = tiles2material[tex.tile];
+			imat = tiles2material[tile];
 			if (typeof(imat) == 'undefined') {
 				imat = TRN.Helper.objSize(tiles2material);
-				tiles2material[tex.tile] = imat;
+				tiles2material[tile] = imat;
 			}
 		}
 		obj.faces.push(imat); // index of material
 
 		// texture coords
-		var minU = 0, minV = 0;
-		if (anmTexture) {
+		var isAnimatedObject = obj.objHasScrollAnim;
+
+		var minU = 0, minV = 0, maxV = 0;
+		if (anmTexture || isAnimatedObject) {
 			minU = minV = 1;
 			for (var tv = 0; tv < vertices.length; ++tv) {
 				var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
 				var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
 				if (minU > u) minU = u;
 				if (minV > v) minV = v;
+				if (maxV < v) maxV = v;
 			}
 		}
 		var numUVs = parseInt(obj.uvs[0].length / 2);
@@ -116,7 +223,13 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			obj.faces.push(numUVs++);
 			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
 			var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
-			obj.uvs[0].push(u - minU, v - minV);
+			if (!isAnimatedObject) {
+				obj.uvs[0].push(u - minU, v - minV);
+			} else if (v != maxV) {
+				obj.uvs[0].push(u, v);
+			} else {
+				obj.uvs[0].push(u, minV + (maxV - minV) / 2);
+			}
 		}
 
 		// vertex colors
@@ -130,11 +243,10 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			var lstface = facearrays[a];
 			for (var i = 0; i < lstface.length; ++i) {
 				var o = lstface[i];
-				var vertices = o.vertices, texture = o.texture & 0x7FFF, twoSided = (o.texture & 0x8000) != 0, tex = objectTextures[texture];
-				var isQuad = vertices.length == 4;
-				this.makeFace(obj, vertices, isQuad, tiles2material, texture, tex, ofstvert, mapObjTexture2AnimTexture, function(idx) { return vertices.length-1-idx; });
+				var twoSided = (o.texture & 0x8000) != 0, tex = objectTextures[o.texture & 0x7FFF];
+				this.makeFace(obj, o, tiles2material, tex, ofstvert, mapObjTexture2AnimTexture, function(idx) { return o.vertices.length-1-idx; });
 				if (twoSided) {
-					this.makeFace(obj, vertices, isQuad, tiles2material, texture, tex, ofstvert, mapObjTexture2AnimTexture, function(idx) { return idx; });
+					this.makeFace(obj, o, tiles2material, tex, ofstvert, mapObjTexture2AnimTexture, function(idx) { return idx; });
 				}
 			}
 		}

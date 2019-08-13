@@ -7,6 +7,7 @@ TRN.Play = function (container) {
 	this.sceneJSON = null;
 	this.controls = null;
 	this.startTime = -1;
+	this.gcounter = 0;
 
 	this.panel = new TRN.Panel(this.container, this);
 
@@ -364,16 +365,39 @@ TRN.Play.prototype = {
 				if (userData.animatedTexture) {
 
 					var animTexture = this.scene.animatedTextures[userData.animatedTexture.idxAnimatedTexture];
-					var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
 
-					material.uniforms.map.value = this.scene.textures[coords.texture];
-					material.uniforms.offsetRepeat.value.x = coords.minU;
-					material.uniforms.offsetRepeat.value.y = coords.minV;
+					if (!animTexture.scrolltexture || !TRN.Consts.useUVRotate) {
 
+						var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
+
+						material.uniforms.map.value = this.scene.textures[coords.texture];
+						material.uniforms.offsetRepeat.value.x = coords.minU;
+						material.uniforms.offsetRepeat.value.y = coords.minV;
+					} else {
+						//console.log(obj, i, material);
+						//var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
+						var coords = animTexture.animcoords[0];
+						if (!material.uniforms.map.value) {
+							material.uniforms.map.value = this.scene.textures[coords.texture];
+							material.uniforms.offsetRepeat.value.w = 0.5;
+							//if (this.gcounter==0 && objJSON.roomIndex == 76) console.log(material.uniforms.map.value)
+						}
+						var pgr = curTime / (15*material.uniforms.map.value.image.height), h = (TRN.Consts.uvRotateTileHeight/2.0)/material.uniforms.map.value.image.height;
+						pgr = pgr - h * Math.floor(pgr / h);
+						material.uniforms.offsetRepeat.value.x = coords.minU;
+						material.uniforms.offsetRepeat.value.y = coords.minV + h - pgr;
+					}
+
+				} else if (objJSON.hasScrollAnim) {
+					//if (this.gcounter == 0 && objJSON.roomIndex == 76) console.log(objJSON);
+					var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.moveableScrollAnimTileHeight/2.0)/material.uniforms.map.value.image.height;
+					pgr = pgr - h * Math.floor(pgr / h);
+					material.uniforms.offsetRepeat.value.y = h - pgr;
 				}
 
 			}
 		}
+		this.gcounter++;
 
 	},
 

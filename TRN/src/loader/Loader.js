@@ -198,6 +198,7 @@ TRN.Loader = {
 		out.rversion = rversion;
 		out.version = TRN.Helper.toHexString32(version);
 		out.textile = [];
+		out.animatedTexturesUVCount = out.animatedTexturesUVCount || 0;
 
 		out.confMgr = new TRN.ConfigMgr(out.rversion);
 
@@ -378,11 +379,11 @@ TRN.Loader = {
 
 			for (var i = 0; i < out.objectTextures.length; ++i) {
 				var objText = out.objectTextures[i];
-				var tile = objText.tile & 0x7FFF;
+				var tile = objText.tile & 0x7FFF, b16 = objText.tile & 0x8000;
 
 				var row = Math.floor(tile / out.atlas.numColPerRow), col = tile - row * out.atlas.numColPerRow;
 
-				objText.tile = 0;
+				objText.tile = 0 + b16;
 
 				for (var j = 0; j < objText.vertices.length; ++j) {
 					var vert = objText.vertices[j];

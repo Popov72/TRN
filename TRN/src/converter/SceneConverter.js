@@ -13,93 +13,6 @@ TRN.SceneConverter.prototype = {
 
 	constructor : TRN.SceneConverter,
 
-	getMaterial : function (objType, numLights) {
-		var matName = '';
-		if (typeof(numLights) == 'undefined') numLights = -1;
-
-		switch(objType) {
-			case 'room':
-				matName = 'TR_room';
-				if (!this.sc.materials[matName]) {
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
-								"curTime": { type: "f", value: 0.0 },
-								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
-							},
-							"vertexShader": this.shaderMgr.getVertexShader('room'),
-							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-							"vertexColors" : true
-						}
-					};
-				}
-				break;
-			case 'mesh':
-				matName = 'TR_mesh';
-				if (!this.sc.materials[matName]) {
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
-								"curTime": { type: "f", value: 0.0 },
-								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
-								"lighting": { type: "f", value: 0.0 }
-							},
-							"vertexShader": this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4' ? this.shaderMgr.getVertexShader('mesh2') : this.shaderMgr.getVertexShader('mesh'),
-							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-							"vertexColors" : true
-						}
-					};
-				}				
-				break;
-			case 'moveable':
-				matName = 'TR_moveable' + (numLights >= 0 ? '_l' + numLights : '');
-				if (!this.sc.materials[matName]) {
-					var vertexShader;
-
-					if (numLights >= 0) {
-						vertexShader = this.shaderMgr.getVertexShader('moveable_with_lights');
-						vertexShader = vertexShader.replace(/##num_lights##/g, numLights);
-					} else {
-						vertexShader = this.shaderMgr.getVertexShader('moveable');
-					}
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
-								"curTime": { type: "f", value: 0.0 },
-								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
-								"lighting": { type: "f", value: 0.0 }
-							},
-							"vertexShader": vertexShader,
-							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-							"vertexColors" : true,
-							"skinning": true
-						}
-					};
-				}
-				break;
-		}
-
-		return matName;
-	},
-
 	// create one texture per tile	
 	createTextures : function () {
 
@@ -122,14 +35,10 @@ TRN.SceneConverter.prototype = {
 			var anmcoords = [];
 			while (numTextures-- > 0) {
 				var texture = adata[i++], tex = this.trlevel.objectTextures[texture], tile = tex.tile & 0x7FFF;
-				var isTri = 
-					(tex.vertices[3].Xpixel == 0)  &&
-					(tex.vertices[3].Ypixel == 0)  &&
-					(tex.vertices[3].Xcoordinate == 0)  &&
-					(tex.vertices[3].Ycoordinate == 0);
+				var isTri = (tex.tile & 0x8000) != 0;
 			    var minU = 0x7FFF, minV = 0x7FFF, numVertices = isTri ? 3 : 4;
 
-			    mapObjTexture2AnimTexture[texture] = { idxAnimatedTexture:animatedTextures.length, pos:snumTextures-numTextures-1 };
+		    	mapObjTexture2AnimTexture[texture] = { idxAnimatedTexture:animatedTextures.length, pos:snumTextures-numTextures-1 };
 
 			    for (var j = 0; j < numVertices; j++) {
 			        var u = tex.vertices[j].Xpixel;
@@ -140,10 +49,11 @@ TRN.SceneConverter.prototype = {
 
 			    anmcoords.push({ minU:(minU+0.5)/this.trlevel.atlas.width, minV:(minV+0.5)/this.trlevel.atlas.height, texture:"texture" + tile});
 			}
+
 			animatedTextures.push({
 				"animcoords": anmcoords,
-				"animspeed" : 6
-
+				"animspeed" : this.trlevel.rversion == 'TR1' ? 5 : this.trlevel.rversion == 'TR2' ? 6 : 14,
+				"scrolltexture" : (animatedTextures.length < this.trlevel.animatedTexturesUVCount)
 			});
 		}
 
@@ -471,20 +381,21 @@ TRN.SceneConverter.prototype = {
 				roomL = m;
 			}
 
-			var ambient1 = room.ambientIntensity1, ambient2 = room.ambientIntensity2;
 			var ambientColor = new THREE.Vector3();
 			if (this.trlevel.rversion != 'TR4') {
-				ambient1 = 1.0 - ambient1/0x2000;
+				var ambient1 = 1.0 - room.ambientIntensity1/0x2000;
 				ambientColor.set(ambient1, ambient1, ambient1);
 			} else {
-				ambientColor.setX((ambient2 & 0xFF) / 255.0);
-				ambientColor.setY(((ambient1 & 0xFF00) >> 8)  / 255.0);
-				ambientColor.setZ((ambient1 & 0xFF)  / 255.0);
+				var rc = room.roomColour;
+				ambientColor.setX(((rc & 0xFF0000) >> 16) / 255.0);
+				ambientColor.setY(((rc & 0xFF00) >> 8)  / 255.0);
+				ambientColor.setZ((rc & 0xFF)  / 255.0);
 			}
 
 			var lights = [];
 			for (var l = 0; l < room.lights.length; ++l) {
 				var light = room.lights[l], color = new THREE.Vector3(1, 1, 1);
+				var px = light.x, py = -light.y, pz = -light.z;
 				var fadeIn = 0, fadeOut = 0;
 				switch(this.trlevel.rversion) {
 					case 'TR1':
@@ -506,15 +417,51 @@ TRN.SceneConverter.prototype = {
 		                fadeOut = light.fade;
 						break;
 					case 'TR4':
-						// todo
+						if (light.lightType > 2) {
+							// todo: handling of shadow / fog bulb lights
+							continue;
+						}
+		                var r = light.color.r / 255.0;
+		                var g = light.color.g / 255.0;
+		                var b = light.color.b / 255.0;
+		                var intensity = light.intensity;
+		                if (intensity > 32) intensity = 32;
+		                intensity = intensity / 16.0;
+		                color.set(r*intensity, g*intensity, b*intensity);
+		                switch (light.lightType) {
+		                	case 0: // directional light
+		                		// todo: handle directional light correctly (notably in the shader). For the time being, we set it as a point light
+		                		var bb = this.getBoundingBox(room.roomData.vertices);
+		                		px = (bb[0] + bb[1]) / 2.0;
+		                		py = (bb[2] + bb[3]) / 2.0;
+		                		pz = (bb[4] + bb[5]) / 2.0;
+		                		fadeOut = Math.sqrt((bb[1]-bb[0])*(bb[1]-bb[0]) + (bb[3]-bb[2])*(bb[3]-bb[2]) + (bb[5]-bb[4])*(bb[5]-bb[4]));
+		                		break;
+		                	case 1: // point light
+		                		fadeIn = light.in;
+		                		fadeOut = light.out;
+		                		break;
+		                	case 2: // spot light
+		                		// todo: handle spot light correctly (notably in the shader). For the time being, we set it as a point light
+		                		fadeIn = light.length;
+		                		fadeOut = light.cutOff;
+		                		if (fadeOut < fadeIn) {
+		                			fadeIn = fadeOut;
+		                			fadeOut = light.length;
+		                		}
+		                		// only to account for the fact that the spot lights are not handled correctly: we have to lower their intensity
+				                intensity = intensity / 8.0;
+				                color.set(r*intensity, g*intensity, b*intensity);
+		                		break;
+		                }
 						break;
 				}
 		        if (fadeOut > 0x7FFF) fadeOut = 0x8000;
 		        if (fadeIn > fadeOut) fadeIn = 0;
 				lights.push({
-					x: light.x,
-					y: -light.y,
-					z: -light.z,
+					x: px,
+					y: py,
+					z: pz,
 					color: color,
 					fadeIn: fadeIn,
 					fadeOut: fadeOut
@@ -692,6 +639,9 @@ TRN.SceneConverter.prototype = {
 
 	createMoveables : function () {
 
+		var startObjIdAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'rendering > scrolling_moveable > start_id', true, 0);
+		var endObjIdAnim =  startObjIdAnim + this.confMgr.levelNumber(this.sc.levelShortFileName, 'rendering > scrolling_moveable > num', true, 0) - 1;
+
 		var numMoveables = 0;
 		for (var m = 0; m < this.trlevel.moveables.length; ++m) {
 			var moveable = this.trlevel.moveables[m];
@@ -710,6 +660,7 @@ TRN.SceneConverter.prototype = {
 			var px = 0, py = 0, pz = 0, ofsvert = 0, bones = [], skinIndices = [], skinWeights = [];
 
 			meshJSON.attributes = attributes;
+			meshJSON.objHasScrollAnim = moveable.objectID >= startObjIdAnim && moveable.objectID <= endObjIdAnim;
 
 			var moveableIsExternallyLit = false;
 			for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
@@ -913,7 +864,8 @@ TRN.SceneConverter.prototype = {
 			"roomIndex"				: roomIndex,
 			"animationStartIndex"	: moveable.animation,
 			"skin"					: true,
-			"use_vertex_texture" 	: false
+			"use_vertex_texture" 	: false,
+			"hasScrollAnim"			: hasGeometry ? hasGeometry.objHasScrollAnim : false
 		};
 
 		var spriteSeqObjID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
@@ -1109,7 +1061,7 @@ TRN.SceneConverter.prototype = {
 					}
 				}
 			}
-			
+
 			// if not a cut scene, we set a specific start anim for Lara
 			if (this.sc.cutScene.frames == null) {
 				var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > startanim', true, 0);
@@ -1261,11 +1213,6 @@ TRN.SceneConverter.prototype = {
 			"far"   : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > fardist', true, 10000),
 			"position": [ camPos.x, camPos.y, camPos.z ],
 			"quaternion": [ q.x, q.y, q.z, q.w ]
-		}
-
-		// remove the bit #15 on tile attribute (which indicates that this objectTextures is used for a tri-face: we don't need this information)
-		for (var i = 0; i < this.trlevel.objectTextures.length; ++i) {
-			this.trlevel.objectTextures[i].tile &= 0x7FFF;
 		}
 
 		this.createTextures();

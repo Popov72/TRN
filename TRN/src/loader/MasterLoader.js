@@ -131,7 +131,8 @@ TRN.MasterLoader = {
 
 		sceneJSON.curRoom = -1;
 
-		TRN.ObjectID.Lara = confMgr.levelNumber(sceneJSON.levelShortFileName, 'lara > id', true, 0);
+		TRN.ObjectID.skyId = confMgr.levelNumber(sceneJSON.levelShortFileName, 'sky > objectid', true, 0);
+		TRN.ObjectID.Lara  = confMgr.levelNumber(sceneJSON.levelShortFileName, 'lara > id', true, 0);
 		TRN.ObjectID.Ponytail = confMgr.levelNumber(sceneJSON.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
 		TRN.Consts.leftThighIndex = confMgr.levelNumber(sceneJSON.levelShortFileName, 
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > left_thigh', true, 0) - 1;
@@ -141,11 +142,11 @@ TRN.MasterLoader = {
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > left_hand', true, 0) - 1;
 		TRN.Consts.rightHandIndex = confMgr.levelNumber(sceneJSON.levelShortFileName, 
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_hand', true, 0) - 1;
+		TRN.Consts.useUVRotate = confMgr.levelBoolean(sceneJSON.levelShortFileName, 'uvrotate', true, false);
 
 		// make sure the sky is displayed first
 		if (scene.objects.sky) {
 			scene.objects.sky.renderDepth = -1e10;
-			//scene.objects.sky.frustumCulled = false;
 		}
 
 		// initialize the animated textures
@@ -363,12 +364,12 @@ TRN.MasterLoader = {
 					material.uniforms.tintColor.value = globalTintColor;
 				}
 
-				if (objJSON.has_anims && room) { // only animated objects are externally lit and need light definitions from the room
+				if (objJSON.has_anims && room && room.lights.length > 0) { // only animated objects are externally lit and need light definitions from the room
 
 					material.uniforms.ambientColor.value = room.ambientColor;
 					material.uniforms.pointLightPosition = { type: "v3v", value: [] };
 					material.uniforms.pointLightColor = { type: "v3v", value: [] };
-					material.uniforms.pointLightDistance = { type: "f", value: [] };
+					material.uniforms.pointLightDistance = { type: "fv1", value: [] };
 
 					for (var l = 0; l < room.lights.length; ++l) {
 
@@ -390,6 +391,14 @@ TRN.MasterLoader = {
 					material.needsUpdate = true;
 
 				}
+
+				if (objJSON.objectid == TRN.ObjectID.skyId) {
+					material.transparent = false; 	// in TR4, the sky object has some transparent faces. If we keep transparent=true in the material, those faces will be rendered after all the room geometry
+													// because in threeJS all opaque objects are rendered first, then the transparent ones. The problem is that the sky object (its geometry, which is a kind of a shpere) 
+													// is not very big, and so the transparent faces may be drawn over the room faces.
+													// Note that the opaque faces of the sky object are correctly occluded by the room faces because of the .renderDepth=-1e10 set a number of lines above, meaning the sky opaque faces
+													// will always be drawn first, before any other faces
+				}
 			}
 		}
 
@@ -408,8 +417,8 @@ TRN.MasterLoader = {
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
 
-		//camera.position.set(63514.36027899013,-3527.280854978113,-57688.901507514056);
-		//camera.quaternion.set(-0.050579906399909495,-0.2148394919749775,-0.011142047403773734,0.9752750999262544);
+		//camera.position.set(29808.49251,-2111.99851,-56327.35790);
+		//camera.quaternion.set(0.13390,0.13249,0.01807,-0.98193);
 
 		if (TRN.Browser.QueryString.pos) {
 
