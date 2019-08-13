@@ -95,6 +95,7 @@ TRN.Panel.prototype = {
 		this.elem.find('#nolights').on('click', function() {
 			var shaderMgr = new TRN.ShaderMgr();
 			var scene = this_.parent.scene;
+			var shader = shaderMgr.getVertexShader('moveable');
 			for (var objID in scene.objects) {
 				var obj = scene.objects[objID];
 				if (!(obj instanceof THREE.Mesh)) continue;
@@ -103,14 +104,16 @@ TRN.Panel.prototype = {
 				if (!materials || !materials.length) continue;
 
 				for (var i = 0; i < materials.length; ++i) {
-					var material = materials[i], origMatName = material.origMatName;
+					var material = materials[i], origMatName = material.origMatName, origVertexShader = material.origVertexShader;
 					if (!origMatName) {
 						origMatName = material.origMatName = material.name;
+					}
+					if (!origVertexShader) {
 						material.origVertexShader = material.vertexShader;
 					}
 					if (origMatName.indexOf('_l') < 0) continue;
 
-					material.vertexShader = this.checked ? shaderMgr.getVertexShader('moveable') : material.origVertexShader;
+					material.vertexShader = this.checked ? shader : material.origVertexShader;
 					material.needsUpdate = true;
 				}
 			}
@@ -158,6 +161,33 @@ TRN.Panel.prototype = {
 				bc.states[81] = {state:bc.STATES.LEFT,    on:false}; // A
 				delete bc.states[87]; // W
 				delete bc.states[65]; // A
+			}
+		});
+
+		this.elem.find('#nomoveabletexture').on('click', function() {
+			var shaderMgr = new TRN.ShaderMgr();
+			var scene = this_.parent.scene;
+			var shader = shaderMgr.getFragmentShader('uniformcolor');
+			for (var objID in scene.objects) {
+				var obj = scene.objects[objID];
+				if (!(obj instanceof THREE.Mesh)) continue;
+				if (obj.name.match(/moveable|sprite|staticmesh/) == null) continue;
+
+				var materials = obj.material.materials;
+				if (!materials || !materials.length) continue;
+
+				for (var i = 0; i < materials.length; ++i) {
+					var material = materials[i], origMatName = material.origMatName, origFragmentShader = material.origFragmentShader;
+					if (!origMatName) {
+						material.origMatName = material.name;
+					}
+					if (!origFragmentShader) {
+						material.origFragmentShader = material.fragmentShader;
+					}
+
+					material.fragmentShader = this.checked ? shader : material.origFragmentShader;
+					material.needsUpdate = true;
+				}
 			}
 		});
 
