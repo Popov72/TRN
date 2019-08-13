@@ -10,7 +10,9 @@ TRN.Consts = {
 	"leftThighIndex" : 0,
 	"rightThighIndex" : 0,
 	"leftHandIndex" : 0,
-	"rightHandIndex" : 0
+	"rightHandIndex" : 0,
+	"uvRotateTileHeight" : 64,
+	"moveableScrollAnimTileHeight" : 128
 };
 
 TRN.baseFrameRate = 30.0;
