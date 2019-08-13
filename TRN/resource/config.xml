@@ -600,25 +600,37 @@
 			</moveables>
 		</global>
 		<levels>
-			<level id="alexhub"		type="normal"	name="Alexandria"/>
-			<level id="alexhub2"		type="normal"	name="Coastal Ruins"/>
 			<level id="angkor1"		type="normal"	name="Angkor Wat">
-				<uvrotate>yes</uvrotate>
+				<uvrotate>true</uvrotate>
 			</level>
 			<level id="ang_race"		type="normal"	name="Race For The Iris"/>
-			<level id="bikebit"		type="normal"	name="City Of The Dead">
+			<level id="settomb1"		type="normal"	name="The Tomb Of Seth"/>
+			<level id="settomb2"		type="normal"	name="Burial Chambers"/>
+			<level id="jeepchas"		type="normal"	name="Valley Of The Kings">
 				<sky>
-					<color><r>100</r><g>100</g><b>0</b></color>
+					<color><r>255</r><g>190</g><b>255</b></color>
 				</sky>
-				<moveables>
-					<moveable id="0">
-						<behaviour name="Sky">
-							<id>-1</id>
-						</behaviour>
-					</moveable>
-				</moveables>
 			</level>
-			<level id="citnew"		type="normal"	name="Citadel">
+			<level id="jeepchs2"		type="normal"	name="KV5">
+				<sky>
+					<color><r>255</r><g>160</g><b>130</b></color>
+				</sky>
+			</level>
+			<level id="karnak1"			type="normal"	name="Temple Of Karnak"/>
+			<level id="hall"			type="normal"	name="The Great Hypostyle Hall"/>
+			<level id="lake"			type="normal"	name="The Sacred Lake"/>
+			<level id="semer"		type="normal"	name="The Tomb of Semerkhet"/>
+			<level id="semer2"		type="normal"	name="Guardian Of Semerket"/>
+			<level id="train"		type="normal"	name="Desert Railroad"/>
+			<level id="alexhub"		type="normal"	name="Alexandria"/>
+			<level id="alexhub2"		type="normal"	name="Coastal Ruins"/>
+			<level id="csplit1"		type="normal"	name="Catacombs"/>
+			<level id="csplit2"		type="normal"	name="Temple Of Poseidon"/>
+			<level id="library"		type="normal"	name="The Lost Library"/>
+			<level id="libend"		type="normal"	name="Hall Of Demetrius"/>
+			<level id="palaces"		type="normal"	name="Pharos,Temple Of Isis"/>
+			<level id="palaces2"		type="normal"	name="Cleopatra´s Palaces"/>
+			<level id="bikebit"		type="normal"	name="City Of The Dead">
 				<sky>
 					<color><r>100</r><g>100</g><b>0</b></color>
 				</sky>
@@ -642,9 +654,6 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="csplit1"		type="normal"	name="Catacoms"/>
-			<level id="csplit2"		type="normal"	name="Temple Of Poseidon"/>
-			<level id="hall"			type="normal"	name="The Great Hypostyle Hall"/>
 			<level id="highstrt"		type="normal"	name="Citadel Gate">
 				<sky>
 					<color><r>100</r><g>100</g><b>0</b></color>
@@ -657,19 +666,9 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="jeepchas"		type="normal"	name="Valley Of The Kings">
+			<level id="nutrench"		type="normal"	name="Trenches">
 				<sky>
-					<color><r>255</r><g>190</g><b>255</b></color>
-				</sky>
-			</level>
-			<level id="jeepchs2"		type="normal"	name="KV5">
-				<sky>
-					<color><r>255</r><g>160</g><b>130</b></color>
-				</sky>
-			</level>
-			<level id="joby1a"		type="normal"	name="The Sphinx Complex">
-				<sky>
-					<color><r>100</r><g>30</g><b>0</b></color>
+					<color><r>100</r><g>100</g><b>0</b></color>
 				</sky>
 				<moveables>
 					<moveable id="0">
@@ -679,7 +678,31 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="joby1b"		type="normal"	name="The Valley Temple">
+			<level id="lowstrt"		type="normal"	name="Street Bazar">
+				<sky>
+					<color><r>100</r><g>100</g><b>0</b></color>
+				</sky>
+				<moveables>
+					<moveable id="0">
+						<behaviour name="Sky">
+							<id>-1</id>
+						</behaviour>
+					</moveable>
+				</moveables>
+			</level>
+			<level id="citnew"		type="normal"	name="Citadel">
+				<sky>
+					<color><r>100</r><g>100</g><b>0</b></color>
+				</sky>
+				<moveables>
+					<moveable id="0">
+						<behaviour name="Sky">
+							<id>-1</id>
+						</behaviour>
+					</moveable>
+				</moveables>
+			</level>
+			<level id="joby1a"		type="normal"	name="The Sphinx Complex">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
@@ -749,13 +772,9 @@
 			<level id="joby5a"		type="normal"	name="Inside The Great Pyramid"/>
 			<level id="joby5b"		type="normal"	name="Temple Of Horus"/>
 			<level id="joby5c"		type="normal"	name="Temple Of Horus"/>
-			<level id="karnak1"		type="normal"	name="Temple Of Karnak"/>
-			<level id="lake"			type="normal"	name="The Sacred Lake"/>
-			<level id="libend"		type="normal"	name="Hall Of Demetrius"/>
-			<level id="library"		type="normal"	name="The Lost Library"/>
-			<level id="lowstrt"		type="normal"	name="Street Bazar">
+			<level id="joby1b"		type="normal"	name="The Valley Temple">
 				<sky>
-					<color><r>100</r><g>100</g><b>0</b></color>
+					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
 				<moveables>
 					<moveable id="0">
@@ -765,31 +784,12 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="nutrench"		type="normal"	name="New City">
-				<sky>
-					<color><r>100</r><g>100</g><b>0</b></color>
-				</sky>
-				<moveables>
-					<moveable id="0">
-						<behaviour name="Sky">
-							<id>-1</id>
-						</behaviour>
-					</moveable>
-				</moveables>
-			</level>
-			<level id="palaces"		type="normal"	name="Pharos,Temple Of Isis"/>
-			<level id="palaces2"		type="normal"	name="Cleopatra´s Palaces"/>
-			<level id="semer"		type="normal"	name="The Tomb of Semerkhet"/>
-			<level id="semer2"		type="normal"	name="Guardian Of Semerket"/>
-			<level id="settomb1"		type="normal"	name="The Tomb Of Seth"/>
-			<level id="settomb2"		type="normal"	name="Burial Chambers"/>
-			<!--level id="title"		type="normal"	name=""/-->
-			<level id="train"		type="normal"	name="Desert Railroad"/>
-			<level id="title2"		type="normal"	name="">
+			<!--level id="title2"		type="normal"	name="">
 				<sky>
 					<color><r>255</r><g>160</g><b>130</b></color>
 				</sky>
-			</level>
+			</level-->
+			<!--level id="title"		type="normal"	name=""/-->
 		</levels>
 	</game>
 </tombraider>
