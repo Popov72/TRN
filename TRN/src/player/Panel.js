@@ -77,16 +77,17 @@ TRN.Panel.prototype = {
 		this.elem.find('#usefog').on('click', function() {
 			var shaderMgr = new TRN.ShaderMgr();
 			var scene = this_.parent.scene;
+			var shader = shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
 			for (var objID in scene.objects) {
 				var obj = scene.objects[objID];
-				if (!(obj instanceof THREE.Mesh)) continue;
+				if (!(obj instanceof THREE.Mesh) || objID.indexOf('sky') >= 0) continue;
 
 				var materials = obj.material.materials;
 				if (!materials || !materials.length) continue;
 
 				for (var i = 0; i < materials.length; ++i) {
 					var material = materials[i];
-					material.fragmentShader = shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
+					material.fragmentShader = shader;
 					material.needsUpdate = true;
 				}
 			}
