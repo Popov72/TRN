@@ -1,19 +1,6 @@
-TRN.ShaderMgr = function(fpath) {
-	this.root = null;
-
-	fpath = fpath || 'TRN/resource/shaders.xml';
-
-	var _this = this;
-
-	jQuery.ajax({
-		type: "GET",
-		url: fpath,
-		dataType: "xml",
-		cache: false,
-		async: false
-	}).done(function(data) { _this.root = data; });
-
-	return this;
+TRN.ShaderMgr = function() {
+	this.fpath = 'TRN/resource/shaders/';
+	this.fileCache = {};
 }
 
 TRN.ShaderMgr.prototype = {
@@ -21,9 +8,7 @@ TRN.ShaderMgr.prototype = {
 	constructor : TRN.ShaderMgr,
 
 	getShader : function(ptype, name) {
-		var node = jQuery(this.root).find('shader[type="' + ptype + '"][name="' + name + '"]');
-		if (node.size() == 0) console.warn('Could not load the ' + ptype + ' shader "' + name + '"');
-		return node.size() > 0 ? node.text() : null;
+		return this._getFile(name + (ptype == 'vertex' ? '.vs' : '.fs'));
 	},
 
 	getVertexShader : function(name) {
@@ -32,6 +17,23 @@ TRN.ShaderMgr.prototype = {
 
 	getFragmentShader : function(name) {
 		return this.getShader('fragment', name);
+	},
+
+	_getFile : function(fname) {
+		return this.fileCache[fname] || this._loadFile(fname);
+	},
+
+	_loadFile : function(fname) {
+		var res;
+		jQuery.ajax({
+			type: "GET",
+			url: this.fpath + fname,
+			dataType: "text",
+			cache: false,
+			async: false
+		}).done(function(data) { res = data; });
+		return res;
 	}
+
 
 }
