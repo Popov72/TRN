@@ -20,7 +20,9 @@ TRN.ShaderMgr.prototype = {
 	},
 
 	_getFile : function(fname) {
-		return this.fileCache[fname] || this._loadFile(fname);
+		if (typeof this.fileCache[fname] != 'undefined') return this.fileCache[fname];
+		this.fileCache[fname] = this._loadFile(fname);
+		return this.fileCache[fname];
 	},
 
 	_loadFile : function(fname) {
