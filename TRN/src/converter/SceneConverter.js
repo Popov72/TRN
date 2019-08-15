@@ -1103,7 +1103,7 @@ TRN.SceneConverter.prototype = {
 				"material" 				: materials,
 				"position" 				: [ 0, 0, 0 ],
 				"quaternion" 			: [ 0, 0, 0, 1 ],
-				"scale"	   				: [ 1, 1, 1 ],
+				"scale"	   				: this.trlevel.rversion != 'TR4' ? [ 1, 1, 1 ] : [100, 100, 100], // see comment in MasterLoader.js for the x100 scaling reason
 				"visible"  				: true,
 				"objectid" 				: moveable.objectID,
 				"type"     				: 'moveable',

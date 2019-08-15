@@ -147,10 +147,12 @@ TRN.MasterLoader = {
 		// make sure the skies are displayed first
 		if (scene.objects.skydome) {
 			scene.objects.skydome.renderDepth = -1e11;
+			scene.objects.skydome.frustumCulled = false;
 		}
 
 		if (scene.objects.sky) {
 			scene.objects.sky.renderDepth = -1e10;
+			scene.objects.sky.frustumCulled = false;
 		}
 
 		var skyTexture = scene.textures['sky'];
@@ -403,11 +405,13 @@ TRN.MasterLoader = {
 				}
 
 				if (objJSON.objectid == TRN.ObjectID.skyId) {
-					material.transparent = false; 	// in TR4, the sky object has some transparent faces. If we keep transparent=true in the material, those faces will be rendered after all the room geometry
-													// because in threeJS all opaque objects are rendered first, then the transparent ones. The problem is that the sky object (its geometry, which is a kind of a shpere) 
+					//material.transparent = false; // in TR4, some sky objects (in alexhub / alexhub2) have some transparent faces. If we keep transparent=true in the material, those faces will be rendered after all the room geometries
+													// because in threeJS all opaque objects are rendered first, then all the transparent ones. The problem is that the sky object (its geometry, which is a kind of a shpere) 
 													// is not very big, and so the transparent faces may be drawn over the room faces.
-													// Note that the opaque faces of the sky object are correctly occluded by the room faces because of the .renderDepth=-1e10 set a number of lines above, meaning the sky opaque faces
-													// will always be drawn first, before any other faces
+													// Note that the opaque faces of the sky object are correctly occluded by the room faces because of 1/ the .renderDepth=-1e10 set a number of lines above, meaning the sky opaque faces
+													// will always be drawn first, before any other faces, and 2/ because .depthWrite = false
+					// Found a way to not set .transparent = false (and so line above is commented): 
+					//  in TR4, the sky object is scaled x100 so that it is very big and the transparent faces won't overlap room faces even if rendered after them. Not very nice, but it does work...
 				}
 			}
 		}
