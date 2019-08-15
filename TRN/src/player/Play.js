@@ -308,6 +308,15 @@ TRN.Play.prototype = {
 		if (this.scene.objects.sky) {
 			this.scene.objects.sky.position = this.camera.position;
 		}
+		if (this.scene.objects.skydome) {
+			this.scene.objects.skydome.position = this.camera.position;
+			var material = this.scene.objects.skydome.material.materials[0];
+			if (material.uniforms) {
+				var pgr = curTime / (50.0*1000.0);
+				pgr = pgr - Math.floor(pgr);
+				material.uniforms.offsetRepeat.value.x = pgr;
+			}
+		}
 
 		var singleRoomMode = this.panel.singleRoomMode();
 
@@ -382,7 +391,7 @@ TRN.Play.prototype = {
 							material.uniforms.offsetRepeat.value.w = 0.5;
 							//if (this.gcounter==0 && objJSON.roomIndex == 76) console.log(material.uniforms.map.value)
 						}
-						var pgr = curTime / (15*material.uniforms.map.value.image.height), h = (TRN.Consts.uvRotateTileHeight/2.0)/material.uniforms.map.value.image.height;
+						var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.uvRotateTileHeight/2.0)/material.uniforms.map.value.image.height;
 						pgr = pgr - h * Math.floor(pgr / h);
 						material.uniforms.offsetRepeat.value.x = coords.minU;
 						material.uniforms.offsetRepeat.value.y = coords.minV + h - pgr;

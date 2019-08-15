@@ -18,7 +18,11 @@ TRN.SceneConverter.prototype = {
 
 		// create one texture per tile	
 		for (var i = 0; i < this.trlevel.textile.length; ++i) {
-			this.sc.textures['texture' + i] = {
+			var name = 'texture' + i;
+			if (i == this.trlevel.textile.length-1 && this.trlevel.rversion == 'TR4') {
+				name = 'sky';
+			}
+			this.sc.textures[name] = {
 				/*"url_": this.sc.texturePath  + this.sc.levelShortFileNameOrig + "_tile" + i + ".png",*/
 				"url": this.trlevel.textile[i],
 				"anisotropy": 16
@@ -1081,7 +1085,8 @@ TRN.SceneConverter.prototype = {
 
 		// specific handling of the sky
 		var skyId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > objectid', true, 0);
-		if (skyId && movObjID2Index[skyId]) {
+		var noSky = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id=0] > behaviour[name=Sky] > id', false, 0) == -1;
+		if (skyId && movObjID2Index[skyId] && !noSky) {
 			moveable = this.trlevel.moveables[movObjID2Index[skyId]];
 			var materials = [];
 			for (var mat = 0; mat < this.sc.embeds['moveable' + moveable.objectID]._materials.length; ++mat) {
@@ -1108,6 +1113,77 @@ TRN.SceneConverter.prototype = {
 				"use_vertex_texture" 	: false
 			};
 			numMoveableInstances++;	
+		}
+
+		// specific handling of the skydome (TR4 only)
+		if (this.trlevel.rversion == 'TR4') {
+			var skyColor = new THREE.Vector3(
+					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > r', true, 255)/255.0,
+					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > g', true, 255)/255.0,
+					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > b', true, 255)/255.0
+				);
+			var materials = [
+				{
+					"material": this.getMaterial("skydome", 0),
+					"uniforms": {
+						"map" : { type: "t", value: "sky" },
+						"offsetRepeat" : { type: "v4", value: new THREE.Vector4( 0, 0, 1, 1 ) },
+						"tintColor" : { type: "v3", value : skyColor }
+					},
+					"depthWrite" : false,
+					"userData": {}
+				}
+			];
+			this.sc.objects['skydome'] = {
+				"geometry" 				: "skydome",
+				"material" 				: materials,
+				"position" 				: [ 0, 0, 0 ],
+				"quaternion" 			: [ 0, 0, 0, 1 ],
+				"scale"	   				: [ 1, 1, 1 ],
+				"visible"  				: true,
+				"type"					: 'skydome',
+				"skin"					: false,
+				"use_vertex_texture" 	: false,
+				"dummy"					: true
+			};
+			
+			var meshJSON = this.createNewJSONEmbed();
+			var meshData = TRN.SkyDome.create(
+				/*curvature*/ 10.0,
+				/*tiling*/ 3,
+				/*distance*/ 2000.0,
+				/*orientation*/ new THREE.Quaternion(),
+				/*xsegments*/ 16, 
+				/*ysegments*/ 16,
+				/*ySegmentsToKeep*/ 8
+			);
+			
+			meshJSON.attributes = null;
+			meshJSON.vertices = meshData.vertices;
+			meshJSON.uvs[0] = meshData.textures;
+
+			var faces = meshData.faces, numFaces = faces.length / 3;
+			for (var f = 0; f < numFaces; ++f) {
+				meshJSON.faces.push(10); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
+
+				// vertex indices
+				for (var v = 0; v < 3; ++v) {
+					meshJSON.faces.push(faces[f*3+v]);
+				}
+
+				meshJSON.faces.push(0); // material index
+
+				// texture indices
+				for (var v = 0; v < 3; ++v) {
+					meshJSON.faces.push(faces[f*3+v]);
+				}
+			}
+
+			this.sc.embeds['skydome'] = meshJSON;
+			this.sc.geometries['skydome'] = {
+				"type": "embedded",
+				"id"  : "skydome"
+			};
 		}
 
 		console.log('Num moveable instances=', numMoveableInstances, '. Num sprite sequence instances=', numSpriteSeqInstances);

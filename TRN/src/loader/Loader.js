@@ -365,10 +365,14 @@ TRN.Loader = {
 			var canvas = jQuery('#TRN_alltextiles');
 			var context = canvas[0].getContext('2d');
 
+			var dataSky = out.textile[out.textile.length-1];
+
 			context.putImageData(out.atlas.imageData, 0, 0);
 			var data = canvas[0].toDataURL('image/png');
 			out.textile = [data];
 			canvas.remove();
+
+			if (rversion == 'TR4') out.textile.push(dataSky); // the sky textile must always be the last of the out.textile array
 
 			if (showTiles) {
 				jQuery(document.body).css('overflow', 'auto');

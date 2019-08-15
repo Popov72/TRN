@@ -98,6 +98,23 @@ TRN.extend(TRN.SceneConverter.prototype, {
 					};
 				}
 				break;
+			case 'skydome':
+				matName = 'TR_SkyDome';
+				if (!this.sc.materials[matName]) {
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+							},
+							"vertexShader": this.shaderMgr.getVertexShader('skydome'),
+							"fragmentShader": this.shaderMgr.getFragmentShader('skydome'),
+							"vertexColors" : false
+						}
+					};
+				}				
+				break;
 		}
 
 		return matName;
@@ -263,7 +280,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
 			meshJSON.vertices.push(vertex.x, -vertex.y, -vertex.z);
 			meshJSON.colors.push(vcolor + (vcolor << 8) + (vcolor << 16)); 	// not used => a specific calculation is done in the vertex shader 
-																			// with the constant lighting for the mesh + the lighting at each vertex (passed to the shader via flags.z)
+																			// with the constant lighting for the mesh + the lighting at each vertex (passed to the shader via flags.w)
 
 			if (attributes)  attributes.flags.value.push(new THREE.Vector4(0, 0, 0, lighting));
 			if (skinIndices) skinIndices.push(skinidx, skinidx);

@@ -144,9 +144,20 @@ TRN.MasterLoader = {
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_hand', true, 0) - 1;
 		TRN.Consts.useUVRotate = confMgr.levelBoolean(sceneJSON.levelShortFileName, 'uvrotate', true, false);
 
-		// make sure the sky is displayed first
+		// make sure the skies are displayed first
+		if (scene.objects.skydome) {
+			scene.objects.skydome.renderDepth = -1e11;
+		}
+
 		if (scene.objects.sky) {
 			scene.objects.sky.renderDepth = -1e10;
+		}
+
+		var skyTexture = scene.textures['sky'];
+		if (skyTexture) {
+			skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
+			skyTexture.
+			skyTexture.needsUpdate = true;
 		}
 
 		// initialize the animated textures
@@ -271,7 +282,7 @@ TRN.MasterLoader = {
 			obj.initPos = new THREE.Vector3();
 			obj.initPos.copy(obj.position);
 
-			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID != 'sky') {
+			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID.indexOf('sky') < 0) {
 
 				obj.updateMatrix();
 				obj.matrixAutoUpdate = false;

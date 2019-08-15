@@ -39,6 +39,7 @@
 	<script src="TRN/src/loader/TR4Loader.js"></script>
 	<script src="TRN/src/loader/Scene.js"></script>
 	<script src="TRN/src/loader/MasterLoader.js?ver=5"></script>
+	<script src="TRN/src/converter/SkyDome.js?ver=7"></script>
 	<script src="TRN/src/converter/SceneConverter.js?ver=7"></script>
 	<script src="TRN/src/converter/SceneConverterHelper.js?ver=6"></script>
 	<script src="TRN/src/sound/Sound.js"></script>
@@ -76,6 +77,7 @@
 var showTiles = false;
 var makeJSON = false;
 var level2JSON = {};
+var play = null;
 
 function setContainerDimensions() {
 	if (!makeJSON && !showTiles) {
@@ -135,7 +137,7 @@ function handleFileSelect(evt) {
 					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name}, progressbar, function(oscene) {
 						jQuery('#files').css('display', 'none');
 						jQuery('#output').css('display', 'none');
-						var play = new TRN.Play(document.getElementById( 'container' ));
+						play = new TRN.Play(document.getElementById( 'container' ));
 						if (TRN.Browser.QueryString.autostart == '1') {
 							play.start(oscene);
 						} else {
@@ -207,7 +209,7 @@ if (TRN.Browser.QueryString.level) {
 
 	var progressbar = new TRN.ProgressBar(jQuery('#container'));
 	var oscene = TRN.MasterLoader.loadLevel('TRN/level/' + TRN.Browser.QueryString.level, progressbar, function(oscene) {
-		var play = new TRN.Play(document.getElementById( 'container' ));
+		play = new TRN.Play(document.getElementById( 'container' ));
 		if (TRN.Browser.QueryString.autostart == '1') {
 			progressbar.hide();
 			play.start(oscene);
