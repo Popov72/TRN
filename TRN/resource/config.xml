@@ -600,7 +600,7 @@
 			</moveables>
 		</global>
 		<levels>
-			<level id="angkor1"		type="normal"	name="Angkor Wat">
+			<level id="angkor1"			type="normal"	name="Angkor Wat">
 				<uvrotate>true</uvrotate>
 			</level>
 			<level id="ang_race"		type="normal"	name="Race For The Iris"/>
@@ -619,18 +619,18 @@
 			<level id="karnak1"			type="normal"	name="Temple Of Karnak"/>
 			<level id="hall"			type="normal"	name="The Great Hypostyle Hall"/>
 			<level id="lake"			type="normal"	name="The Sacred Lake"/>
-			<level id="semer"		type="normal"	name="The Tomb of Semerkhet"/>
-			<level id="semer2"		type="normal"	name="Guardian Of Semerket"/>
-			<level id="train"		type="normal"	name="Desert Railroad"/>
-			<level id="alexhub"		type="normal"	name="Alexandria"/>
+			<level id="semer"			type="normal"	name="The Tomb of Semerkhet"/>
+			<level id="semer2"			type="normal"	name="Guardian Of Semerket"/>
+			<level id="train"			type="normal"	name="Desert Railroad"/>
+			<level id="alexhub"			type="normal"	name="Alexandria"/>
 			<level id="alexhub2"		type="normal"	name="Coastal Ruins"/>
-			<level id="csplit1"		type="normal"	name="Catacombs"/>
-			<level id="csplit2"		type="normal"	name="Temple Of Poseidon"/>
-			<level id="library"		type="normal"	name="The Lost Library"/>
-			<level id="libend"		type="normal"	name="Hall Of Demetrius"/>
-			<level id="palaces"		type="normal"	name="Pharos,Temple Of Isis"/>
+			<level id="csplit1"			type="normal"	name="Catacombs"/>
+			<level id="csplit2"			type="normal"	name="Temple Of Poseidon"/>
+			<level id="library"			type="normal"	name="The Lost Library"/>
+			<level id="libend"			type="normal"	name="Hall Of Demetrius"/>
+			<level id="palaces"			type="normal"	name="Pharos,Temple Of Isis"/>
 			<level id="palaces2"		type="normal"	name="Cleopatra´s Palaces"/>
-			<level id="bikebit"		type="normal"	name="City Of The Dead">
+			<level id="bikebit"			type="normal"	name="City Of The Dead">
 				<sky>
 					<color><r>100</r><g>100</g><b>0</b></color>
 				</sky>
@@ -678,7 +678,7 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="lowstrt"		type="normal"	name="Street Bazar">
+			<level id="lowstrt"			type="normal"	name="Street Bazar">
 				<sky>
 					<color><r>100</r><g>100</g><b>0</b></color>
 				</sky>
@@ -690,7 +690,7 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="citnew"		type="normal"	name="Citadel">
+			<level id="citnew"			type="normal"	name="Citadel">
 				<sky>
 					<color><r>100</r><g>100</g><b>0</b></color>
 				</sky>
@@ -702,7 +702,7 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="joby1a"		type="normal"	name="The Sphinx Complex">
+			<level id="joby1a"			type="normal"	name="The Sphinx Complex">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
@@ -714,8 +714,8 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="joby2"		type="normal"	name="Underneath The Sphinx"/>
-			<level id="joby3a"		type="normal"	name="Menkaure's Pyramid">
+			<level id="joby2"			type="normal"	name="Underneath The Sphinx"/>
+			<level id="joby3a"			type="normal"	name="Menkaure's Pyramid">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
@@ -727,13 +727,13 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="joby3b"		type="normal"	name="Inside Menkaure's Pyramid">
+			<level id="joby3b"			type="normal"	name="Inside Menkaure's Pyramid">
 				<sky>
 					<id>-1</id>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
 			</level>
-			<level id="joby4a"		type="normal"	name="The Mastabas">
+			<level id="joby4a"			type="normal"	name="The Mastabas">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
@@ -745,7 +745,7 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="joby4b"		type="normal"	name="The Great Pyramid">
+			<level id="joby4b"			type="normal"	name="The Great Pyramid">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
@@ -757,7 +757,7 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="joby4c"		type="normal"	name="Khufu's Queens Pyramids">
+			<level id="joby4c"			type="normal"	name="Khufu's Queens Pyramids">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
@@ -769,10 +769,10 @@
 					</moveable>
 				</moveables>
 			</level>
-			<level id="joby5a"		type="normal"	name="Inside The Great Pyramid"/>
-			<level id="joby5b"		type="normal"	name="Temple Of Horus"/>
-			<level id="joby5c"		type="normal"	name="Temple Of Horus"/>
-			<level id="joby1b"		type="normal"	name="The Valley Temple">
+			<level id="joby5a"			type="normal"	name="Inside The Great Pyramid"/>
+			<level id="joby5b"			type="normal"	name="Temple Of Horus"/>
+			<level id="joby5c"			type="normal"	name="Temple Of Horus"/>
+			<level id="joby1b"			type="normal"	name="The Valley Temple">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
 				</sky>
