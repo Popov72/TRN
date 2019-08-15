@@ -156,7 +156,6 @@ TRN.MasterLoader = {
 		var skyTexture = scene.textures['sky'];
 		if (skyTexture) {
 			skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
-			skyTexture.
 			skyTexture.needsUpdate = true;
 		}
 
