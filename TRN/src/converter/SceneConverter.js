@@ -298,10 +298,10 @@ TRN.SceneConverter.prototype = {
 					"adjoiningRoom": portal.adjoiningRoom,
 					"normal": { x:portal.normal.x, y:-portal.normal.y, z:-portal.normal.z },
 					"vertices": [
-						{ x:portal.vertices[0].x, y:-portal.vertices[0].y, z:-portal.vertices[0].z },
-						{ x:portal.vertices[1].x, y:-portal.vertices[1].y, z:-portal.vertices[1].z },
-						{ x:portal.vertices[2].x, y:-portal.vertices[2].y, z:-portal.vertices[2].z },
-						{ x:portal.vertices[3].x, y:-portal.vertices[3].y, z:-portal.vertices[3].z }
+						{ x:portal.vertices[0].x+info.x, y:-portal.vertices[0].y, z:-portal.vertices[0].z-info.z },
+						{ x:portal.vertices[1].x+info.x, y:-portal.vertices[1].y, z:-portal.vertices[1].z-info.z },
+						{ x:portal.vertices[2].x+info.x, y:-portal.vertices[2].y, z:-portal.vertices[2].z-info.z },
+						{ x:portal.vertices[3].x+info.x, y:-portal.vertices[3].y, z:-portal.vertices[3].z-info.z }
 					]
 				});
 			}

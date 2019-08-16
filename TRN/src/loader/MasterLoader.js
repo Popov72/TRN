@@ -127,7 +127,7 @@ TRN.MasterLoader = {
 	_postProcessLevel : function (progressbar, callbackLevelLoaded, oscene) {
 
 		var sceneJSON = oscene.sceneJSON, scene = oscene.scene;
-		var confMgr = new TRN.ConfigMgr(sceneJSON.rversion);
+		var confMgr = new TRN.ConfigMgr(sceneJSON.rversion), shaderMgr = new TRN.ShaderMgr();
 
 		sceneJSON.curRoom = -1;
 
@@ -316,6 +316,46 @@ TRN.MasterLoader = {
 			if (!objJSON.has_anims) {
 				obj.geometry.computeBoundingBox();
 				obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
+			}
+
+			if (objJSON.type == "room") {
+				var portals = objJSON.portals, meshPortals = [];
+				objJSON.meshPortals = meshPortals;
+				for (var p = 0; p < portals.length; ++p) {
+					var portal = portals[p], geom = new THREE.Geometry();
+					geom.vertices.push(
+						new THREE.Vector3(portal.vertices[0].x, portal.vertices[0].y, portal.vertices[0].z),
+						new THREE.Vector3(portal.vertices[1].x, portal.vertices[1].y, portal.vertices[1].z),
+						new THREE.Vector3(portal.vertices[2].x, portal.vertices[2].y, portal.vertices[2].z),
+						new THREE.Vector3(portal.vertices[3].x, portal.vertices[3].y, portal.vertices[3].z)
+					);
+					geom.colors.push(
+						new THREE.Color(0xff0000),
+						new THREE.Color(0x00ff00),
+						new THREE.Color(0x0000ff),
+						new THREE.Color(0xffffff)
+					);
+					geom.faces.push(new THREE.Face3(0, 1, 2, undefined, [geom.colors[0], geom.colors[1], geom.colors[2]]));
+					geom.faces.push(new THREE.Face3(0, 2, 3, undefined, [geom.colors[0], geom.colors[2], geom.colors[3]]));
+					var mesh = new THREE.Mesh(geom, new THREE.ShaderMaterial( {
+						uniforms: {
+						},
+						vertexShader: shaderMgr.getVertexShader('portal'),
+						fragmentShader: shaderMgr.getFragmentShader('portal'),
+						depthTest: true,
+						depthWrite: false,
+						fog: false,
+						vertexColors: THREE.VertexColors,
+						transparent: true
+					}));
+					mesh.name = objID + '_portal' + p;
+					mesh.position.x = mesh.position.y = mesh.position.z = 0;
+					mesh.updateMatrix();
+					mesh.matrixAutoUpdate = false;
+					mesh.visible = false;
+					meshPortals.push(mesh);
+					scene.scene.add(mesh);
+				}
 			}
 
 			obj.frustumCulled = true;

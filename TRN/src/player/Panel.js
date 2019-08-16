@@ -141,6 +141,20 @@ TRN.Panel.prototype = {
 			this_.parent.needWebGLInit = true;
 		});
 
+		this.elem.find('#showportals').on('click', function() {
+			var scene = this_.parent.scene, sceneJSON = this_.parent.sceneJSON;
+			for (var objID in scene.objects) {
+				var obj = scene.objects[objID];
+				var objJSON = sceneJSON.objects[objID];
+				var portals = objJSON.meshPortals;
+
+				if (!portals) continue;
+
+				for (var i = 0; i < portals.length; ++i)
+					portals[i].visible = this.checked;
+			}
+		});
+
 		this.elem.find('#fullscreen').on('click', function() {
 			if (document.fullscreenElement != null) {
 				if (document.exitFullscreen) 
