@@ -192,7 +192,8 @@ TRN.Loader = {
 
 		// -------------------
 		// --- post processing
-		
+		//console.log(out.numRoomTextiles, out.numObjTextiles, out.numBumpTextiles);
+
 		out.filename = fname;
 		out.shortfilename = fname.substring(0, fname.indexOf('.'));
 		out.rversion = rversion;
@@ -215,7 +216,7 @@ TRN.Loader = {
 		out.atlas = {
 			width : 256,
 			height : 256,
-			make : true,
+			make : false, // do not change, else bump mapping in TR4 won't work!
 			imageData : null,
 			numColPerRow : 4,
 			curRow : 0,

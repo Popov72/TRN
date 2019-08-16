@@ -366,6 +366,9 @@ TRN.MasterLoader = {
 				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
 					material.uniforms.map.value = scene.textures[material.uniforms.map.value];
 				}
+				if (material.uniforms.mapBump && typeof(material.uniforms.mapBump.value) == 'string' && material.uniforms.mapBump.value) {
+					material.uniforms.mapBump.value = scene.textures[material.uniforms.mapBump.value];
+				}
 
 				if (room && room.filledWithWater) {
 					material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);

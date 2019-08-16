@@ -43,6 +43,29 @@ TRN.extend(TRN.SceneConverter.prototype, {
 					};
 				}
 				break;
+			case 'roombump':
+				matName = 'TR_roombump';
+				if (!this.sc.materials[matName]) {
+					this.sc.materials[matName] = {
+						"type": "ShaderMaterial",
+						"parameters": {
+							"uniforms": {
+								"map": { type: "t", value: "" },
+								"mapBump": { type: "t", value: "" },
+								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"curTime": { type: "f", value: 0.0 },
+								"rnd": { type: "f", value: 0.0 },
+								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
+							},
+							"vertexShader": this.shaderMgr.getVertexShader('room'),
+							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('room_bump'),
+							"vertexColors" : true
+						}
+					};
+				}
+				break;
 			case 'mesh':
 				matName = 'TR_mesh';
 				if (!this.sc.materials[matName]) {
@@ -315,6 +338,11 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				};
 			} else {
 				lstMat[imat].uniforms.map = { type: "t", value: "texture" + tile };
+				if (matname == 'room' && tile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {
+					lstMat[imat].material = this.getMaterial('roombump', numLights);
+					lstMat[imat].uniforms.mapBump = { type: "t", value: "texture" + (parseInt(tile) + this.trlevel.numBumpTextiles/2) };
+					//console.log(lstMat[imat].uniforms.map.value, lstMat[imat].uniforms.mapBump.value)
+				}
 			}
 			lstMat[imat].hasAlpha = isAlphaText;
 

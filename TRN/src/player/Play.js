@@ -114,6 +114,10 @@ TRN.Play.prototype = {
 
 		//this.ponytail = new THREE.Ponytail(oscene.findObjectById(TRN.ObjectID.Lara), this.scene, this.world);
 
+		if (this.sceneJSON.rversion != 'TR4') {
+			jQuery('#nobumpmapping').prop('disabled', 'disabled');
+		}
+
 		this.panel.show();
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );

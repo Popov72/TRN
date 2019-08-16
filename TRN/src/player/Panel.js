@@ -192,6 +192,26 @@ TRN.Panel.prototype = {
 			}
 		});
 
+		this.elem.find('#nobumpmapping').on('click', function() {
+			var shaderMgr = new TRN.ShaderMgr();
+			var scene = this_.parent.scene;
+			var shader = shaderMgr.getFragmentShader(this.checked ? 'standard' : 'room_bump');
+			for (var objID in scene.objects) {
+				var obj = scene.objects[objID];
+				if (!(obj instanceof THREE.Mesh) || objID.indexOf('sky') >= 0 || this_.parent.sceneJSON.objects[objID].type != "room") continue;
+
+				var materials = obj.material.materials;
+				if (!materials || !materials.length) continue;
+ 
+				for (var i = 0; i < materials.length; ++i) {
+					var material = materials[i];
+					if (!material.uniforms.mapBump) continue;
+					material.fragmentShader = shader;
+					material.needsUpdate = true;
+				}
+			}
+		});
+
 	    var prefix = ['', 'webkit', 'moz'];
 	    for (var i = 0; i < prefix.length; ++i) {
 	    	document.addEventListener(prefix[i] + "fullscreenchange", function() {
