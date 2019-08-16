@@ -15,7 +15,7 @@ Hit the **H** key to display an help panel that lists all the keys you can use.
 
 Cutscenes are the levels with a <img src="http://www.evpopov.com/resources/movie.png" width="24px"/> icon after the level name.
 
-You can browse local levels on your hard drive by browsing the **TRN.html** page.
+You can browse local levels on your hard drive by browsing the **TRN.html** page. In this page, click on the **Select files** button and select an original TR level on your hard drive.
 
 Levels used in the web site linked above have been converted to a JSON format (used by threeJS) thanks to the **TRN.html** page (set the *makeJSON* variable to *true* in this page and browse it if you want to convert some TR levels to JSON format for your own use).
 
@@ -28,7 +28,7 @@ You can install the project locally (on your own computer) by doing these steps:
   * Type **python** then ENTER: if you get an error message, you don't have Python installed. To install it:
     * Download the package from the [Python web site](https://www.python.org/downloads/)
     * Launch the installation.
-    * **__Important__**: check the **Add Python 3.7 to PATH** checkbox that you can see at the bottom of the first screen! If you don't do it, you will have to put the Python path to the global **PATH** variable yourself
+    * **__Important__**: check the **Add Python 3.7 to PATH** (3.7 or whatever the current version of Python is) checkbox that you can see at the bottom of the first screen! If you don't do it, you will have to put the Python path to the global **PATH** variable yourself
 * Start Python has a simple HTTP server:
   * Start a command line (type **cmd** in the search input of Windows and hit ENTER)
   * Go to the directory where you installed TRN (for eg: **cd c:\Projects\TRN** + ENTER)
@@ -36,7 +36,7 @@ You can install the project locally (on your own computer) by doing these steps:
     * **python -m http.server** + ENTER
   * else type:
     * **python -m SimpleHTTPServer** + ENTER
-* In your browser, browse the url http://localhost:8000
+* In your browser, browse the url http://localhost:8000. You can also browse http://localhost:8000/TRN.html if you want to display a level located on your hard drive
 
 Note that you can use any web server for this matter. I described how to use Python to do that, but if you have another web server already installed on your computer, go for it.
 
