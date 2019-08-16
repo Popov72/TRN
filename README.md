@@ -1,7 +1,7 @@
 TRN
 ===
 
-Tomb Raider Nostalgia - View levels and play cut scenes for old Tomb Raider games 1/2/3 (maybe 4 one day).
+Tomb Raider Nostalgia - View levels and play cut scenes for old Tomb Raider games 1/2/3 (4 is in the way).
 
 [Browse and view TR1/2/3 levels](http://www.evpopov.com)
 
@@ -43,7 +43,7 @@ Note that you can use any web server for this matter. I described how to use Pyt
 You can also use PHP in much the same way than Python to start a simple HTTP server: install PHP on your computer (if not already installed), then use the command **PHP -S localhost:8000** from the TRN directory to start a simple web server.
 
 ## Roadmap
-- not too much, maybe TR4 support...
+- not too much, TR4 support to be finished...
 
 ## Screenshots
 Click on the picture to view the corresponding level.<br>
