@@ -26,11 +26,12 @@ TRN.MasterLoader = {
 		} else {
 
 			var isZip = trlevel.indexOf('.zip') >= 0;
+			var isBin = trlevel.indexOf('.') >= 0 && !isZip; // we assume that if the file has no extension, it is a JSON converted level, else it is either a zip of a JSON (see line above) or an original binary level
 
 		    var request = new XMLHttpRequest();
 
 		    request.open("GET", trlevel, true);
-		    request.responseType = isZip ? "arraybuffer" : "text";
+		    request.responseType = isZip || isBin ? "arraybuffer" : "text";
 
 		    request.onerror = function() {
 		        console.log('Read level: XHR error', request.status, request.statusText);
@@ -63,6 +64,11 @@ TRN.MasterLoader = {
 			    		var f = zip.file('level');
 			    		sc = JSON.parse(f.asText());
 			    		console.log('Level unzipped.');
+			    	} else if (isBin) {
+						var rs = TRN.Loader.loadRawLevel(request.response, trlevel);
+						var converter = new TRN.SceneConverter(new TRN.ConfigMgr(rs.json.rversion));
+						converter.convert(rs.json, this_._parseLevel.bind(this_, trlevel, progressbar, callbackLevelLoaded));
+						return;
 			    	} else {
 			    		sc = JSON.parse(request.response);
 			    	}

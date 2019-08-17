@@ -194,7 +194,8 @@ TRN.Loader = {
 		// --- post processing
 		//console.log(out.numRoomTextiles, out.numObjTextiles, out.numBumpTextiles);
 
-		out.filename = fname;
+		var idx = fname.lastIndexOf('\\'), idx2 = fname.lastIndexOf('/');
+		out.filename = fname.substring(1+Math.max(idx, idx2));
 		out.shortfilename = fname.substring(0, fname.indexOf('.'));
 		out.rversion = rversion;
 		out.version = TRN.Helper.toHexString32(version);

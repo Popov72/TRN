@@ -152,7 +152,7 @@ function handleFileSelect(evt) {
 
 						jQuery('body').append(
 							'<div style="color:white;cursor:pointer" onclick="saveJSON(\'' + oscene.sceneJSON.rversion + '\', \'' + oscene.sceneJSON.levelShortFileName + '\')">' +
-							idx + '/' + files.length + ' - Click to download ' + oscene.sceneJSON.levelShortFileNameOrig + '<div>'
+							idx + '/' + files.length + ' - Click to download ' + oscene.sceneJSON.levelShortFileNameNoExt + '<div>'
 						);
 
 						if (idx++ < files.length) {

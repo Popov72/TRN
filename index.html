@@ -107,12 +107,13 @@
 		var js = [];
 		for (var l = 0; l < levels.length; ++l) {
 			var level = levels[l], id = level.attributes['id'].nodeValue, tp = level.attributes['type'].nodeValue, name = level.attributes['name'].nodeValue, img = '';
+			var picname = id.substr(0, id.indexOf('.'));
 			if (tp == 'cutscene') {
 				img = '<img class="cutscene" src="resources/movie.png"/>';
 			}
 			js.push(
 				'<span class="thumbnail" level="' + id + '">' +
-				'<span class="timage"><img class="hvr-pulse" src="resources/' + game + '/' + id + '.jpg"/></span>' +
+				'<span class="timage"><img class="hvr-pulse" src="resources/' + game + '/' + picname + '.jpg"/></span>' +
 				'<span class="gametitle">' + img + '<span class="text">' + name + '</span></span>' +
 				'</span>'
 			);

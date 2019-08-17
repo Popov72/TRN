@@ -23,7 +23,6 @@ TRN.SceneConverter.prototype = {
 				name = 'sky';
 			}
 			this.sc.textures[name] = {
-				/*"url_": this.sc.texturePath  + this.sc.levelShortFileNameOrig + "_tile" + i + ".png",*/
 				"url": this.trlevel.textile[i],
 				"anisotropy": 16
 			};
@@ -1246,8 +1245,8 @@ TRN.SceneConverter.prototype = {
 		};
 
 		this.sc.levelFileName = this.trlevel.filename;
-		this.sc.levelShortFileNameOrig = this.sc.levelFileName.substring(0, this.sc.levelFileName.indexOf('.'));
-		this.sc.levelShortFileName = this.sc.levelShortFileNameOrig.toLowerCase();
+		this.sc.levelShortFileName = this.sc.levelFileName;
+		this.sc.levelShortFileNameNoExt = this.sc.levelShortFileName.substring(0, this.sc.levelShortFileName.indexOf('.'));
 		this.sc.waterColor = {
 			"in" : this.confMgr.globalColor('water > colorin'),
 			"out" : this.confMgr.globalColor('water > colorout')
@@ -1342,7 +1341,7 @@ TRN.SceneConverter.prototype = {
 			var this_ = this;
 			var binaryBuffer = new TRN.BinaryBuffer(
 				[
-				  this_.sc.soundPath + this_.sc.levelShortFileName.toUpperCase()
+				  this_.sc.soundPath + this_.sc.levelShortFileNameNoExt.toUpperCase()
 				],
 				function finishedLoading(bufferList, err) {
 					if (bufferList != null && bufferList.length > 0) {
