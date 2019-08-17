@@ -789,7 +789,7 @@
 					<color><r>255</r><g>160</g><b>130</b></color>
 				</sky>
 			</level-->
-			<!--level id="title"		type="normal"	name=""/-->
+			<level id="title"		type="normal"	name="Title"/>
 		</levels>
 	</game>
 </tombraider>
