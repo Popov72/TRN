@@ -30,7 +30,7 @@ TRN.gameFormatDescr.TR4 = {
 					'vertex', ['x', 'int16', 'y', 'int16', 'z', 'int16'],
 					'lighting1', 'uint16',
 					'attributes', 'uint16',
-					'lighting2', 'int16'
+					'lighting2', 'uint16'
 				], 'numVertices'],
 				'numRectangles', 'uint16',
 				'rectangles', ['', [
