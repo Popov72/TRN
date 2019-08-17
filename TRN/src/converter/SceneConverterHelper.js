@@ -17,13 +17,14 @@ TRN.extend(TRN.SceneConverter.prototype, {
 	},
 
 	getMaterial : function (objType, numLights) {
-		var matName = '';
-		if (typeof(numLights) == 'undefined') numLights = -1;
+		var matName = '', doReplace = false;
+		if (typeof(numLights) == 'undefined') numLights = null;
 
 		switch(objType) {
 			case 'room':
 				matName = 'TR_room';
 				if (!this.sc.materials[matName]) {
+					doReplace = true;
 					this.sc.materials[matName] = {
 						"type": "ShaderMaterial",
 						"parameters": {
@@ -46,6 +47,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			case 'roombump':
 				matName = 'TR_roombump';
 				if (!this.sc.materials[matName]) {
+					doReplace = true;
 					this.sc.materials[matName] = {
 						"type": "ShaderMaterial",
 						"parameters": {
@@ -69,6 +71,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			case 'mesh':
 				matName = 'TR_mesh';
 				if (!this.sc.materials[matName]) {
+					doReplace = true;
 					this.sc.materials[matName] = {
 						"type": "ShaderMaterial",
 						"parameters": {
@@ -90,13 +93,13 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				}				
 				break;
 			case 'moveable':
-				matName = 'TR_moveable' + (numLights >= 0 ? '_l' + numLights : '');
+				matName = 'TR_moveable' + (numLights != null ? '_l' + numLights.directional + '_' + numLights.point + '_' + numLights.spot : '');
 				if (!this.sc.materials[matName]) {
 					var vertexShader;
-
-					if (numLights >= 0) {
+					doReplace = true;
+					if (numLights != null) {
 						vertexShader = this.shaderMgr.getVertexShader('moveable_with_lights');
-						vertexShader = vertexShader.replace(/##num_lights##/g, numLights);
+						vertexShader = vertexShader.replace(/##num_point_lights##/g, numLights.point).replace(/##num_dir_lights##/g, numLights.directional).replace(/##num_spot_lights##/g, numLights.spot);
 					} else {
 						vertexShader = this.shaderMgr.getVertexShader('moveable');
 					}
@@ -124,6 +127,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			case 'skydome':
 				matName = 'TR_SkyDome';
 				if (!this.sc.materials[matName]) {
+					doReplace = true;
 					this.sc.materials[matName] = {
 						"type": "ShaderMaterial",
 						"parameters": {
@@ -138,6 +142,11 @@ TRN.extend(TRN.SceneConverter.prototype, {
 					};
 				}				
 				break;
+		}
+
+		if (doReplace) {
+			this.sc.materials[matName].parameters.vertexShader = this.sc.materials[matName].parameters.vertexShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
+			this.sc.materials[matName].parameters.fragmentShader = this.sc.materials[matName].parameters.fragmentShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
 		}
 
 		return matName;
@@ -169,6 +178,14 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return [xmin,xmax,ymin,ymax,zmin,zmax];
 	},
 
+	countLightTypes : function(lights) {
+		var res = { directional:0, point:0, spot: 0 };
+		for (var i = 0; i < lights.length; ++i) {
+			res[lights[i].type]++;
+		}
+		return res;
+	},
+
 	processRoomVertex : function(rvertex, isFilledWithWater, isFlickering) {
 		var vertex = rvertex.vertex, attribute = rvertex.attributes;
 		var lighting = 0;
@@ -186,10 +203,18 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				var r = lighting, g = lighting, b = lighting;
 				lighting = b + (g << 8) + (r << 16);
 				break;
-			default:
+			case 'TR3':
 				lighting = rvertex.lighting2;
 				var r = (lighting & 0x7C00) >> 10, g = (lighting & 0x03E0) >> 5, b = (lighting & 0x001F);
-				lighting = (b << 3) + (g << 11) + (r << 19);
+				lighting = ((b << 3) + 0x000007) + ((g << 11) + 0x000700) + ((r << 19) + 0x070000);
+				break;
+			case 'TR4':
+				lighting = rvertex.lighting2;
+				var r = (((lighting & 0x7C00) >> 7) + 7) << 1, g = (((lighting & 0x03E0) >> 2) + 7) << 1, b = (((lighting & 0x001F) << 3) + 7) << 1;
+				if (r > 255) r = 255;
+				if (g > 255) g = 255;
+				if (b > 255) b = 255;
+				lighting = b + (g << 8) + (r << 16);
 				break;
 		}
 
@@ -199,7 +224,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
 		if (moveVertex) moveLight = 1;
 		if ((this.trlevel.rversion == 'TR1' || this.trlevel.rversion == 'TR2') && isFilledWithWater) moveLight = 1;
-		if ((this.trlevel.rversion == 'TR1' || this.trlevel.rversion == 'TR2' || this.trlevel.rversion == 'TR3') && isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
+		if (isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
 
 		return {
 			x: vertex.x, y: -vertex.y, z: -vertex.z,

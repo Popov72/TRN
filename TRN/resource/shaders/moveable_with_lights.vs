@@ -1,17 +1,18 @@
-uniform vec3 tintColor;
-uniform vec3 flickerColor;
-uniform float curTime;
-uniform vec4 offsetRepeat;
-uniform float rnd;
-uniform float lighting;
+#define NUM_DIR_LIGHTS 		##num_dir_lights##
+#define NUM_POINT_LIGHTS 	##num_point_lights##
+#define NUM_SPOT_LIGHTS 	##num_spot_lights##
+#define TR_VERSION			##tr_version##
 
-uniform vec3 ambientColor;
-#define NUM_POINT_LIGHTS ##num_lights##
-#if NUM_POINT_LIGHTS > 0
-	uniform vec3 pointLightColor[ NUM_POINT_LIGHTS ];
-	uniform vec3 pointLightPosition[ NUM_POINT_LIGHTS ];
-	uniform float pointLightDistance[ NUM_POINT_LIGHTS ];
-#endif
+#define saturate(a) clamp( a, 0.0, 1.0 )
+
+uniform vec3 	tintColor;
+uniform vec3 	flickerColor;
+uniform float 	curTime;
+uniform vec4 	offsetRepeat;
+uniform float 	rnd;
+uniform float 	lighting; /* not used */
+
+uniform vec3 	ambientColor;
 
 attribute vec4 flags;
 
@@ -19,30 +20,82 @@ varying vec2 vUv;
 varying vec3 vColor;
 
 const vec3 vec3Unit = vec3(1.0, 1.0, 1.0);
-/*#define BONE_TEXTURE
-#define N_BONE_PIXEL_X 64.0
-#define N_BONE_PIXEL_Y 64.0*/
-#ifdef BONE_TEXTURE
-	uniform sampler2D boneTexture;
-	mat4 getBoneMatrix( const in float i ) {
-		float j = i * 4.0;
-		float x = mod( j, N_BONE_PIXEL_X );
-		float y = floor( j / N_BONE_PIXEL_X );
-		const float dx = 1.0 / N_BONE_PIXEL_X;
-		const float dy = 1.0 / N_BONE_PIXEL_Y;
-		y = dy * ( y + 0.5 );
-		vec4 v1 = texture2D( boneTexture, vec2( dx * ( x + 0.5 ), y ) );
-		vec4 v2 = texture2D( boneTexture, vec2( dx * ( x + 1.5 ), y ) );
-		vec4 v3 = texture2D( boneTexture, vec2( dx * ( x + 2.5 ), y ) );
-		vec4 v4 = texture2D( boneTexture, vec2( dx * ( x + 3.5 ), y ) );
-		mat4 bone = mat4( v1, v2, v3, v4 );
-		return bone;
+
+uniform mat4 boneGlobalMatrices[ 64 ];
+
+mat4 getBoneMatrix( const in float i ) {
+	mat4 bone = boneGlobalMatrices[ int(i) ];
+	return bone;
+}
+
+struct IncidentLight {
+	vec3 color;
+	vec3 direction;
+};
+
+struct GeometricContext {
+	vec3 position;
+	vec3 normal;
+	/*vec3 viewDir;*/
+};
+
+vec3 transformDirection( in vec3 dir, in mat4 matrix ) {
+	return normalize( ( matrix * vec4( dir, 0.0 ) ).xyz );
+}
+
+float punctualLightIntensityToIrradianceFactor( const in float lightDistance, const in float cutoffDistance, const in float decayExponent ) {
+	if ( cutoffDistance > 0.0 && decayExponent > 0.0 ) {
+		return pow( saturate( -lightDistance / cutoffDistance + 1.0 ), decayExponent );
 	}
-#else
-	uniform mat4 boneGlobalMatrices[ 64 ];
-	mat4 getBoneMatrix( const in float i ) {
-		mat4 bone = boneGlobalMatrices[ int(i) ];
-		return bone;
+	return 1.0;
+}
+
+#if NUM_DIR_LIGHTS > 0
+	uniform vec3 directionalLight_direction[NUM_DIR_LIGHTS];
+	uniform vec3 directionalLight_color[NUM_DIR_LIGHTS];
+	void getDirectionalDirectLightIrradiance( in int directionalLight, const in GeometricContext geometry, out IncidentLight directLight ) {
+		directLight.color = directionalLight_color[directionalLight];
+		directLight.direction = transformDirection(directionalLight_direction[directionalLight], viewMatrix);
+	}
+#endif
+
+#if NUM_POINT_LIGHTS > 0
+	uniform vec3 pointLight_position[NUM_POINT_LIGHTS];
+	uniform vec3 pointLight_color[NUM_POINT_LIGHTS];
+	uniform float pointLight_distance[NUM_POINT_LIGHTS];
+	void getPointDirectLightIrradiance( in int pointLight, const in GeometricContext geometry, out IncidentLight directLight ) {
+		vec3 lVector = (viewMatrix*vec4(pointLight_position[pointLight], 1.0)).xyz - geometry.position;
+		directLight.direction = normalize( lVector );
+		float lightDistance = length( lVector );
+		directLight.color = pointLight_color[pointLight];
+		#if TR_VERSION < 4
+			directLight.color *= min(pointLight_distance[pointLight] / lightDistance, 1.0);
+		#else
+			directLight.color *= punctualLightIntensityToIrradianceFactor( lightDistance, pointLight_distance[pointLight], 1.0/*pointLight.decay*/ );
+		#endif
+	}
+#endif
+
+#if NUM_SPOT_LIGHTS > 0
+	uniform vec3 spotLight_position[NUM_SPOT_LIGHTS];
+	uniform vec3 spotLight_color[NUM_SPOT_LIGHTS];
+	uniform float spotLight_distance[NUM_SPOT_LIGHTS];
+	uniform vec3 spotLight_direction[NUM_SPOT_LIGHTS];
+	uniform float spotLight_coneCos[NUM_SPOT_LIGHTS];
+	uniform float spotLight_penumbraCos[NUM_SPOT_LIGHTS];
+	void getSpotDirectLightIrradiance( in int spotLight, const in GeometricContext geometry, out IncidentLight directLight  ) {
+		vec3 lVector = (viewMatrix*vec4(spotLight_position[spotLight], 1.0)).xyz - geometry.position;
+		directLight.direction = normalize( lVector );
+		float lightDistance = length( lVector );
+		float angleCos = dot( directLight.direction, transformDirection(spotLight_direction[spotLight], viewMatrix) );
+		if ( angleCos > spotLight_coneCos[spotLight] ) {
+			float spotEffect = smoothstep( spotLight_coneCos[spotLight], spotLight_penumbraCos[spotLight], angleCos );
+			directLight.color = spotLight_color[spotLight];
+			directLight.color *= spotEffect * punctualLightIntensityToIrradianceFactor( lightDistance, spotLight_distance[spotLight], 1.0/*spotLight.decay*/ );
+			//directLight.color *= spotEffect * min(spotLight_distance[spotLight] / lightDistance, 1.0);
+		} else {
+			directLight.color = vec3( 0.0 );
+		}
 	}
 #endif
 
@@ -52,7 +105,7 @@ void main() {
 
 	vec4 skinVertex = vec4( position, 1.0 );
 	vec4 skinned  = boneMatX * skinVertex * skinWeight.x;
-	skinned 	  += boneMatY * skinVertex * skinWeight.y;
+		 skinned += boneMatY * skinVertex * skinWeight.y;
 
 	vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
 
@@ -75,49 +128,58 @@ void main() {
 	vec4 mvPosition;
 	mvPosition = modelViewMatrix * pos;
 
-	#if NUM_POINT_LIGHTS == 0
-		vColor *= ambientColor;
+	mat4 skinMatrix  = skinWeight.x * boneMatX;
+		 skinMatrix	+= skinWeight.y * boneMatY;
+
+	vec4 skinnedNormal = skinMatrix * vec4( normal, 0.0 );
+
+	vec3 objectNormal = skinnedNormal.xyz;
+
+	vec3 transformedNormal = normalMatrix * objectNormal;
+
+	transformedNormal = normalize( transformedNormal );
+
+	vec3 vLightFront = vec3( 0.0 );
+
+	GeometricContext geometry;
+
+	geometry.position = mvPosition.xyz;
+	geometry.normal = transformedNormal;
+	/*geometry.viewDir = normalize( -mvPosition.xyz );*/
+
+	IncidentLight directLight;
+	vec3 directLightColor_Diffuse;
+	float dotNL;
+
+	#if NUM_DIR_LIGHTS > 0
+		for ( int i = 0; i < NUM_DIR_LIGHTS; i ++ ) {
+			getDirectionalDirectLightIrradiance( i, geometry, directLight );
+			dotNL = dot( geometry.normal, directLight.direction );
+			vLightFront += saturate( dotNL ) * directLight.color;
+		}
 	#endif
 
 	#if NUM_POINT_LIGHTS > 0
-
-		mat4 skinMatrix = skinWeight.x * boneMatX;
-		skinMatrix 	+= skinWeight.y * boneMatY;
-
-		vec4 skinnedNormal = skinMatrix * vec4( normal, 0.0 );
-
-		vec3 objectNormal = skinnedNormal.xyz;
-
-		vec3 transformedNormal = normalMatrix * objectNormal;
-
-		transformedNormal = normalize( transformedNormal );
-
-		vec3 vLightFront = vec3( 0.0 );
-
-		for( int i = 0; i < NUM_POINT_LIGHTS; i ++ ) {
-
-			vec4 lPosition = viewMatrix * vec4( pointLightPosition[ i ], 1.0 );
-			vec3 lVector = lPosition.xyz - mvPosition.xyz;
-
-			float /*lDistance = 1.0, */fdist = min(pointLightDistance[ i ] / length(lVector), 1.0);
-			/*if ( pointLightDistance[ i ] > 0.0 )
-				lDistance = 1.0 - min( ( fdist / pointLightDistance[ i ] ), 1.0 );*/
-
-			lVector = normalize( lVector );
-			float dotProduct = dot( transformedNormal, lVector );
-
-			dotProduct = (dotProduct + 1.0) / 2.0;
-
-			vec3 pointLightWeighting = vec3( max( dotProduct, 0.0 ) );
-
-			vLightFront += pointLightColor[ i ] * pointLightWeighting * fdist/*lDistance*/;
-
+		for ( int i = 0; i < NUM_POINT_LIGHTS; i ++ ) {
+			getPointDirectLightIrradiance( i, geometry, directLight );
+			dotNL = dot( geometry.normal, directLight.direction );
+			#if TR_VERSION < 4
+				dotNL = (dotNL + 1.0) / 2.0;
+			#endif
+			vLightFront += saturate( dotNL ) * directLight.color;
 		}
-
-		vLightFront += ambientColor;
-		vColor *= vLightFront;
-
 	#endif
+
+	#if NUM_SPOT_LIGHTS > 0
+		for ( int i = 0; i < NUM_SPOT_LIGHTS; i ++ ) {
+			getSpotDirectLightIrradiance( i, geometry, directLight );
+			dotNL = dot( geometry.normal, directLight.direction );
+			vLightFront += saturate( dotNL ) * directLight.color;
+		}
+	#endif
+
+	vLightFront += ambientColor;
+	vColor *= vLightFront;
 
 	gl_Position = projectionMatrix * mvPosition;
 }

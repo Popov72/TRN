@@ -419,20 +419,49 @@ TRN.MasterLoader = {
 					material.uniforms.tintColor.value = globalTintColor;
 				}
 
+				if (room && typeof material.uniforms.ambientColor != 'undefined') {
+					material.uniforms.ambientColor.value = room.ambientColor;
+				}
+
 				if (objJSON.has_anims && room && room.lights.length > 0) { // only animated objects are externally lit and need light definitions from the room
 
-					material.uniforms.ambientColor.value = room.ambientColor;
-					material.uniforms.pointLightPosition = { type: "v3v", value: [] };
-					material.uniforms.pointLightColor = { type: "v3v", value: [] };
-					material.uniforms.pointLightDistance = { type: "fv1", value: [] };
+					material.uniforms.directionalLight_direction = { type: "v3v", value: [] };
+					material.uniforms.directionalLight_color = { type: "v3v", value: [] };
+
+					material.uniforms.pointLight_position = { type: "v3v", value: [] };
+					material.uniforms.pointLight_color = { type: "v3v", value: [] };
+					material.uniforms.pointLight_distance = { type: "fv1", value: [] };
+
+					material.uniforms.spotLight_position = { type: "v3v", value: [] };
+					material.uniforms.spotLight_color = { type: "v3v", value: [] };
+					material.uniforms.spotLight_distance = { type: "fv1", value: [] };
+					material.uniforms.spotLight_direction = { type: "v3v", value: [] };
+					material.uniforms.spotLight_coneCos = { type: "fv1", value: [] };
+					material.uniforms.spotLight_penumbraCos = { type: "fv1", value: [] };
 
 					for (var l = 0; l < room.lights.length; ++l) {
 
 						var light = room.lights[l];
-						material.uniforms.pointLightPosition.value[l] = new THREE.Vector3(light.x, light.y, light.z);
-						material.uniforms.pointLightColor.value[l] = light.color;
-						material.uniforms.pointLightDistance.value[l] = light.fadeOut;
 
+						switch(light.type) {
+							case 'directional':
+								material.uniforms.directionalLight_direction.value.push(new THREE.Vector3(light.dx, light.dy, light.dz));
+								material.uniforms.directionalLight_color.value.push(light.color);
+								break;
+							case 'point':
+								material.uniforms.pointLight_position.value.push(new THREE.Vector3(light.x, light.y, light.z));
+								material.uniforms.pointLight_color.value.push(light.color);
+								material.uniforms.pointLight_distance.value.push(light.fadeOut);
+								break;
+							case 'spot':
+								material.uniforms.spotLight_position.value.push(new THREE.Vector3(light.x, light.y, light.z));
+								material.uniforms.spotLight_color.value.push(light.color);
+								material.uniforms.spotLight_distance.value.push(light.fadeOut);
+								material.uniforms.spotLight_direction.value.push(new THREE.Vector3(light.dx, light.dy, light.dz));
+								material.uniforms.spotLight_coneCos.value.push(light.coneCos);
+								material.uniforms.spotLight_penumbraCos.value.push(light.penumbraCos);
+								break;
+						}
 					}
 				}
 
@@ -474,8 +503,8 @@ TRN.MasterLoader = {
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
 
-		//camera.position.set(29808.49251,-2111.99851,-56327.35790);
-		//camera.quaternion.set(0.13390,0.13249,0.01807,-0.98193);
+		//camera.position.set(55293.20054,4864.60863,-68762.60736);
+		//camera.quaternion.set(-0.06961,-0.82905,-0.10597,0.54460);
 
 		if (TRN.Browser.QueryString.pos) {
 

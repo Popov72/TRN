@@ -401,6 +401,7 @@ TRN.SceneConverter.prototype = {
 				var light = room.lights[l], color = new THREE.Vector3(1, 1, 1);
 				var px = light.x, py = -light.y, pz = -light.z;
 				var fadeIn = 0, fadeOut = 0;
+				var plight = { type:'point' };
 				switch(this.trlevel.rversion) {
 					case 'TR1':
 					case 'TR2':
@@ -423,6 +424,7 @@ TRN.SceneConverter.prototype = {
 					case 'TR4':
 						if (light.lightType > 2) {
 							// todo: handling of shadow / fog bulb lights
+							//console.log('light not handled because of type ' + light.lightType + ' in room ' + m, room)
 							continue;
 						}
 		                var r = light.color.r / 255.0;
@@ -434,42 +436,49 @@ TRN.SceneConverter.prototype = {
 		                color.set(r*intensity, g*intensity, b*intensity);
 		                switch (light.lightType) {
 		                	case 0: // directional light
-		                		// todo: handle directional light correctly (notably in the shader). For the time being, we set it as a point light
 		                		var bb = this.getBoundingBox(room.roomData.vertices);
-		                		px = (bb[0] + bb[1]) / 2.0;
-		                		py = (bb[2] + bb[3]) / 2.0;
-		                		pz = (bb[4] + bb[5]) / 2.0;
+		                		px = (bb[0] + bb[1]) / 2.0 + info.x;
+		                		py = -(bb[2] + bb[3]) / 2.0;
+		                		pz = -(bb[4] + bb[5]) / 2.0 - info.z;
 		                		fadeOut = Math.sqrt((bb[1]-bb[0])*(bb[1]-bb[0]) + (bb[3]-bb[2])*(bb[3]-bb[2]) + (bb[5]-bb[4])*(bb[5]-bb[4]));
+		                		plight.type = 'directional';
+		                		plight.dx = light.dx;
+		                		plight.dy = -light.dy;
+		                		plight.dz = -light.dz;
 		                		break;
 		                	case 1: // point light
 		                		fadeIn = light.in;
 		                		fadeOut = light.out;
 		                		break;
 		                	case 2: // spot light
-		                		// todo: handle spot light correctly (notably in the shader). For the time being, we set it as a point light
 		                		fadeIn = light.length;
 		                		fadeOut = light.cutOff;
 		                		if (fadeOut < fadeIn) {
 		                			fadeIn = fadeOut;
 		                			fadeOut = light.length;
 		                		}
-		                		// only to account for the fact that the spot lights are not handled correctly: we have to lower their intensity
-				                intensity = intensity / 8.0;
-				                color.set(r*intensity, g*intensity, b*intensity);
+		                		plight.dx = light.dx;
+		                		plight.dy = -light.dy;
+		                		plight.dz = -light.dz;
+		                		plight.coneCos = light.out;
+		                		plight.penumbraCos = light.in;
+		                		if (plight.coneCos > plight.penumbraCos) {
+		                			console.log('pb param spot room#' + room.roomIndex, light, room);
+		                		}
+				                plight.type = 'spot';
 		                		break;
 		                }
 						break;
 				}
 		        if (fadeOut > 0x7FFF) fadeOut = 0x8000;
 		        if (fadeIn > fadeOut) fadeIn = 0;
-				lights.push({
-					x: px,
-					y: py,
-					z: pz,
-					color: color,
-					fadeIn: fadeIn,
-					fadeOut: fadeOut
-				});
+		        plight.x = px;
+		        plight.y = py;
+		        plight.z = pz;
+		        plight.color = color;
+		        plight.fadeIn = fadeIn;
+		        plight.fadeOut = fadeOut;
+				lights.push(plight);
 			}
 
 			this.sc.objects['room' + m].lights = lights;
@@ -830,7 +839,7 @@ TRN.SceneConverter.prototype = {
 		if (typeof(jsonid) == 'undefined') jsonid = 'moveable' + moveable.objectID + '_' + itemIndex;
 		if (typeof(visible) == 'undefined') visible = true;
 
-		var room = this.trlevel.rooms[roomIndex];
+		var room = this.sc.objects['room' + roomIndex];
 
 		var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
 
@@ -848,7 +857,7 @@ TRN.SceneConverter.prototype = {
 					material.uniforms.lighting.value = this.convertIntensity(lighting);
 				} else {
 					// change material to a material that handles lights
-					material.material = this.getMaterial('moveable', room.lights.length);
+					material.material = this.getMaterial('moveable', this.countLightTypes(room.lights));
 					material.uniforms.lighting.value = 1.0;
 				}
 				materials.push(material);
@@ -1124,7 +1133,7 @@ TRN.SceneConverter.prototype = {
 				);
 			var materials = [
 				{
-					"material": this.getMaterial("skydome", 0),
+					"material": this.getMaterial("skydome"),
 					"uniforms": {
 						"map" : { type: "t", value: "sky" },
 						"offsetRepeat" : { type: "v4", value: new THREE.Vector4( 0, 0, 1, 1 ) },
