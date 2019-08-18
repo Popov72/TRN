@@ -17,8 +17,6 @@ Cutscenes are the levels with a <img src="http://www.evpopov.com/resources/movie
 
 You can browse local levels on your hard drive by browsing the **TRN.html** page. In this page, click on the **Select files** button and select an original TR level on your hard drive.
 
-Levels used in the web site linked above have been converted to a JSON format (used by threeJS) thanks to the **TRN.html** page (set the *makeJSON* variable to *true* in this page and browse it if you want to convert some TR levels to JSON format for your own use).
-
 ## Install
 You can install the project locally (on your own computer) by doing these steps:
 * Click on the **Clone or download** button in this page (see above) and download a zip archive of the project
