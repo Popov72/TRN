@@ -17,8 +17,8 @@ TRN.Play = function (container) {
 	this.quantumTime = -1;
 	this.quantumRnd = 0;
 
-	this.flickerColor = new THREE.Vector3(1.2, 1.2, 1.2);
-	this.unitVec3 = new THREE.Vector3(1.0, 1.0, 1.0);
+	this.flickerColor = [1.2, 1.2, 1.2];
+	this.unitVec3 = [1.0, 1.0, 1.0];
 
 	this.clock = new THREE.Clock();
 
@@ -41,8 +41,6 @@ TRN.Play = function (container) {
 
 	this.globalTintColor = null;
 
-	//this.initPhysics();
-
 	TRN.Browser.bindRequestPointerLock(document.body);
 	TRN.Browser.bindRequestFullscreen(document.body);
 }
@@ -50,40 +48,6 @@ TRN.Play = function (container) {
 TRN.Play.prototype = {
 
 	constructor : TRN.Play,
-
-	initPhysics : function() {
-
-        this.world = new CANNON.World();
-        this.world.quatNormalizeSkip = 0;
-        this.world.quatNormalizeFast = false;
-
-        var solver = new CANNON.GSSolver();
-
-        this.world.defaultContactMaterial.contactEquationStiffness = 1e9;
-        this.world.defaultContactMaterial.contactEquationRegularizationTime = 4;
-
-        solver.iterations = 7;
-        solver.tolerance = 0.1;
-        var split = true;
-        if(split)
-            this.world.solver = new CANNON.SplitSolver(solver);
-        else
-            this.world.solver = solver;
-
-        this.world.gravity.set(0,-30*20,0);
-        this.world.broadphase = new CANNON.NaiveBroadphase();
-
-        // Create a slippery material (friction coefficient = 0.0)
-        physicsMaterial = new CANNON.Material("slipperyMaterial");
-        var physicsContactMaterial = new CANNON.ContactMaterial(physicsMaterial,
-                                                                physicsMaterial,
-                                                                0.0, // friction coefficient
-                                                                0.3  // restitution
-                                                                );
-        // We must add the contact materials to the world
-        this.world.addContactMaterial(physicsContactMaterial);
-
-	},
 
 	onWindowResize : function () {
 
@@ -109,10 +73,8 @@ TRN.Play.prototype = {
 		var tintColor = confMgr.levelColor(this.sceneJSON.levelShortFileName, 'globaltintcolor', true, null);
 
 		if (tintColor != null) {
-			this.globalTintColor = new THREE.Vector3(tintColor.r, tintColor.g, tintColor.b);
+			this.globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
 		}
-
-		//this.ponytail = new THREE.Ponytail(oscene.findObjectById(TRN.ObjectID.Lara), this.scene, this.world);
 
 		if (this.sceneJSON.rversion != 'TR4') {
 			jQuery('#nobumpmapping').prop('disabled', 'disabled');
@@ -235,10 +197,6 @@ TRN.Play.prototype = {
 			}
 		}
 
-		/*if (TRN.ObjectID.Ponytail != -1) {
-			this.ponytail.update(delta);
-		}*/
-
 	},
 
 	animateCutScene : function (delta) {
@@ -318,7 +276,7 @@ TRN.Play.prototype = {
 			if (material.uniforms) {
 				var pgr = curTime / (50.0*1000.0);
 				pgr = pgr - Math.floor(pgr);
-				material.uniforms.offsetRepeat.value.x = pgr;
+				material.uniforms.offsetRepeat.value[0] = pgr;
 			}
 		}
 
@@ -384,28 +342,28 @@ TRN.Play.prototype = {
 						var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
 
 						material.uniforms.map.value = this.scene.textures[coords.texture];
-						material.uniforms.offsetRepeat.value.x = coords.minU;
-						material.uniforms.offsetRepeat.value.y = coords.minV;
+						material.uniforms.offsetRepeat.value[0] = coords.minU;
+						material.uniforms.offsetRepeat.value[1] = coords.minV;
 					} else {
 						//console.log(obj, i, material);
 						//var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
 						var coords = animTexture.animcoords[0];
 						if (!material.uniforms.map.value) {
 							material.uniforms.map.value = this.scene.textures[coords.texture];
-							material.uniforms.offsetRepeat.value.w = 0.5;
+							material.uniforms.offsetRepeat.value[3] = 0.5;
 							//if (this.gcounter==0 && objJSON.roomIndex == 76) console.log(material.uniforms.map.value)
 						}
 						var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.uvRotateTileHeight/2.0)/material.uniforms.map.value.image.height;
 						pgr = pgr - h * Math.floor(pgr / h);
-						material.uniforms.offsetRepeat.value.x = coords.minU;
-						material.uniforms.offsetRepeat.value.y = coords.minV + h - pgr;
+						material.uniforms.offsetRepeat.value[0] = coords.minU;
+						material.uniforms.offsetRepeat.value[1] = coords.minV + h - pgr;
 					}
 
 				} else if (objJSON.hasScrollAnim) {
 					//if (this.gcounter == 0 && objJSON.roomIndex == 76) console.log(objJSON);
 					var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.moveableScrollAnimTileHeight/2.0)/material.uniforms.map.value.image.height;
 					pgr = pgr - h * Math.floor(pgr / h);
-					material.uniforms.offsetRepeat.value.y = h - pgr;
+					material.uniforms.offsetRepeat.value[1] = h - pgr;
 				}
 
 			}
@@ -434,7 +392,7 @@ TRN.Play.prototype = {
 					switch (action) {
 
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_COLORFLASH: {
-							this.globalTintColor.x = this.globalTintColor.y = this.globalTintColor.z = (this.globalTintColor.x < 0.5 ? 1.0 : 0.1);
+							this.globalTintColor[0] = this.globalTintColor[1] = this.globalTintColor[2] = (this.globalTintColor[0] < 0.5 ? 1.0 : 0.1);
 							break;
 						}
 

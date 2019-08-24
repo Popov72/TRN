@@ -310,7 +310,7 @@ TRN.MasterLoader = {
 		var tintColor = confMgr.levelColor(sceneJSON.levelShortFileName, 'globaltintcolor', true, null), globalTintColor = null;
 
 		if (tintColor != null) {
-			globalTintColor = new THREE.Vector3(tintColor.r, tintColor.g, tintColor.b);
+			globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
 		}
 		for (var objID in scene.objects) {
 
@@ -417,7 +417,7 @@ TRN.MasterLoader = {
 				}
 
 				if (room && room.filledWithWater) {
-					material.uniforms.tintColor.value = new THREE.Vector3(sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b);
+					material.uniforms.tintColor.value = [sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b];
 				}
 
 				if (globalTintColor != null) {
@@ -431,17 +431,17 @@ TRN.MasterLoader = {
 
 				if (objJSON.has_anims && room && room.lights.length > 0) { // only animated objects are externally lit and need light definitions from the room
 
-					material.uniforms.directionalLight_direction = { type: "v3v", value: [] };
-					material.uniforms.directionalLight_color = { type: "v3v", value: [] };
+					material.uniforms.directionalLight_direction = { type: "fv", value: [] };
+					material.uniforms.directionalLight_color = { type: "fv", value: [] };
 
-					material.uniforms.pointLight_position = { type: "v3v", value: [] };
-					material.uniforms.pointLight_color = { type: "v3v", value: [] };
+					material.uniforms.pointLight_position = { type: "fv", value: [] };
+					material.uniforms.pointLight_color = { type: "fv", value: [] };
 					material.uniforms.pointLight_distance = { type: "fv1", value: [] };
 
-					material.uniforms.spotLight_position = { type: "v3v", value: [] };
-					material.uniforms.spotLight_color = { type: "v3v", value: [] };
+					material.uniforms.spotLight_position = { type: "fv", value: [] };
+					material.uniforms.spotLight_color = { type: "fv", value: [] };
 					material.uniforms.spotLight_distance = { type: "fv1", value: [] };
-					material.uniforms.spotLight_direction = { type: "v3v", value: [] };
+					material.uniforms.spotLight_direction = { type: "fv", value: [] };
 					material.uniforms.spotLight_coneCos = { type: "fv1", value: [] };
 					material.uniforms.spotLight_penumbraCos = { type: "fv1", value: [] };
 
@@ -451,19 +451,19 @@ TRN.MasterLoader = {
 
 						switch(light.type) {
 							case 'directional':
-								material.uniforms.directionalLight_direction.value.push(new THREE.Vector3(light.dx, light.dy, light.dz));
-								material.uniforms.directionalLight_color.value.push(light.color);
+								material.uniforms.directionalLight_direction.value = material.uniforms.directionalLight_direction.value.concat([light.dx, light.dy, light.dz]);
+								material.uniforms.directionalLight_color.value = material.uniforms.directionalLight_color.value.concat(light.color);
 								break;
 							case 'point':
-								material.uniforms.pointLight_position.value.push(new THREE.Vector3(light.x, light.y, light.z));
-								material.uniforms.pointLight_color.value.push(light.color);
+								material.uniforms.pointLight_position.value = material.uniforms.pointLight_position.value.concat([light.x, light.y, light.z]);
+								material.uniforms.pointLight_color.value = material.uniforms.pointLight_color.value.concat(light.color);
 								material.uniforms.pointLight_distance.value.push(light.fadeOut);
 								break;
 							case 'spot':
-								material.uniforms.spotLight_position.value.push(new THREE.Vector3(light.x, light.y, light.z));
-								material.uniforms.spotLight_color.value.push(light.color);
+								material.uniforms.spotLight_position.value = material.uniforms.spotLight_position.value.concat([light.x, light.y, light.z]);
+								material.uniforms.spotLight_color.value = material.uniforms.spotLight_color.value.concat(light.color);
 								material.uniforms.spotLight_distance.value.push(light.fadeOut);
-								material.uniforms.spotLight_direction.value.push(new THREE.Vector3(light.dx, light.dy, light.dz));
+								material.uniforms.spotLight_direction.value = material.uniforms.spotLight_direction.value.concat([light.dx, light.dy, light.dz]);
 								material.uniforms.spotLight_coneCos.value.push(light.coneCos);
 								material.uniforms.spotLight_penumbraCos.value.push(light.penumbraCos);
 								break;

@@ -33,12 +33,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 						"parameters": {
 							"uniforms": {
 								"map": { type: "t", value: "" },
-								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
 								"curTime": { type: "f", value: 0.0 },
 								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
+								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
 							},
 							"vertexShader": vshader,
 							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
@@ -58,12 +58,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 							"uniforms": {
 								"map": { type: "t", value: "" },
 								"mapBump": { type: "t", value: "" },
-								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
 								"curTime": { type: "f", value: 0.0 },
 								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
+								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
 							},
 							"vertexShader": vshader,
 							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('room_bump'),
@@ -81,12 +81,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 						"parameters": {
 							"uniforms": {
 								"map": { type: "t", value: "" },
-								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
 								"curTime": { type: "f", value: 0.0 },
 								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
+								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
 								"lighting": { type: "f", value: 0.0 }
 							},
 							"vertexShader": this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4' ? this.shaderMgr.getVertexShader('mesh2') : this.shaderMgr.getVertexShader('mesh'),
@@ -112,12 +112,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 						"parameters": {
 							"uniforms": {
 								"map": { type: "t", value: "" },
-								"ambientColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
-								"flickerColor": { type: "v3", value: new THREE.Vector3(1.2, 1.2, 1.2) },
+								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
 								"curTime": { type: "f", value: 0.0 },
 								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) },
+								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
 								"lighting": { type: "f", value: 0.0 }
 							},
 							"vertexShader": vertexShader,
@@ -137,7 +137,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 						"parameters": {
 							"uniforms": {
 								"map": { type: "t", value: "" },
-								"tintColor": { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
 							},
 							"vertexShader": this.shaderMgr.getVertexShader('skydome'),
 							"fragmentShader": this.shaderMgr.getFragmentShader('skydome'),
@@ -161,7 +161,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
 		if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
 			var b = ((intensity & 0x7C00) >> 10) << 3, g = ((intensity & 0x03E0) >> 5) << 3, r = (intensity & 0x001F) << 3;
-			l = new THREE.Vector3(r/255, g/255, b/255);
+			l = [r/255, g/255, b/255];
 		}
 
 		return l;
@@ -232,7 +232,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
 		return {
 			x: vertex.x, y: -vertex.y, z: -vertex.z,
-			flag: new THREE.Vector4(moveLight, isFlickering && strengthEffect ? 1 : 0, moveVertex, -strengthEffect),
+			flag: [moveLight, isFlickering && strengthEffect ? 1 : 0, moveVertex, -strengthEffect],
 			color: lighting
 		};
 	},
@@ -334,7 +334,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			meshJSON.colors.push(vcolor + (vcolor << 8) + (vcolor << 16)); 	// not used => a specific calculation is done in the vertex shader 
 																			// with the constant lighting for the mesh + the lighting at each vertex (passed to the shader via flags.w)
 
-			if (attributes)  attributes.flags.value.push(new THREE.Vector4(0, 0, 0, lighting));
+			if (attributes)  attributes.flags.value.push([0, 0, 0, lighting]);
 			if (skinIndices) skinIndices.push(skinidx, skinidx);
 			if (skinWeights) skinWeights.push(1.0, 1.0);
 		}
@@ -355,7 +355,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			lstMat[imat] = {
 				"material": this.getMaterial(matname, matparams),
 				"uniforms": {
-					"offsetRepeat" : { type: "v4", value: new THREE.Vector4( 0, 0, 1, 1 ) }
+					"offsetRepeat" : { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
 				},
 				"userData": {}
 			};

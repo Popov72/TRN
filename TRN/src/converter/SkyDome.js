@@ -41,28 +41,26 @@ TRN.SkyDome = {
 		    BP_UP = 4,
 		    BP_DOWN = 5;
 
-	    var plane = new THREE.Plane();
-	    var up = new THREE.Vector3(0, 1, 0);
+	    var plane = { constant:distance, normal:[0,0,0] };
+	    var up = [0,1,0];
 
 	    // Set up plane equation
-	    plane.constant = distance;
-	    plane.normal = new THREE.Vector3();
 	    switch(bp) {
 		    case BP_FRONT:
-		        plane.normal.set(0, 0, 1);
+		        plane.normal = [0,0,1];
 		        break;
 		    case BP_BACK:
-		        plane.normal.set(0, 0, -1);
+		        plane.normal = [0,0,-1];
 		        break;
 		    case BP_LEFT:
-		        plane.normal.set(1, 0, 0);
+		        plane.normal = [1,0,0];
 		        break;
 		    case BP_RIGHT:
-		        plane.normal.set(-1, 0, 0);
+		        plane.normal = [-1,0,0];
 		        break;
 		    case BP_UP:
-		        plane.normal.set(0, -1, 0);
-		        up.set(0, 0, 1);
+		        plane.normal = [0,-1,0];
+		        up = [0,0,1];
 		        break;
 		    case BP_DOWN:
 		        // no down
@@ -70,8 +68,8 @@ TRN.SkyDome = {
 	    }
 
 	    // Modify by orientation
-	    plane.normal.applyQuaternion(orientation);
-	    up.applyQuaternion(orientation);
+        glMatrix.vec3.transformQuat(plane.normal, plane.normal, orientation);
+	    glMatrix.vec3.transformQuat(up, up, orientation);
 
 	    // Create new
 	    var planeSize = distance * 2;
@@ -118,29 +116,37 @@ TRN.SkyDome = {
         // Default orientation of plane is normal along +z, distance 0
     
         // Determine axes
-        var zAxis = params.plane.normal.clone().normalize();
-        var yAxis = params.upVector.clone().normalize();
-        var xAxis = (new THREE.Vector3()).crossVectors(yAxis, zAxis);
-        if (xAxis.lengthSq() == 0) {
+        var zAxis = glMatrix.vec3.clone(params.plane.normal);
+        glMatrix.vec3.normalize(zAxis, zAxis);
+        var yAxis = glMatrix.vec3.clone(params.upVector);
+        glMatrix.vec3.normalize(yAxis,yAxis);
+        var xAxis = glMatrix.vec3.create();
+        glMatrix.vec3.cross(xAxis, yAxis, zAxis);
+        if (glMatrix.vec3.squaredLength(xAxis) == 0) {
             //upVector must be wrong
             throw "The upVector you supplied is parallel to the plane normal, so is not valid.";
         }
-        xAxis.normalize();
+        glMatrix.vec3.normalize(xAxis, xAxis);
 
-        var rot = new THREE.Matrix4();
-		rot.set(
-			xAxis.x, yAxis.x, zAxis.x, 0,
-			xAxis.y, yAxis.y, zAxis.y, 0,
-			xAxis.z, yAxis.z, zAxis.z, 0,
-			0, 0, 0, 1
+        var rot = glMatrix.mat4.create();
+		glMatrix.mat4.set(rot,
+			xAxis[0], xAxis[1], xAxis[2], 0,
+			yAxis[0], yAxis[1], yAxis[2], 0,
+			zAxis[0], zAxis[1], zAxis[2], 0,
+			0,        0,        0,        1
 		);
 
         // Set up standard transform from origin
-        var xlate = new THREE.Matrix4();
-        xlate.identity().setPosition(params.plane.normal.clone().multiplyScalar(-params.plane.constant));
+        var xlate = glMatrix.mat4.create(); // create an identity matrix
+        var pnormal = glMatrix.vec3.clone(params.plane.normal);
+        glMatrix.vec3.scale(pnormal, pnormal, -params.plane.constant);
+        xlate[12] = pnormal[0];
+        xlate[13] = pnormal[1];
+        xlate[14] = pnormal[2];
 
         // concatenate
-        var xform = (new THREE.Matrix4()).multiplyMatrices(xlate, rot);
+        var xform = glMatrix.mat4.clone(xlate);
+        glMatrix.mat4.multiply(xform, xform, rot);
 
         // Generate vertex data
         // Imagine a large sphere with the camera located near the top
@@ -159,36 +165,38 @@ TRN.SkyDome = {
         var ySpace = params.height / params.ysegments;
         var halfWidth = params.width / 2;
         var halfHeight = params.height / 2;
-        var invOrientation = (new THREE.Quaternion()).copy(params.orientation).inverse();
+        var invOrientation = glMatrix.quat.clone(params.orientation);
+        glMatrix.quat.invert(invOrientation, invOrientation);
 
         for (var y = params.ysegments - params.ySegmentsToKeep; y < params.ysegments + 1; ++y) {
             for (var x = 0; x < params.xsegments + 1; ++x) {
                 // Work out centered on origin
-                var vec = new THREE.Vector3(
+                var vec = glMatrix.vec3.fromValues(
                 	(x * xSpace) - halfWidth,
                 	(y * ySpace) - halfHeight,
                 	0.0);
 
                 // Transform by orientation and distance
-                vec.applyMatrix4(xform);
+                glMatrix.vec3.transformMat4(vec, vec, xform);
 
                 // Assign to geometry
-                vertCoords.push(vec.x, vec.y, vec.z);
+                vertCoords.push(vec[0], vec[1], vec[2]);
 
                 // Generate texture coords
                 // Normalise position
                 // modify by orientation to return +y up
-                vec.applyQuaternion(invOrientation).normalize();
+                glMatrix.vec3.transformQuat(vec, vec, invOrientation)
+                glMatrix.vec3.normalize(vec, vec);
 
                 // Find distance to sphere
-                var sphDist = Math.sqrt(camPos*camPos * (vec.y*vec.y-1.0) + sphereRadius*sphereRadius) - camPos*vec.y; // Distance from camera to sphere along box vertex vector
+                var sphDist = Math.sqrt(camPos*camPos * (vec[1]*vec[1]-1.0) + sphereRadius*sphereRadius) - camPos*vec[1]; // Distance from camera to sphere along box vertex vector
 
-                vec.x *= sphDist;
-                vec.z *= sphDist;
+                vec[0] *= sphDist;
+                vec[2] *= sphDist;
 
                 // Use x and y on sphere as texture coordinates, tiled
-                var s = vec.x * (0.01 * params.xTile);
-                var t = 1.0 - (vec.z * (0.01 * params.yTile));
+                var s = vec[0] * (0.01 * params.xTile);
+                var t = 1.0 - (vec[2] * (0.01 * params.yTile));
 
                 textCoords.push(s, t);
             } // x

@@ -1,5 +1,5 @@
 /*
-	Convert the JSON object created by the raw level loader to a ThreeJS JSON scene
+	Convert the JSON object created by the raw level loader to a higher level JSON scene
 */
 TRN.SceneConverter = function(confMgr) {
 
@@ -83,7 +83,7 @@ TRN.SceneConverter.prototype = {
 		var mesh = this.trlevel.meshes[meshIndex];
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
-			flags: { type:"v4", value:[] }
+			flags: { type:"f4", value:[] }
 		};
 		var tiles2material = {};
 
@@ -94,7 +94,7 @@ TRN.SceneConverter.prototype = {
 		meshJSON._materials = this.makeMaterialList(tiles2material, 'mesh');
 		for (var m = 0; m < meshJSON._materials.length; ++m) {
 			if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
-				meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
+				meshJSON._materials[m].uniforms.lighting = { type: "f3", value: [1,1,1] }
 			} else {
 				meshJSON._materials[m].uniforms.lighting = { type: "f", value: 0.0 }
 			}
@@ -156,7 +156,7 @@ TRN.SceneConverter.prototype = {
 		var sprite = this.trlevel.spriteTextures[spriteIndex];
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
-			flags: { type:"v4", value:[] }
+			flags: { type:"f4", value:[] }
 		};
 		var tiles2material = {};
 
@@ -219,12 +219,12 @@ TRN.SceneConverter.prototype = {
 
 		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
-		meshJSON._materials = this.makeMaterialList(tiles2material, 'room', { room_effects:flag.x==1 || flag.y==1 || flag.z==1 });
+		meshJSON._materials = this.makeMaterialList(tiles2material, 'room', { room_effects:flag[0]==1 || flag[1]==1 || flag[2]==1 });
 
 		if (numSprites == 1) {
 			for (var m = 0; m < meshJSON._materials.length; ++m) {
 				if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
-					meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
+					meshJSON._materials[m].uniforms.lighting = { type: "f3", value: [1,1,1] }
 				} else {
 					meshJSON._materials[m].uniforms.lighting = { type: "f", value: 0.0 }
 				}
@@ -261,7 +261,7 @@ TRN.SceneConverter.prototype = {
 			var isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
 			var roomJSON = this.createNewJSONEmbed();
 			var attributes = {
-				flags: { type:"v4", value:[] }
+				flags: { type:"f4", value:[] }
 			};
 			var tiles2material = {};
 
@@ -277,7 +277,7 @@ TRN.SceneConverter.prototype = {
 				attributes.flags.value.push(vertexInfo.flag);
 				roomJSON.colors.push(vertexInfo.color);
 
-				hasEffects |= vertexInfo.flag.x==1 || vertexInfo.flag.y==1 || vertexInfo.flag.z==1;
+				hasEffects |= vertexInfo.flag[0]==1 || vertexInfo.flag[1]==1 || vertexInfo.flag[2]==1;
 			}
 
 			// create the tri/quad faces
@@ -334,9 +334,9 @@ TRN.SceneConverter.prototype = {
 
 				if (!visible) continue;
 
-				var q = new THREE.Quaternion();
+				var q = glMatrix.quat.create();
 				rot = ((rot & 0xC000) >> 14) * 90;
-				q.setFromAxisAngle( { x:0, y:1, z:0}, THREE.Math.degToRad(-rot) );
+				glMatrix.quat.setAxisAngle( q, [0,1,0], glMatrix.glMatrix.toRadian(-rot) );
 
 				var internalLit = this.createMesh(mindex);
 
@@ -355,7 +355,7 @@ TRN.SceneConverter.prototype = {
 					"geometry" 		: "mesh" + mindex,
 					"material" 		: materials,
 					"position" 		: [ x, y, z ],
-					"quaternion" 	: [ q.x, q.y, q.z, q.w ],
+					"quaternion" 	: q,
 					"scale"	   		: [ 1, 1, 1 ],
 					"visible"  		: !room.isAlternate,
 					"type"			: 'staticmesh',
@@ -398,20 +398,20 @@ TRN.SceneConverter.prototype = {
 				roomL = m;
 			}
 
-			var ambientColor = new THREE.Vector3();
+			var ambientColor = glMatrix.vec3.create();
 			if (this.trlevel.rversion != 'TR4') {
 				var ambient1 = 1.0 - room.ambientIntensity1/0x2000;
-				ambientColor.set(ambient1, ambient1, ambient1);
+				glMatrix.vec3.set(ambientColor, ambient1, ambient1, ambient1);
 			} else {
 				var rc = room.roomColour;
-				ambientColor.setX(((rc & 0xFF0000) >> 16) / 255.0);
-				ambientColor.setY(((rc & 0xFF00) >> 8)  / 255.0);
-				ambientColor.setZ((rc & 0xFF)  / 255.0);
+				ambientColor[0] = ((rc & 0xFF0000) >> 16) / 255.0;
+				ambientColor[1] = ((rc & 0xFF00) >> 8)  / 255.0;
+				ambientColor[2] = (rc & 0xFF)  / 255.0;
 			}
 
 			var lights = [];
 			for (var l = 0; l < room.lights.length; ++l) {
-				var light = room.lights[l], color = new THREE.Vector3(1, 1, 1);
+				var light = room.lights[l], color = [1,1,1];
 				var px = light.x, py = -light.y, pz = -light.z;
 				var fadeIn = 0, fadeOut = 0;
 				var plight = { type:'point' };
@@ -421,7 +421,7 @@ TRN.SceneConverter.prototype = {
 						var intensity = light.intensity1;
 		                if (intensity > 0x2000) intensity = 0x2000;
 		                intensity = intensity / 0x2000;
-		                color.set(intensity, intensity, intensity);
+		                glMatrix.vec3.set(color, intensity, intensity, intensity);
 		                fadeOut = light.fade1;
 						break;
 					case 'TR3':
@@ -431,7 +431,7 @@ TRN.SceneConverter.prototype = {
 		                var intensity = light.intensity;
 		                if (intensity > 0x2000) intensity = 0x2000; // without this test, cut5 in TR3 (for eg) is wrong
 		                intensity = intensity / 0x2000;
-		                color.set(r*intensity, g*intensity, b*intensity);
+		                glMatrix.vec3.set(color, r*intensity, g*intensity, b*intensity);
 		                fadeOut = light.fade;
 						break;
 					case 'TR4':
@@ -446,7 +446,7 @@ TRN.SceneConverter.prototype = {
 		                var intensity = light.intensity;
 		                if (intensity > 32) intensity = 32;
 		                intensity = intensity / 16.0;
-		                color.set(r*intensity, g*intensity, b*intensity);
+		                glMatrix.vec3.set(color, r*intensity, g*intensity, b*intensity);
 		                switch (light.lightType) {
 		                	case 0: // directional light
 		                		var bb = this.getBoundingBox(room.roomData.vertices);
@@ -595,17 +595,18 @@ TRN.SceneConverter.prototype = {
 					angleY *= Math.PI / 180.0;
 					angleZ *= Math.PI / 180.0;
 
-					var qx = new THREE.Quaternion(), qy = new THREE.Quaternion(), qz = new THREE.Quaternion();
+					var qx = glMatrix.quat.create(), qy = glMatrix.quat.create(), qz = glMatrix.quat.create();
 
-					qx.setFromAxisAngle( {x:1,y:0,z:0}, angleX );
-					qy.setFromAxisAngle( {x:0,y:1,z:0}, -angleY );
-					qz.setFromAxisAngle( {x:0,y:0,z:1}, -angleZ );
+					glMatrix.quat.setAxisAngle(qx, [1,0,0], angleX);
+					glMatrix.quat.setAxisAngle(qy, [0,1,0], -angleY);
+					glMatrix.quat.setAxisAngle(qz, [0,0,1], -angleZ);
 
-				    qy.multiply(qx).multiply(qz);
+					glMatrix.quat.multiply(qy, qy, qx);
+					glMatrix.quat.multiply(qy, qy, qz);
 
 					keyData.push({
 						"position": 	{ x:transX, y:transY, z:transZ },
-						"quaternion":	{ x:qy.x, y:qy.y, z:qy.z, w:qy.w }
+						"quaternion":	{ x:qy[0], y:qy[1], z:qy[2], w:qy[3] }
 					});
 
 					transX = transY = transZ = 0;
@@ -679,7 +680,7 @@ TRN.SceneConverter.prototype = {
 
 			var meshJSON = this.createNewJSONEmbed();
 			var attributes = {
-				flags: { type:"v4", value:[] }
+				flags: { type:"f4", value:[] }
 			};
 			var tiles2material = {};
 			var stackIdx = 0, stack = [], parent = -1;
@@ -745,108 +746,6 @@ TRN.SceneConverter.prototype = {
 		console.log('Num moveables=', numMoveables)
 	},
 
-	createMoveableAsMultiMeshes : function (m, roomIndex, ofst) {
-
-		var moveable = this.trlevel.moveables[m];
-		var room = this.trlevel.rooms[roomIndex];
-
-		var numMeshes = moveable.numMeshes, meshIndex = moveable.startingMesh, meshTree = moveable.meshTree;
-
-		var stackIdx = 0, stack = [], parent = -1, bones = [];
-		var px = 0, py = 0, pz = 0;
-
-		for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
-			if (idx != 0) {
-				var sflag = this.trlevel.meshTrees[meshTree++].coord;
-				px = this.trlevel.meshTrees[meshTree++].coord;
-				py = this.trlevel.meshTrees[meshTree++].coord;
-				pz = this.trlevel.meshTrees[meshTree++].coord;
-				if (sflag & 1) {
-					if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
-					parent = stack[--stackIdx];
-				}
-				if (sflag & 2) {
-					stack[stackIdx++] = parent;
-				}
-			}
-
-			/*var meshJSON = this.createNewJSONEmbed();
-			var attributes = {
-				flags: { type:"v4", value:[] }
-			};
-			var tiles2material = {};
-
-			meshJSON.attributes = attributes;*/
-
-			this.createMesh(meshIndex);
-/*			var mesh = this.trlevel.meshes[meshIndex];
-
-			var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
-
-			var moveableIsExternallyLit = !internalLit;*/
-			
-			bones.push({
-				"parent": parent,
-				"pos_init": [ px, -py, -pz ]
-			});
-
-			parent = idx;
-
-/*			meshJSON.moveableIsInternallyLit = !moveableIsExternallyLit;
-
-			meshJSON._materials = this.makeMaterialList(tiles2material, 'mesh');
-			for (var m = 0; m < meshJSON._materials.length; ++m) {
-				if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
-					meshJSON._materials[m].uniforms.lighting = { type: "v3", value: new THREE.Vector3(1,1,1) }
-				} else {
-					meshJSON._materials[m].uniforms.lighting = { type: "f", value: 0.0 }
-				}
-			}
-
-			var mid = 'moveable' + moveable.objectID + '_mesh' + idx;
-			this.sc.embeds[mid] = meshJSON;
-			this.sc.geometries[mid] = {
-				"type": "embedded",
-				"id"  : mid
-			};*/
-
-		}
-
-		meshIndex = moveable.startingMesh;
-		for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
-
-			var mid = 'mesh' + meshIndex;
-
-			var materials = [];
-			for (var mat = 0; mat < this.sc.embeds[mid]._materials.length; ++mat) {
-				var material = jQuery.extend(true, {}, this.sc.embeds[mid]._materials[mat]);
-				material.uniforms.lighting.value = this.convertIntensity(0);
-				materials.push(material);
-			}
-
-			var px = py = pz = 0, idx_ = idx;
-			while (idx_ != -1) {
-				px += bones[idx_].pos_init[0];
-				py += bones[idx_].pos_init[1];
-				pz += bones[idx_].pos_init[2];
-				idx_ = bones[idx_].parent;
-			}
-
-			this.sc.objects['moveable' + moveable.objectID + '_mesh' + idx] = {
-				"geometry" 		: mid,
-				"material" 		: materials,
-				"position" 		: [ px+ofst.x, py+ofst.y, pz+ofst.z ],
-				"quaternion" 	: [ 0, 0, 0, 1 ],
-				"scale"	   		: [ 1, 1, 1 ],
-				"visible"  		: !room.isAlternate,
-				"type"			: 'mesh',
-				"roomIndex"		: roomIndex
-			};
-
-		}
-
-	},
-
 	createMoveableInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, moveable, jsonid, visible) {
 
 		if (typeof(jsonid) == 'undefined') jsonid = 'moveable' + moveable.objectID + '_' + itemIndex;
@@ -881,7 +780,7 @@ TRN.SceneConverter.prototype = {
 			"geometry" 				: hasGeometry ? "moveable" + objIDForVisu : null,
 			"material" 				: materials,
 			"position" 				: [ x, y, z ],
-			"quaternion" 			: [ rotation.x, rotation.y, rotation.z, rotation.w ],
+			"quaternion" 			: rotation,
 			"scale"	   				: [ 1, 1, 1 ],
 			"visible"  				: !room.isAlternate && visible,
 			"objectid" 				: moveable.objectID,
@@ -959,9 +858,9 @@ TRN.SceneConverter.prototype = {
 		for (var i = 0; i < this.trlevel.items.length; ++i) {
 			var item = this.trlevel.items[i];
 
-			var roomIndex = item.room, lighting = item.intensity1, q = new THREE.Quaternion();
+			var roomIndex = item.room, lighting = item.intensity1, q = glMatrix.quat.create();
 
-			q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(-(item.angle >> 14) * 90) );
+			glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(-(item.angle >> 14) * 90) );
 
 			var m = movObjID2Index[item.objectID];
 			if (m == null) {
@@ -993,7 +892,7 @@ TRN.SceneConverter.prototype = {
 				var mindex = movObjID2Index[mid];
 				
 				if (typeof(mindex) != "undefined") {
-					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:1 }, this.trlevel.moveables[mindex], 'meshswap' + (i+1), false);
+					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, [0,0,0,1], this.trlevel.moveables[mindex], 'meshswap' + (i+1), false);
 
 					mobj.dummy = true;
 				}
@@ -1005,86 +904,9 @@ TRN.SceneConverter.prototype = {
 				var mindex = movObjID2Index[pistolAnimId];
 
 				if (typeof(mindex) != "undefined") {
-					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:1 }, this.trlevel.moveables[mindex], 'pistolanim', false);
+					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, [0,0,0,1], this.trlevel.moveables[mindex], 'pistolanim', false);
 
 					mobj.dummy = true;
-				}
-			}
-
-			// create the 'ponytail' moveable
-			if (false) {
-				var ponytailId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
-				if (ponytailId != -1) {
-					var mindex = movObjID2Index[ponytailId];
-
-					if (typeof(mindex) != "undefined") {
-
-						this.createMoveableAsMultiMeshes(mindex, laraRoomIndex, { x:-2, y:15, z:55 });
-
-						/*var q1 = new THREE.Quaternion();
-						var q1b = new THREE.Quaternion();
-
-						q1.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(180) );
-						q1b.setFromAxisAngle( {x:1,y:0,z:0}, THREE.Math.degToRad(-90) );
-						q1.multiply(q1b);
-
-						var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, { x:0, y:0, z:0, w:0 }, this.trlevel.moveables[mindex], 'ponytail', true);
-
-						mobj.dummy = true;
-						console.log(mobj, this.sc.embeds['moveable2'])
-
-						var animKeys = [
-							{
-								"time": 		0, 
-								"boundingBox": 	{ xmin:0, ymin:0, zmin:0, xmax:500, ymax:500, zmax:500 },
-								"data":  		[
-									{
-										"position": 	{ x:-2, y:15, z:55 },
-										"quaternion_":	{ x:q1.x, y:q1.y, z:q1.z, w:q1.w },
-										"quaternion":	{ x:0, y:0, z:0, w:0 }
-									},
-									{
-										"position": 	{ x:0, y:0, z:0 },
-										"quaternion":	{ x:0, y:0, z:0, w:1 }
-									},
-									{
-										"position": 	{ x:0, y:0, z:0 },
-										"quaternion":	{ x:0, y:0, z:0, w:1 }
-									},
-									{
-										"position": 	{ x:0, y:0, z:0 },
-										"quaternion":	{ x:0, y:0, z:0, w:1 }
-									},
-									{
-										"position": 	{ x:0, y:0, z:0 },
-										"quaternion":	{ x:0, y:0, z:0, w:1 }
-									},
-									{
-										"position": 	{ x:0, y:0, z:0 },
-										"quaternion":	{ x:0, y:0, z:0, w:1 }
-									}
-								]
-							}
-						];
-
-						var tracks = this.sc.animTracks;
-						var track = {
-							"name": 			"animponytail",
-							"numKeys":  		1,
-							"numFrames":  		1,
-							"frameRate": 		1,
-							"fps":  			1.0,
-							"nextTrack":  		tracks.length,
-							"nextTrackFrame": 	0,
-							"keys":  			animKeys,
-							"commands":     	[],
-							"frameStart":    	0
-						};
-
-						tracks.push(track);
-
-						mobj.animationStartIndex = tracks.length-1;*/
-					}
 				}
 			}
 
@@ -1139,18 +961,18 @@ TRN.SceneConverter.prototype = {
 
 		// specific handling of the skydome (TR4 only)
 		if (this.trlevel.rversion == 'TR4') {
-			var skyColor = new THREE.Vector3(
+			var skyColor = [
 					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > r', true, 255)/255.0,
 					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > g', true, 255)/255.0,
 					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > b', true, 255)/255.0
-				);
+				];
 			var materials = [
 				{
 					"material": this.getMaterial("skydome"),
 					"uniforms": {
 						"map" : { type: "t", value: "sky" },
-						"offsetRepeat" : { type: "v4", value: new THREE.Vector4( 0, 0, 1, 1 ) },
-						"tintColor" : { type: "v3", value : skyColor }
+						"offsetRepeat" : { type: "f4", value: [0, 0, 1, 1] },
+						"tintColor" : { type: "f3", value : skyColor }
 					},
 					"depthWrite" : false,
 					"userData": {}
@@ -1174,7 +996,7 @@ TRN.SceneConverter.prototype = {
 				/*curvature*/ 10.0,
 				/*tiling*/ 3,
 				/*distance*/ 2000.0,
-				/*orientation*/ new THREE.Quaternion(),
+				/*orientation*/ [0,0,0,1],
 				/*xsegments*/ 16, 
 				/*ysegments*/ 16,
 				/*ySegmentsToKeep*/ 8
@@ -1212,6 +1034,8 @@ TRN.SceneConverter.prototype = {
 	},
 
 	convert : function (trlevel, callback_created) {
+		glMatrix.glMatrix.setMatrixArrayType(Array);
+
 		this.trlevel = trlevel;
 
 		this.sc =  {
@@ -1289,20 +1113,20 @@ TRN.SceneConverter.prototype = {
 			var ofstDir = this.confMgr.levelFloat(this.sc.levelShortFileName, 'behaviour[name="Lara"] > dirdist', true, 0.0);
 			var ofstUp = this.confMgr.levelFloat(this.sc.levelShortFileName, 'behaviour[name="Lara"] > updist', true, 0.0);
 
-			var v3 = new THREE.Vector3(0, ofstUp, ofstDir);
-			var q = new THREE.Quaternion();
+			var v3 = [0, ofstUp, ofstDir];
+			var q = glMatrix.quat.create();
 
-			q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(laraPos.rotY) );
-			v3.applyQuaternion(q);
+			glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraPos.rotY));
+			glMatrix.vec3.transformQuat(v3, v3, q);
 
-			camPos.x += v3.x;
-			camPos.y += v3.y;
-			camPos.z += v3.z;
+			camPos.x += v3[0];
+			camPos.y += v3[1];
+			camPos.z += v3[2];
 		}
 
-		var q = new THREE.Quaternion();
+		var q = glMatrix.quat.create();
 
-		q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(laraPos.rotY) );
+		glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraPos.rotY));
 		
 		this.sc.objects.camera1 = {
 			"type"  : "PerspectiveCamera",
@@ -1310,7 +1134,7 @@ TRN.SceneConverter.prototype = {
 			"near"  : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > neardist', true, 50),
 			"far"   : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > fardist', true, 10000),
 			"position": [ camPos.x, camPos.y, camPos.z ],
-			"quaternion": [ q.x, q.y, q.z, q.w ]
+			"quaternion": q
 		}
 
 		this.createTextures();
@@ -1334,9 +1158,9 @@ TRN.SceneConverter.prototype = {
 
 				if (objJSON.objectid == this.laraObjectID || (objJSON.objectid >= min && objJSON.objectid <= max)) {
 					objJSON.position = [ this.sc.cutScene.origin.x, this.sc.cutScene.origin.y, this.sc.cutScene.origin.z ];
-					var q = new THREE.Quaternion();
-					q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sc.cutScene.origin.rotY) );
-					objJSON.quaternion = [ q.x, q.y, q.z, q.w ];
+					var q = glMatrix.quat.create();
+					glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(this.sc.cutScene.origin.rotY));
+					objJSON.quaternion = q;
 				}
 			}
 
