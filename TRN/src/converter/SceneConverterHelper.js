@@ -16,14 +16,17 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		};
 	},
 
-	getMaterial : function (objType, numLights) {
+	getMaterial : function (objType, params) {
 		var matName = '', doReplace = false;
-		if (typeof(numLights) == 'undefined') numLights = null;
+		params = params || {};
 
 		switch(objType) {
 			case 'room':
+				params.room_effects = params.room_effects || false;
 				matName = 'TR_room';
+				if (params.room_effects) matName += "_with_effects";
 				if (!this.sc.materials[matName]) {
+					var vshader = this.shaderMgr.getVertexShader('room').replace(/##room_effects##/g, params.room_effects);
 					doReplace = true;
 					this.sc.materials[matName] = {
 						"type": "ShaderMaterial",
@@ -37,7 +40,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 								"rnd": { type: "f", value: 0.0 },
 								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
 							},
-							"vertexShader": this.shaderMgr.getVertexShader('room'),
+							"vertexShader": vshader,
 							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
 							"vertexColors" : true
 						}
@@ -47,6 +50,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			case 'roombump':
 				matName = 'TR_roombump';
 				if (!this.sc.materials[matName]) {
+					var vshader = this.shaderMgr.getVertexShader('room').replace(/ROOM_EFFECTS/g, true);
 					doReplace = true;
 					this.sc.materials[matName] = {
 						"type": "ShaderMaterial",
@@ -61,7 +65,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 								"rnd": { type: "f", value: 0.0 },
 								"offsetRepeat": { type: "v4", value: new THREE.Vector4(0.0, 0.0, 1.0, 1.0) }
 							},
-							"vertexShader": this.shaderMgr.getVertexShader('room'),
+							"vertexShader": vshader,
 							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('room_bump'),
 							"vertexColors" : true
 						}
@@ -93,13 +97,13 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				}				
 				break;
 			case 'moveable':
-				matName = 'TR_moveable' + (numLights != null ? '_l' + numLights.directional + '_' + numLights.point + '_' + numLights.spot : '');
+				matName = 'TR_moveable' + (params.numLights ? '_l' + params.numLights.directional + '_' + params.numLights.point + '_' + params.numLights.spot : '');
 				if (!this.sc.materials[matName]) {
 					var vertexShader;
 					doReplace = true;
-					if (numLights != null) {
+					if (params.numLights) {
 						vertexShader = this.shaderMgr.getVertexShader('moveable_with_lights');
-						vertexShader = vertexShader.replace(/##num_point_lights##/g, numLights.point).replace(/##num_dir_lights##/g, numLights.directional).replace(/##num_spot_lights##/g, numLights.spot);
+						vertexShader = vertexShader.replace(/##num_point_lights##/g, params.numLights.point).replace(/##num_dir_lights##/g, params.numLights.directional).replace(/##num_spot_lights##/g, params.numLights.spot);
 					} else {
 						vertexShader = this.shaderMgr.getVertexShader('moveable');
 					}
@@ -340,7 +344,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return internallyLit;
 	},
 
-	makeMaterialList : function (tiles2material, matname, numLights) {
+	makeMaterialList : function (tiles2material, matname, matparams) {
 		if (!matname) matname = 'room';
 		var lstMat = [];
 		for (var tile in tiles2material) {
@@ -349,7 +353,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			var isAlphaText = tile.substr(0, 5) == 'alpha';
 			if (isAlphaText) tile = tile.substr(5);
 			lstMat[imat] = {
-				"material": this.getMaterial(matname, numLights),
+				"material": this.getMaterial(matname, matparams),
 				"uniforms": {
 					"offsetRepeat" : { type: "v4", value: new THREE.Vector4( 0, 0, 1, 1 ) }
 				},
@@ -364,7 +368,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			} else {
 				lstMat[imat].uniforms.map = { type: "t", value: "texture" + tile };
 				if (matname == 'room' && tile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {
-					lstMat[imat].material = this.getMaterial('roombump', numLights);
+					lstMat[imat].material = this.getMaterial('roombump', matparams);
 					lstMat[imat].uniforms.mapBump = { type: "t", value: "texture" + (parseInt(tile) + this.trlevel.numBumpTextiles/2) };
 					//console.log(lstMat[imat].uniforms.map.value, lstMat[imat].uniforms.mapBump.value)
 				}

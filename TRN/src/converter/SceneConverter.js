@@ -219,7 +219,7 @@ TRN.SceneConverter.prototype = {
 
 		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
-		meshJSON._materials = this.makeMaterialList(tiles2material, 'room');
+		meshJSON._materials = this.makeMaterialList(tiles2material, 'room', { room_effects:flag.x==1 || flag.y==1 || flag.z==1 });
 
 		if (numSprites == 1) {
 			for (var m = 0; m < meshJSON._materials.length; ++m) {
@@ -268,6 +268,7 @@ TRN.SceneConverter.prototype = {
 			roomJSON.attributes = attributes;
 
 			// push the vertices + vertex colors of the room
+			var hasEffects = false;
 			for (var v = 0; v < rdata.vertices.length; ++v) {
 				var rvertex = rdata.vertices[v];
 				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater, isFlickering);
@@ -275,6 +276,8 @@ TRN.SceneConverter.prototype = {
 				roomJSON.vertices.push(vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z);
 				attributes.flags.value.push(vertexInfo.flag);
 				roomJSON.colors.push(vertexInfo.color);
+
+				hasEffects |= vertexInfo.flag.x==1 || vertexInfo.flag.y==1 || vertexInfo.flag.z==1;
 			}
 
 			// create the tri/quad faces
@@ -288,7 +291,7 @@ TRN.SceneConverter.prototype = {
 			};
 			this.sc.objects['room' + m] = {
 				"geometry" 			: "room" + m,
-				"material" 			: this.makeMaterialList(tiles2material, 'room'),
+				"material" 			: this.makeMaterialList(tiles2material, 'room', { room_effects:hasEffects }),
 				"position" 			: [ 0, 0, 0 ],
 				"quaternion" 		: [ 0, 0, 0, 1 ],
 				"scale"	   			: [ 1, 1, 1 ],
@@ -867,7 +870,7 @@ TRN.SceneConverter.prototype = {
 					material.uniforms.lighting.value = this.convertIntensity(lighting);
 				} else {
 					// change material to a material that handles lights
-					material.material = this.getMaterial('moveable', this.countLightTypes(room.lights));
+					material.material = this.getMaterial('moveable', { numLights:this.countLightTypes(room.lights) });
 					material.uniforms.lighting.value = 1.0;
 				}
 				materials.push(material);
