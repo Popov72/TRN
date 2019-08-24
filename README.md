@@ -1,5 +1,5 @@
-TRN
-===
+<p align="center"><img title="City of Vilcabamba" src="resources/logo.png"/></p>
+
 
 Tomb Raider Nostalgia - View levels and play cut scenes for old Tomb Raider games 1/2/3/4.
 
