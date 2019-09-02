@@ -1,0 +1,23 @@
+{
+  "name": "trn",
+  "version": "1.0.0",
+  "description": "Tomb Raider Nostalgia",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Popov72/TRN.git"
+  },
+  "keywords": [
+    "TombRaider",
+    "Javascript"
+  ],
+  "author": "Evgeni Popov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Popov72/TRN/issues"
+  },
+  "homepage": "https://github.com/Popov72/TRN#readme"
+}

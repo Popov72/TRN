@@ -141,7 +141,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 							},
 							"vertexShader": this.shaderMgr.getVertexShader('skydome'),
 							"fragmentShader": this.shaderMgr.getFragmentShader('skydome'),
-							"vertexColors" : false
+							"vertexColors" : true
 						}
 					};
 				}				
@@ -366,10 +366,10 @@ TRN.extend(TRN.SceneConverter.prototype, {
 					"pos": parseInt(tile.split('_')[2])
 				};
 			} else {
-				lstMat[imat].uniforms.map = { type: "t", value: "texture" + tile };
+				lstMat[imat].uniforms.map = { type: "t", value: "" + tile };
 				if (matname == 'room' && tile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {
 					lstMat[imat].material = this.getMaterial('roombump', matparams);
-					lstMat[imat].uniforms.mapBump = { type: "t", value: "texture" + (parseInt(tile) + this.trlevel.numBumpTextiles/2) };
+					lstMat[imat].uniforms.mapBump = { type: "t", value: "" + (parseInt(tile) + this.trlevel.numBumpTextiles/2) };
 					//console.log(lstMat[imat].uniforms.map.value, lstMat[imat].uniforms.mapBump.value)
 				}
 			}

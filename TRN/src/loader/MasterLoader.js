@@ -88,6 +88,11 @@ TRN.MasterLoader = {
 
 		var this_ = this;
 
+        var gltf = new TRNUtil.GLTFConverter(trlevel, sceneJSON);
+        gltf.convert();
+        console.log(gltf.data);
+        console.log(JSON.stringify(gltf.data, undefined, 4));
+
 		var loader = new THREE.SceneLoader();
 
 		loader.callbackProgress = function (progress, result) {
@@ -161,8 +166,8 @@ TRN.MasterLoader = {
 			scene.objects.sky.frustumCulled = false;
 		}
 
-		var skyTexture = scene.textures['sky'];
-		if (skyTexture) {
+		if (scene.objects.skydome) {
+            var skyTexture = scene.textures["texture" + (TRN.Helper.objSize(scene.textures)-1)];
 			skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
 			skyTexture.needsUpdate = true;
 		}
@@ -410,10 +415,10 @@ TRN.MasterLoader = {
 				var material = materials[i];
 
 				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
-					material.uniforms.map.value = scene.textures[material.uniforms.map.value];
+					material.uniforms.map.value = scene.textures['texture' + material.uniforms.map.value];
 				}
 				if (material.uniforms.mapBump && typeof(material.uniforms.mapBump.value) == 'string' && material.uniforms.mapBump.value) {
-					material.uniforms.mapBump.value = scene.textures[material.uniforms.mapBump.value];
+					material.uniforms.mapBump.value = scene.textures['texture' + material.uniforms.mapBump.value];
 				}
 
 				if (room && room.filledWithWater) {

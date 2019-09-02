@@ -19,9 +19,6 @@ TRN.SceneConverter.prototype = {
 		// create one texture per tile	
 		for (var i = 0; i < this.trlevel.textile.length; ++i) {
 			var name = 'texture' + i;
-			if (i == this.trlevel.textile.length-1 && this.trlevel.rversion == 'TR4') {
-				name = 'sky';
-			}
 			this.sc.textures[name] = {
 				"url": this.trlevel.textile[i],
 				"anisotropy": 16
@@ -970,7 +967,7 @@ TRN.SceneConverter.prototype = {
 				{
 					"material": this.getMaterial("skydome"),
 					"uniforms": {
-						"map" : { type: "t", value: "sky" },
+						"map" : { type: "t", value: "" + (this.trlevel.textile.length-1) },
 						"offsetRepeat" : { type: "f4", value: [0, 0, 1, 1] },
 						"tintColor" : { type: "f3", value : skyColor }
 					},
@@ -1004,11 +1001,16 @@ TRN.SceneConverter.prototype = {
 			
 			meshJSON.attributes = null;
 			meshJSON.vertices = meshData.vertices;
-			meshJSON.uvs[0] = meshData.textures;
+            meshJSON.uvs[0] = meshData.textures;
+            meshJSON.colors = [];
+
+            for (var v = 0; v < meshJSON.vertices.length; ++v) {
+                meshJSON.colors.push(0xFFFFFF);
+            }
 
 			var faces = meshData.faces, numFaces = faces.length / 3;
 			for (var f = 0; f < numFaces; ++f) {
-				meshJSON.faces.push(10); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
+				meshJSON.faces.push(138); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
 
 				// vertex indices
 				for (var v = 0; v < 3; ++v) {
@@ -1018,6 +1020,11 @@ TRN.SceneConverter.prototype = {
 				meshJSON.faces.push(0); // material index
 
 				// texture indices
+				for (var v = 0; v < 3; ++v) {
+					meshJSON.faces.push(faces[f*3+v]);
+                }
+                
+                // vertex color indices
 				for (var v = 0; v < 3; ++v) {
 					meshJSON.faces.push(faces[f*3+v]);
 				}
