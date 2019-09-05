@@ -96,6 +96,7 @@ var TRNUtil;
             this.__embeds = this.sceneJSON.embeds;
             this.__geometries = this.sceneJSON.geometries;
             this._cameraNode = null;
+            this._glc = 0;
         }
         Object.defineProperty(GLTFConverter.prototype, "data", {
             get: function () {
@@ -108,8 +109,9 @@ var TRNUtil;
             glMatrix.glMatrix.setMatrixArrayType(Array);
             this.outputTextures();
             this.outputCamera();
-            this.outputSky();
             this.outputRooms();
+            this.outputSky();
+            console.log('glc=', this._glc);
         };
         GLTFConverter.prototype.addNode = function (name, addToRootNodes, rotation, translation, scale) {
             if (addToRootNodes === void 0) { addToRootNodes = false; }
@@ -123,6 +125,13 @@ var TRNUtil;
             if (addToRootNodes)
                 this._inodes.push(index);
             return { node: node, index: index };
+        };
+        GLTFConverter.prototype.getNodeByName = function (name) {
+            for (var n = 0; n < this._nodes.length; ++n) {
+                if (this._nodes[n].name == name)
+                    return this._nodes[n];
+            }
+            return null;
         };
         GLTFConverter.prototype.addChildToNode = function (src, child) {
             (src.children = src.children || []).push(child);
@@ -212,9 +221,9 @@ var TRNUtil;
         GLTFConverter.prototype.outputSky = function () {
             if (this.sceneJSON.rversion != 'TR4')
                 return;
-            var meshNode = this.createMesh("skydome", true);
-            if (meshNode != null) {
-                meshNode.node.translation = this._cameraNode.translation;
+            var node = this.getNodeByName("skydome");
+            if (node != null) {
+                node.translation = this._cameraNode.translation;
             }
         };
         GLTFConverter.prototype.outputRooms = function () {
@@ -286,7 +295,7 @@ var TRNUtil;
                     attributesView.set([x, y, z], ofst);
                     attributesView.set([uvs[faces[f + v + numVert + 2] * 2 + 0], uvs[faces[f + v + numVert + 2] * 2 + 1]], ofst + 3);
                     var color = colors[faces[f + v + 1]], cr = (color & 0xFF0000) >> 16, cg = (color & 0xFF00) >> 8, cb = (color & 0xFF);
-                    attributesView.set([cr / 255.0 / 2, cg / 255.0 / 2, cb / 255.0 / 2], ofst + 5);
+                    attributesView.set([cr / 255.0, cg / 255.0, cb / 255.0], ofst + 5);
                     ofst += 8;
                 }
                 f += faceSize;
@@ -383,8 +392,13 @@ var TRNUtil;
                         "KHR_materials_unlit": {}
                     },
                 };
-                if (numTexture >= 0)
+                if (numTexture >= 0) {
                     gmaterial.pbrMetallicRoughness.baseColorTexture = { "index": numTexture };
+                }
+                else {
+                    this._glc++;
+                    console.log(objName, mat, material, obj);
+                }
                 if (material.hasAlpha) {
                     gmaterial.alphaMode = "BLEND";
                 }

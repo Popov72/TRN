@@ -155,6 +155,7 @@ namespace TRNUtil {
         private __geometries:   JsonMap;
 
         private _cameraNode:    Node | null;
+        private _glc:           number;
 
         constructor(public trLevel:JsonMap, public sceneJSON:JsonMap) {
             this._nodes = [];
@@ -192,6 +193,7 @@ namespace TRNUtil {
             this.__geometries = this.sceneJSON.geometries! as JsonMap;
 
             this._cameraNode = null;
+            this._glc = 0;
         }
 
         get data() { 
@@ -203,8 +205,10 @@ namespace TRNUtil {
 
             this.outputTextures();
             this.outputCamera();
-            this.outputSky();
             this.outputRooms();
+            this.outputSky();
+
+            console.log('glc=', this._glc);
         }
 
         private addNode(name: string, addToRootNodes: boolean = false, rotation?: vec4, translation?: vec3, scale?: vec3): NodeIndex {
@@ -221,6 +225,13 @@ namespace TRNUtil {
             if (addToRootNodes) this._inodes.push(index);
 
             return { node, index };
+        }
+
+        private getNodeByName(name: string): Node | null {
+            for (let n = 0; n < this._nodes.length; ++n) {
+                if (this._nodes[n].name == name) return this._nodes[n];
+            }
+            return null;
         }
 
         private addChildToNode(src: Node, child: number): void {
@@ -328,10 +339,10 @@ namespace TRNUtil {
         private outputSky() {
             if (this.sceneJSON.rversion != 'TR4') return;
 
-            let meshNode = this.createMesh("skydome", true);
+            let node = this.getNodeByName("skydome");
 
-            if (meshNode != null) {
-                meshNode.node.translation = this._cameraNode!.translation;
+            if (node != null) {
+                node.translation = this._cameraNode!.translation;
             }
         }
 
@@ -512,7 +523,12 @@ namespace TRNUtil {
                     },
                 };
 
-                if (numTexture >= 0) gmaterial.pbrMetallicRoughness.baseColorTexture = { "index": numTexture };
+                if (numTexture >= 0) {
+                    gmaterial.pbrMetallicRoughness.baseColorTexture = { "index": numTexture };
+                } else {
+                    this._glc++;
+                    console.log(objName, mat, material, obj);
+                }
 
                 if (material.hasAlpha) {
                     gmaterial.alphaMode = "BLEND";
