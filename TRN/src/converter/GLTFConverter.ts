@@ -227,7 +227,6 @@ namespace TRNUtil {
             this.outputTextures();
             this.outputCamera();
             this.outputObjects();
-            this.outputSky();
 
             let materials = (((this._gltf.scenes! as JsonArray)[0] as JsonMap).extras as JsonMap).TRN_materials as JsonMap;
             for (let matName in materials) {
@@ -400,16 +399,6 @@ namespace TRNUtil {
                     }
                 }
             ];
-        }
-
-        private outputSky() {
-            if (this.sceneJSON.rversion != 'TR4') return;
-
-            let node = this.getNodeByName("skydome");
-
-            if (node != null) {
-                node.translation = this._cameraNode!.translation;
-            }
         }
 
         private outputObjects() {
