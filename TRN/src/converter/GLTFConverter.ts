@@ -1,9 +1,8 @@
 declare var glMatrix: any;
 declare var TRN: any;
+declare var jQuery: any;
 
 namespace TRNUtil {
-
-    const worldScale = 1/512.0;
 
     type vec3 = number[];
     type vec4 = number[];
@@ -112,6 +111,7 @@ namespace TRNUtil {
             "COLOR_0"?: number,
             "JOINTS_0"?: number,
             "WEIGHTS_0"?: number,
+            [name:string]: number | undefined,
         },
         "indices": number,
         "material"?: number,
@@ -121,6 +121,7 @@ namespace TRNUtil {
     interface Mesh {
         "name"?: string,
         "primitives": Primitive[],
+        "extras"?: any,
     }
 
     interface Texture {
@@ -135,27 +136,42 @@ namespace TRNUtil {
         "mimeType": string,
     }
 
+    interface _GeometryData {
+        "bufferViewAttributesIndex": number,
+        "accessorPositionIndex": number,
+        "accessorTexcoordIndex": number,
+        "accessorColorIndex": number,
+        "accessorFlagIndex": number,
+        "accessorIndicesIndex": Array<number>,
+    }
+
+    interface _MapGeometryData {
+        [name: string]: _GeometryData,
+    }
+
     type AnyJson =  boolean | number | string | null | JsonArray | JsonMap | Buffer | BufferView | Accessor | Mesh | Texture | Image;
     interface JsonMap {  [key: string]: AnyJson; }
     interface JsonArray extends Array<AnyJson> {}
 
     export class GLTFConverter {
 
-        private _gltf:          JsonMap;
-        private _nodes:         Node[];
-        private _inodes:        number[];
-        private _meshes:        Mesh[];
-        private _buffers:       Buffer[];
-        private _bufferViews:   BufferView[];
-        private _accessors:     Accessor[];
-        private _materials:     JsonMap[];
+        private _gltf:              JsonMap;
+        private _nodes:             Node[];
+        private _inodes:            number[];
+        private _meshes:            Mesh[];
+        private _buffers:           Buffer[];
+        private _bufferViews:       BufferView[];
+        private _accessors:         Accessor[];
+        private _materials:         JsonMap[];
 
-        private __objects:      JsonMap;
-        private __embeds:       JsonMap;
-        private __geometries:   JsonMap;
+        private __objects:          JsonMap;
+        private __embeds:           JsonMap;
+        private __geometries:       JsonMap;
+        private __animatedTextures: JsonMap;
 
-        private _cameraNode:    Node | null;
-        private _glc:           number;
+        private _cameraNode:        Node | null;
+        private _glc:               number;
+        private _mapNameToGeometry: _MapGeometryData;
 
         constructor(public trLevel:JsonMap, public sceneJSON:JsonMap) {
             this._nodes = [];
@@ -178,6 +194,9 @@ namespace TRNUtil {
                     {
                         "name": sceneJSON.levelShortFileName,
                         "nodes": this._inodes,
+                        "extras": {
+                            "TRN_materials": jQuery.extend(true, {}, sceneJSON.materials),
+                        },
                     }
                 ],
                 "scene": 0,
@@ -191,9 +210,11 @@ namespace TRNUtil {
             this.__objects = this.sceneJSON.objects! as JsonMap;
             this.__embeds = this.sceneJSON.embeds! as JsonMap;
             this.__geometries = this.sceneJSON.geometries! as JsonMap;
+            this.__animatedTextures = this.sceneJSON.animatedTextures! as JsonMap;
 
             this._cameraNode = null;
             this._glc = 0;
+            this._mapNameToGeometry = {};
         }
 
         get data() { 
@@ -205,8 +226,48 @@ namespace TRNUtil {
 
             this.outputTextures();
             this.outputCamera();
-            this.outputRooms();
+            this.outputObjects();
             this.outputSky();
+
+            let materials = (((this._gltf.scenes! as JsonArray)[0] as JsonMap).extras as JsonMap).TRN_materials as JsonMap;
+            for (let matName in materials) {
+                let material = materials[matName] as JsonMap, matparams = material.parameters as JsonMap, uniforms = matparams.uniforms as JsonMap;
+
+                let addUniforms: string = "";
+
+                if (matparams.skinning) {
+                    addUniforms =
+                        "attribute vec4 skinIndex;\n" +
+                        "attribute vec4 skinWeight;\n";
+                    ;
+                }
+
+                matparams.vertexShader = 
+                    "precision highp float;\n" +
+                    "uniform mat4 modelMatrix;\n" +
+                    "uniform mat4 modelViewMatrix;\n" +
+                    "uniform mat4 projectionMatrix;\n" +
+                    "uniform mat4 viewMatrix;\n" +
+                    "uniform mat3 normalMatrix;\n" +
+                    /*"uniform vec3 cameraPosition;\n" +*/
+                    "attribute vec3 position;\n" +
+                    "attribute vec3 normal;\n" +
+                    "attribute vec2 uv;\n" +
+                    /*"attribute vec2 uv2;\n" +*/
+                    "attribute vec3 color;\n" +
+                    addUniforms +
+                    "\n" + matparams.vertexShader;
+                
+                matparams.fragmentShader =
+                    "precision highp float;\n" +
+                    "uniform mat4 viewMatrix;\n" +
+                    /*"uniform vec3 cameraPosition;\n" +*/
+                    "\n" + matparams.fragmentShader;
+
+                for (let n in uniforms) {
+                    delete (uniforms[n] as JsonMap).type;
+                }
+            }
 
             console.log('glc=', this._glc);
         }
@@ -217,7 +278,7 @@ namespace TRNUtil {
             }, index = this._nodes.length;
 
             if (node.translation) {
-                node.translation = [node.translation[0] * worldScale, node.translation[1] * worldScale, node.translation[2] * worldScale];
+                node.translation = [node.translation[0], node.translation[1], node.translation[2]];
             }
 
             this._nodes.push(node);
@@ -277,13 +338,18 @@ namespace TRNUtil {
                     "wrapS":        samplerWrap.CLAMP_TO_EDGE,
                     "wrapT":        samplerWrap.CLAMP_TO_EDGE,
                 },
-                {
-                    "magFilter":    samplerMagFilter.LINEAR,
-                    "minFilter":    samplerMinFilter.LINEAR_MIPMAP_LINEAR,
-                    "wrapS":        samplerWrap.REPEAT,
-                    "wrapT":        samplerWrap.REPEAT,
-                }            
             ];
+
+            if (this.sceneJSON.rversion == 'TR4') {
+                this._gltf.samplers.push(
+                    {
+                        "magFilter":    samplerMagFilter.LINEAR,
+                        "minFilter":    samplerMinFilter.LINEAR_MIPMAP_LINEAR,
+                        "wrapS":        samplerWrap.REPEAT,
+                        "wrapT":        samplerWrap.REPEAT,
+                    }            
+                );
+            }
 
             let textures:JsonMap = this.sceneJSON.textures as JsonMap;
             let otextures: Texture[] = [], oimages: Image[] = [];
@@ -329,8 +395,8 @@ namespace TRNUtil {
                     "perspective" : {
                         "aspectRatio": 1.0,
                         "yfov": (cam.fov as number)*Math.PI/180,
-                        "zfar": (cam.far as number)*worldScale,
-                        "znear": (cam.near as number)*worldScale,
+                        "zfar": cam.far as number,
+                        "znear": cam.near as number,
                     }
                 }
             ];
@@ -346,13 +412,13 @@ namespace TRNUtil {
             }
         }
 
-        private outputRooms() {
+        private outputObjects() {
             let rootNode = this.addNode("rootNode", true);
 
             for (let name in this.__objects) {
                 let obj = this.__objects[name] as JsonMap;
                 let geom = this.__geometries[obj.geometry as string] as JsonMap;
-                if (!obj.visible) {
+                if (!obj.visible/* || name.substring(0, 4) != "room" || name.indexOf("moveable") >= 0*/) {
                     //console.log('Object/Mesh ' + name + ' not visible');
                     continue;
                 }
@@ -368,19 +434,190 @@ namespace TRNUtil {
             }
         }
 
+        private createGeometry(geometryId: string): _GeometryData | null {
+            let embedId = (this.__geometries[geometryId] as JsonMap).id as string;
+            let oembed = this.__embeds[embedId] as JsonMap;
+
+            let vertices = oembed.vertices as [], uvs = (oembed.uvs as [[]])[0], colors = oembed.colors as [], flags = ((oembed.attributes as JsonMap)._flags as JsonMap).value as [];
+            let faces = oembed.faces as [], numFaces3 = 0, numFaces4 = 0;
+
+            if (faces.length == 0) {
+                console.log(`No faces in embed ${embedId}: geometry not created/mesh not exported.`, oembed);
+                return null;
+            }
+
+            // count number of tri / quad
+            let f = 0, lstMatNumbers: Array<number> = [];
+            while (f < faces.length) {
+                let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 11 : 14;
+                let faceMat: number = faces[f+(isTri ? 4 : 5)];
+                if (!isTri) {
+                    numFaces4++;
+                } else {
+                    numFaces3++;
+                }
+                lstMatNumbers[faceMat] = 0;
+                f += faceSize;
+            }
+            //console.log(f, faces.length);
+
+            // allocate the data buffer
+            let numVertices = numFaces3*3 + numFaces4*4, numTriangles = numFaces3 + numFaces4*2;
+            let verticesSize = numVertices*3*4, textcoordsSize = numVertices*2*4, colorsSize = numVertices*3*4, flagsSize = numVertices*4*4;
+            let indicesSize = numTriangles*3*2;
+
+            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + indicesSize);
+
+            // fill the buffer with the attributes
+            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4));
+            let min = [1e20, 1e20, 1e20], max = [-1e20, -1e20, -1e20 ];
+            let ofst = 0;
+            f = 0;
+            while (f < faces.length) {
+                let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 11 : 14;
+                for (let v = 0; v < numVert; ++v) {
+                    let [x, y, z] = [vertices[faces[f+v+1]*3 + 0], vertices[faces[f+v+1]*3 + 1], vertices[faces[f+v+1]*3 + 2]];
+                    min[0] = Math.min(min[0], x);    min[1] = Math.min(min[1], y);    min[2] = Math.min(min[2], z);
+                    max[0] = Math.max(max[0], x);    max[1] = Math.max(max[1], y);    max[2] = Math.max(max[2], z);
+                    attributesView.set([x, y, z], ofst);
+                    attributesView.set([uvs[faces[f+v+numVert+2]*2+0], uvs[faces[f+v+numVert+2]*2+1]], ofst + 3);
+                    let color = colors[faces[f+v+1]] as number, cr = (color & 0xFF0000) >> 16, cg = (color & 0xFF00) >> 8, cb = (color & 0xFF);
+                    attributesView.set([cr/255.0, cg/255.0, cb/255.0], ofst + 5);
+                    attributesView.set(flags[faces[f+v+1]], ofst + 8);
+                    ofst += 12;
+                }
+                f += faceSize;
+            }
+            //console.log(f, faces.length);
+            //console.log(ofst*4, verticesSize + textcoordsSize)
+
+            // fill the buffer with the indices
+            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize, numTriangles*3);
+            let accessorOffsets: number[] = [], accessorCounts: number[] = [];
+
+            for (let mat = 0, ofst = 0; mat < lstMatNumbers.length; ++mat) {
+                accessorOffsets.push(ofst*2);
+                let fIndex = 0;
+                f = 0;
+                while  (f < faces.length) {
+                    let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 11 : 14;
+                    let faceMat: number = faces[f+(isTri ? 4 : 5)];
+                    if (faceMat == mat) {
+                        if (!isTri) {
+                            indicesView.set([fIndex+0, fIndex+1, fIndex+3], ofst);
+                            indicesView.set([fIndex+1, fIndex+2, fIndex+3], ofst + 3);
+                            ofst += 6;
+                        } else {
+                            indicesView.set([fIndex+0, fIndex+1, fIndex+2], ofst);
+                            ofst += 3;
+                            }
+                    }
+                    fIndex += 3;
+                    if (!isTri) fIndex++;
+                    f += faceSize;
+                }
+                accessorCounts.push((ofst*2-accessorOffsets[mat])/2);
+            }
+            //console.log(f, faces.length);
+
+            let bufferDataIndex = this.addBuffer(bufferData, undefined, `${embedId} embed data`);
+
+            let bufferViewAttributesIndex = this.addBufferView({
+                "name": `${embedId}_vertices_attributes`,
+                "buffer": bufferDataIndex,
+                "byteLength": numVertices*(3+2+3+4)*4,
+                "byteOffset": 0,
+                "byteStride": (3+2+3+4)*4,
+                "target": bufferViewTarget.ARRAY_BUFFER,
+            });
+            let bufferViewIndicesIndex = this.addBufferView({
+                "name": `${embedId}_indices`,
+                "buffer": bufferDataIndex,
+                "byteLength": numTriangles*3*2,
+                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize,
+                "target": bufferViewTarget.ELEMENT_ARRAY_BUFFER,
+            });
+
+            let accessorPositionIndex = this.addAccessor({
+                "name": `${embedId}_position`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": 0,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC3,
+                "min": min,
+                "max": max,
+            });
+            let accessorTexcoordIndex = this.addAccessor({
+                "name": `${embedId}_textcoord`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": 3*4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC2,
+            });
+            let accessorColorIndex = this.addAccessor({
+                "name": `${embedId}_vertexcolor`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3+2)*4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC3,
+            });
+            let accessorFlagIndex = this.addAccessor({
+                "name": `${embedId}_flag`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3+2+3)*4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC4,
+            });
+
+            let accessorIndicesIndex: Array<number> = [];
+            for (let i = 0; i < accessorOffsets.length; ++i) {
+                accessorIndicesIndex.push(this.addAccessor({
+                    "name": `${embedId}_material${i}_indices`,
+                    "bufferView": bufferViewIndicesIndex,
+                    "byteOffset": accessorOffsets[i],
+                    "componentType": accessorElementSize.UNSIGNED_SHORT,
+                    "count": accessorCounts[i],
+                    "type": accessorType.SCALAR,
+                }));
+            };
+
+            return {
+                bufferViewAttributesIndex, 
+                accessorPositionIndex,
+                accessorTexcoordIndex,
+                accessorColorIndex,
+                accessorFlagIndex,
+                accessorIndicesIndex
+            };
+        }
+
         private createMesh(objName: string, addAsRootNode: boolean = false): NodeIndex | null {
 
             let obj = this.__objects[objName] as JsonMap;
+
             let materials = obj.material as [];
             
-            let oembed = this.__embeds[(this.__geometries[obj.geometry as string] as JsonMap).id as string] as JsonMap;
+            //let oembed = this.__embeds[(this.__geometries[obj.geometry as string] as JsonMap).id as string] as JsonMap;
 
             let mesh: Mesh = {
                 "name": `${objName} mesh`,
-                "primitives": []
+                "primitives": [],
+                "extras": {
+                    "TRN_behaviours": [],
+                },
             };
 
-            let vertices = oembed.vertices as [], uvs = (oembed.uvs as [[]])[0], colors = oembed.colors as [];
+            if (obj.isSprite) {
+                mesh.extras.TRN_behaviours.push({
+                    "type": "sprite",
+                });
+            }
+
+            /*let vertices = oembed.vertices as [], uvs = (oembed.uvs as [[]])[0], colors = oembed.colors as [], flags = ((oembed.attributes as JsonMap)._flags as JsonMap).value as [];
             let faces = oembed.faces as [], numFaces3 = 0, numFaces4 = 0;
 
             if (materials.length == 0 || faces.length == 0) {
@@ -402,32 +639,34 @@ namespace TRNUtil {
             //console.log(f, faces.length);
 
             let numVertices = numFaces3*3 + numFaces4*4, numTriangles = numFaces3 + numFaces4*2;
-            let verticesSize = numVertices*3*4, textcoordsSize = numVertices*2*4, colorsSize = numVertices*3*4, indicesSize = numTriangles*3*2;
+            let verticesSize = numVertices*3*4, textcoordsSize = numVertices*2*4, colorsSize = numVertices*3*4, flagsSize = numVertices*4*4;
+            let indicesSize = numTriangles*3*2;
 
-            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + indicesSize);
+            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + indicesSize);
 
-            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3));
+            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4));
             let min = [1e20, 1e20, 1e20], max = [-1e20, -1e20, -1e20 ];
             let ofst = 0;
             f = 0;
             while (f < faces.length) {
                 let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 11 : 14;
                 for (let v = 0; v < numVert; ++v) {
-                    let [x, y, z] = [vertices[faces[f+v+1]*3 + 0]*worldScale, vertices[faces[f+v+1]*3 + 1]*worldScale, vertices[faces[f+v+1]*3 + 2]*worldScale];
+                    let [x, y, z] = [vertices[faces[f+v+1]*3 + 0], vertices[faces[f+v+1]*3 + 1], vertices[faces[f+v+1]*3 + 2]];
                     min[0] = Math.min(min[0], x);    min[1] = Math.min(min[1], y);    min[2] = Math.min(min[2], z);
                     max[0] = Math.max(max[0], x);    max[1] = Math.max(max[1], y);    max[2] = Math.max(max[2], z);
                     attributesView.set([x, y, z], ofst);
                     attributesView.set([uvs[faces[f+v+numVert+2]*2+0], uvs[faces[f+v+numVert+2]*2+1]], ofst + 3);
                     let color = colors[faces[f+v+1]] as number, cr = (color & 0xFF0000) >> 16, cg = (color & 0xFF00) >> 8, cb = (color & 0xFF);
                     attributesView.set([cr/255.0, cg/255.0, cb/255.0], ofst + 5);
-                    ofst += 8;
+                    attributesView.set(flags[faces[f+v+1]], ofst + 8);
+                    ofst += 12;
                 }
                 f += faceSize;
             }
             //console.log(f, faces.length);
             //console.log(ofst*4, verticesSize + textcoordsSize)
 
-            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize, numTriangles*3);
+            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize, numTriangles*3);
             let accessorOffsets: number[] = [], accessorCounts: number[] = [];
 
             for (let mat = 0, ofst = 0; mat < materials.length; ++mat) {
@@ -460,16 +699,16 @@ namespace TRNUtil {
             let bufferViewAttributesIndex = this.addBufferView({
                 "name": `${objName}_vertices_attributes`,
                 "buffer": bufferDataIndex,
-                "byteLength": numVertices*(3+2+3)*4,
+                "byteLength": numVertices*(3+2+3+4)*4,
                 "byteOffset": 0,
-                "byteStride": (3+2+3)*4,
+                "byteStride": (3+2+3+4)*4,
                 "target": bufferViewTarget.ARRAY_BUFFER,
             });
             let bufferViewIndicesIndex = this.addBufferView({
                 "name": `${objName}_indices`,
                 "buffer": bufferDataIndex,
                 "byteLength": numTriangles*3*2,
-                "byteOffset": verticesSize + textcoordsSize + colorsSize,
+                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize,
                 "target": bufferViewTarget.ELEMENT_ARRAY_BUFFER,
             });
 
@@ -494,24 +733,44 @@ namespace TRNUtil {
             let accessorColorIndex = this.addAccessor({
                 "name": `${objName}_vertexcolor`,
                 "bufferView": bufferViewAttributesIndex,
-                "byteOffset": 5*4,
+                "byteOffset": (3+2)*4,
                 "componentType": accessorElementSize.FLOAT,
                 "count": numVertices,
                 "type": accessorType.VEC3,
             });
+            let accessorFlagIndex = this.addAccessor({
+                "name": `${objName}_flag`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3+2+3)*4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC4,
+            });
+            */
+
+            let geomData = this._mapNameToGeometry[obj.geometry as string];
+
+            if (geomData == null) {
+                geomData = this.createGeometry(obj.geometry as string)!;
+                if (geomData == null) {
+                    return null;
+                }
+                this._mapNameToGeometry[obj.geometry as string] = geomData;
+            } else {
+                //console.log(`Geometry for ${objName} not recreated.`);
+            }
+
+            if (geomData.accessorIndicesIndex.length != materials.length) {
+                console.log(`Mesh ${objName} has ${materials.length} materials whereas its geometry has ${geomData.accessorIndicesIndex.length}! object not exported.`, obj, geomData);
+                return null;
+            }
 
             for (let mat = 0; mat < materials.length; ++mat) {
                 let material: any = materials[mat], map = material.uniforms.map;
                 let numTexture: number = map ? parseInt(map.value as string) : -1;
+                let userData: any = material.userData;
 
-                let accessorIndicesIndex = this.addAccessor({
-                    "name": `${objName}_material${mat}_indices`,
-                    "bufferView": bufferViewIndicesIndex,
-                    "byteOffset": accessorOffsets[mat],
-                    "componentType": accessorElementSize.UNSIGNED_SHORT,
-                    "count": accessorCounts[mat],
-                    "type": accessorType.SCALAR,
-                });
+                let accessorIndicesIndex = geomData.accessorIndicesIndex[mat];
     
                 let gmaterial: any = {
                     "name": `${objName} material ${mat}`,
@@ -519,15 +778,66 @@ namespace TRNUtil {
                         "baseColorFactor": [1, 1, 1, 1],
                     },
                     "extensions": {
-                        "KHR_materials_unlit": {}
+                        "KHR_materials_unlit": {},
                     },
+                    "extras": {
+                        "TRN_materials": {
+                            "name": material.material,
+                            "uniforms": jQuery.extend(true, {}, material.uniforms)
+                        },
+                        "TRN_behaviours": []
+                    }
                 };
+
+                if (userData.animatedTexture) {
+                    const animTexture = this.__animatedTextures[userData.animatedTexture.idxAnimatedTexture] as JsonMap;
+                    if (!animTexture.scrolltexture || !this.sceneJSON.useUVRotate) {
+                        let animCoords: Array<JsonMap> = [];
+                        (animTexture.animcoords as Array<JsonMap>).forEach((ac: JsonMap) => {
+                            animCoords.push({
+                                "minU": ac.minU,
+                                "minV": ac.minV,
+                                "texture": parseInt((ac.texture as string).substring(7)),
+                            });
+                        });
+                        gmaterial.extras.TRN_behaviours.push({
+                            "type":         "animatedTexture",
+                            "pos":          userData.animatedTexture.pos,
+                            "minU":         userData.animatedTexture.minU,
+                            "minV":         userData.animatedTexture.minV,
+                            "speed":        animTexture.animspeed,
+                            "animCoords":   animCoords,
+                        });
+                    } else {
+                        const coords = (animTexture.animcoords as Array<JsonMap>)[0];
+                        const vOffset = (coords.minV as number) - userData.animatedTexture.minV*0.5;
+                        gmaterial.extras.TRN_behaviours.push({
+                            "type":         "uvRotate",
+                            "tileHeight":   TRN.Consts.uvRotateTileHeight,
+                            "vOffset":      vOffset,
+                        });
+                        gmaterial.extras.TRN_materials.uniforms.offsetRepeat = {
+                            "value":        [(coords.minU as number) - userData.animatedTexture.minU, vOffset, 1, 0.5],
+                        };
+                    }
+                } else if (obj.hasScrollAnim) {
+                    gmaterial.extras.TRN_behaviours.push({
+                        "type":             "scrollTexture",
+                        "tileHeight":       TRN.Consts.moveableScrollAnimTileHeight,
+                    });
+                }
+
+                let uniforms = gmaterial.extras.TRN_materials.uniforms;
+
+                for (let n in uniforms) {
+                    delete (uniforms[n] as JsonMap).type;
+                }
 
                 if (numTexture >= 0) {
                     gmaterial.pbrMetallicRoughness.baseColorTexture = { "index": numTexture };
                 } else {
                     this._glc++;
-                    console.log(objName, mat, material, obj);
+                    console.log('No texture', objName, mat, material, obj);
                 }
 
                 if (material.hasAlpha) {
@@ -537,11 +847,12 @@ namespace TRNUtil {
                     gmaterial.alphaCutoff = 0.5;
                 }
             
-                let primitive: any = {
+                let primitive: Primitive = {
                     "attributes": {
-                        "POSITION": accessorPositionIndex,
-                        "TEXCOORD_0": accessorTexcoordIndex,
-                        "COLOR_0": accessorColorIndex,
+                        "POSITION": geomData.accessorPositionIndex,
+                        "TEXCOORD_0": geomData.accessorTexcoordIndex,
+                        "COLOR_0": geomData.accessorColorIndex,
+                        "_flags": geomData.accessorFlagIndex,
                     },
                     "indices": accessorIndicesIndex,
                     "mode": primitiveMode.TRIANGLES,
