@@ -6,6 +6,7 @@ TRN.ObjectID = {
 };
 
 TRN.Consts = {
+    "worldScale" : 1.0/512,
 	"objNameForPistolAnim" : "pistolanim",
 	"leftThighIndex" : 0,
 	"rightThighIndex" : 0,

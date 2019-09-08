@@ -138,6 +138,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 							"uniforms": {
 								"map": { type: "t", value: "" },
 								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
+								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
 							},
 							"vertexShader": this.shaderMgr.getVertexShader('skydome'),
 							"fragmentShader": this.shaderMgr.getFragmentShader('skydome'),
@@ -149,8 +150,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		}
 
 		if (doReplace) {
-			this.sc.materials[matName].parameters.vertexShader = this.sc.materials[matName].parameters.vertexShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
-			this.sc.materials[matName].parameters.fragmentShader = this.sc.materials[matName].parameters.fragmentShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
+			this.sc.materials[matName].parameters.vertexShader = this.sc.materials[matName].parameters.vertexShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2)).replace(/##world_scale##/g, "" + TRN.Consts.worldScale.toFixed(10));
+			this.sc.materials[matName].parameters.fragmentShader = this.sc.materials[matName].parameters.fragmentShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2)).replace(/##world_scale##/g, "" + TRN.Consts.worldScale.toFixed(10));
 		}
 
 		return matName;
@@ -172,12 +173,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		var xmax = ymax = zmax = -1e20;
 		for (var i = 0; i < vertices.length; ++i) {
 			var vertex = vertices[i].vertex;
-			if (xmin > vertex.x) xmin = vertex.x;
-			if (xmax < vertex.x) xmax = vertex.x;
-			if (ymin > vertex.y) ymin = vertex.y;
-			if (ymax < vertex.y) ymax = vertex.y;
-			if (zmin > vertex.z) zmin = vertex.z;
-			if (zmax < vertex.z) zmax = vertex.z;
+			if (xmin > vertex.x*TRN.Consts.worldScale) xmin = vertex.x*TRN.Consts.worldScale;
+			if (xmax < vertex.x*TRN.Consts.worldScale) xmax = vertex.x*TRN.Consts.worldScale;
+			if (ymin > vertex.y*TRN.Consts.worldScale) ymin = vertex.y*TRN.Consts.worldScale;
+			if (ymax < vertex.y*TRN.Consts.worldScale) ymax = vertex.y*TRN.Consts.worldScale;
+			if (zmin > vertex.z*TRN.Consts.worldScale) zmin = vertex.z*TRN.Consts.worldScale;
+			if (zmax < vertex.z*TRN.Consts.worldScale) zmax = vertex.z*TRN.Consts.worldScale;
 		}
 		return [xmin,xmax,ymin,ymax,zmin,zmax];
 	},
@@ -190,7 +191,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return res;
 	},
 
-	processRoomVertex : function(rvertex, isFilledWithWater, isFlickering) {
+	processRoomVertex : function(rvertex, isFilledWithWater) {
 		var vertex = rvertex.vertex, attribute = rvertex.attributes;
 		var lighting = 0;
 
@@ -231,8 +232,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		if (isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
 
 		return {
-			x: vertex.x, y: -vertex.y, z: -vertex.z,
-			flag: [moveLight, isFlickering && strengthEffect ? 1 : 0, moveVertex, -strengthEffect],
+			x: vertex.x*TRN.Consts.worldScale, y: -vertex.y*TRN.Consts.worldScale, z: -vertex.z*TRN.Consts.worldScale,
+			flag: [moveLight, 0, moveVertex, -strengthEffect],
 			color: lighting
 		};
 	},
@@ -247,6 +248,16 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			obj.faces.push(vertices[fidx(v)] + ofstvert);
 		}
 
+		var minU = 0, minV = 0, maxV = 0;
+        minU = minV = 1;
+        for (var tv = 0; tv < vertices.length; ++tv) {
+            var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
+            var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
+            if (minU > u) minU = u;
+            if (minV > v) minV = v;
+            if (maxV < v) maxV = v;
+        }
+
 		// material
 		var imat, anmTexture = false, alpha = (tex.attributes & 2 || oface.effects & 1) ? 'alpha' : '';
 		if (mapObjTexture2AnimTexture && mapObjTexture2AnimTexture[texture]) {
@@ -255,8 +266,11 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			imat = tiles2material[matName];
 			if (typeof(imat) == 'undefined') {
 				imat = TRN.Helper.objSize(tiles2material);
-				tiles2material[matName] = imat;
-			}
+				tiles2material[matName] = { imat:imat, tile:tile, minU:minU, minV:minV };
+            } else {
+                if (imat.minU != minU || imat.minV != minV) console.log(imat, tile, minU, minV)
+                imat = imat.imat;
+            }
 			anmTexture = true;
 		} else if (alpha) {
 			imat = tiles2material['alpha' + tile];
@@ -276,7 +290,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		// texture coords
 		var isAnimatedObject = obj.objHasScrollAnim;
 
-		var minU = 0, minV = 0, maxV = 0;
+		/*var minU = 0, minV = 0, maxV = 0;
 		if (anmTexture || isAnimatedObject) {
 			minU = minV = 1;
 			for (var tv = 0; tv < vertices.length; ++tv) {
@@ -286,14 +300,14 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				if (minV > v) minV = v;
 				if (maxV < v) maxV = v;
 			}
-		}
+		}*/
 		var numUVs = parseInt(obj.uvs[0].length / 2);
 		for (var tv = 0; tv < vertices.length; ++tv) {
 			obj.faces.push(numUVs++);
 			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
 			var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
 			if (!isAnimatedObject) {
-				obj.uvs[0].push(u - minU, v - minV);
+				obj.uvs[0].push(u, v);
 			} else if (v != maxV) {
 				obj.uvs[0].push(u, v);
 			} else {
@@ -330,11 +344,11 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
 			var vcolor = parseInt(lighting*255);
 
-			meshJSON.vertices.push(vertex.x, -vertex.y, -vertex.z);
+			meshJSON.vertices.push(vertex.x*TRN.Consts.worldScale, -vertex.y*TRN.Consts.worldScale, -vertex.z*TRN.Consts.worldScale);
 			meshJSON.colors.push(vcolor + (vcolor << 8) + (vcolor << 16)); 	// not used => a specific calculation is done in the vertex shader 
 																			// with the constant lighting for the mesh + the lighting at each vertex (passed to the shader via flags.w)
 
-			if (attributes)  attributes.flags.value.push([0, 0, 0, lighting]);
+			if (attributes)  attributes._flags.value.push([0, 0, 0, lighting]);
 			if (skinIndices) skinIndices.push(skinidx, skinidx);
 			if (skinWeights) skinWeights.push(1.0, 1.0);
 		}
@@ -348,23 +362,25 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		if (!matname) matname = 'room';
 		var lstMat = [];
 		for (var tile in tiles2material) {
-			var imat = tiles2material[tile];
+			var oimat = tiles2material[tile], imat = typeof(oimat) == 'object' ? oimat.imat : oimat;
 			var isAnimText = tile.substr(0, 7) == 'anmtext';
 			var isAlphaText = tile.substr(0, 5) == 'alpha';
 			if (isAlphaText) tile = tile.substr(5);
 			lstMat[imat] = {
 				"material": this.getMaterial(matname, matparams),
-				"uniforms": {
-					"offsetRepeat" : { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
-				},
+				"uniforms": {},
 				"userData": {}
 			};
 			if (isAnimText) {
+                var idxAnimText = parseInt(tile.split('_')[1]), pos = parseInt(tile.split('_')[2]);
 				isAlphaText = tile.substr(7, 5) == 'alpha';
+                lstMat[imat].uniforms.map = { type: "t", value: "" + oimat.tile };
 				lstMat[imat].userData.animatedTexture = {
-					"idxAnimatedTexture": parseInt(tile.split('_')[1]),
-					"pos": parseInt(tile.split('_')[2])
-				};
+					"idxAnimatedTexture": idxAnimText,
+                    "pos": pos,
+                    "minU": oimat.minU,
+                    "minV": oimat.minV
+                };
 			} else {
 				lstMat[imat].uniforms.map = { type: "t", value: "" + tile };
 				if (matname == 'room' && tile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {

@@ -80,7 +80,7 @@ TRN.SceneConverter.prototype = {
 		var mesh = this.trlevel.meshes[meshIndex];
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
-			flags: { type:"f4", value:[] }
+			_flags: { type:"f4", value:[] }
 		};
 		var tiles2material = {};
 
@@ -94,7 +94,7 @@ TRN.SceneConverter.prototype = {
 				meshJSON._materials[m].uniforms.lighting = { type: "f3", value: [1,1,1] }
 			} else {
 				meshJSON._materials[m].uniforms.lighting = { type: "f", value: 0.0 }
-			}
+            }
 		}
 
 		this.sc.embeds['mesh' + meshIndex] = meshJSON;
@@ -153,20 +153,20 @@ TRN.SceneConverter.prototype = {
 		var sprite = this.trlevel.spriteTextures[spriteIndex];
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
-			flags: { type:"f4", value:[] }
+			_flags: { type:"f4", value:[] }
 		};
 		var tiles2material = {};
 
 		meshJSON.attributes = attributes;
 
-		meshJSON.vertices.push(sprite.leftSide, -sprite.topSide, 0);
-		meshJSON.vertices.push(sprite.leftSide, -sprite.bottomSide, 0);
-		meshJSON.vertices.push(sprite.rightSide, -sprite.bottomSide, 0);
-		meshJSON.vertices.push(sprite.rightSide, -sprite.topSide, 0);
+		meshJSON.vertices.push(sprite.leftSide*TRN.Consts.worldScale,  -sprite.topSide*TRN.Consts.worldScale,       0);
+		meshJSON.vertices.push(sprite.leftSide*TRN.Consts.worldScale,  -sprite.bottomSide*TRN.Consts.worldScale,    0);
+		meshJSON.vertices.push(sprite.rightSide*TRN.Consts.worldScale, -sprite.bottomSide*TRN.Consts.worldScale,    0);
+		meshJSON.vertices.push(sprite.rightSide*TRN.Consts.worldScale, -sprite.topSide*TRN.Consts.worldScale,       0);
 
 		for (var i = 0; i < 4; ++i) {
 			meshJSON.colors.push(color);
-			attributes.flags.value.push(flag);
+			attributes._flags.value.push(flag);
 		}
 
 		var texturedRectangles = [
@@ -216,7 +216,7 @@ TRN.SceneConverter.prototype = {
 
 		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
-		meshJSON._materials = this.makeMaterialList(tiles2material, 'room', { room_effects:flag[0]==1 || flag[1]==1 || flag[2]==1 });
+		meshJSON._materials = this.makeMaterialList(tiles2material, 'room', { room_effects:flag[0]==1 || flag[2]==1 });
 
 		if (numSprites == 1) {
 			for (var m = 0; m < meshJSON._materials.length; ++m) {
@@ -257,38 +257,9 @@ TRN.SceneConverter.prototype = {
 			var info = room.info, rdata = room.roomData, rflags = room.flags, lightMode = room.lightMode;
 			var isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
 			var roomJSON = this.createNewJSONEmbed();
-			var attributes = {
-				flags: { type:"f4", value:[] }
-			};
-			var tiles2material = {};
-
-			roomJSON.attributes = attributes;
-
-			// push the vertices + vertex colors of the room
-			var hasEffects = false;
-			for (var v = 0; v < rdata.vertices.length; ++v) {
-				var rvertex = rdata.vertices[v];
-				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater, isFlickering);
-
-				roomJSON.vertices.push(vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z);
-				attributes.flags.value.push(vertexInfo.flag);
-				roomJSON.colors.push(vertexInfo.color);
-
-				hasEffects |= vertexInfo.flag[0]==1 || vertexInfo.flag[1]==1 || vertexInfo.flag[2]==1;
-			}
-
-			// create the tri/quad faces
-			this.makeFaces(roomJSON, [rdata.rectangles, rdata.triangles], tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0);
-			
-			// add the room to the scene
-			this.sc.embeds['room' + m] = roomJSON;
-			this.sc.geometries['room' + m] = {
-				"type": "embedded",
-				"id"  : "room" + m
-			};
+            
 			this.sc.objects['room' + m] = {
 				"geometry" 			: "room" + m,
-				"material" 			: this.makeMaterialList(tiles2material, 'room', { room_effects:hasEffects }),
 				"position" 			: [ 0, 0, 0 ],
 				"quaternion" 		: [ 0, 0, 0, 1 ],
 				"scale"	   			: [ 1, 1, 1 ],
@@ -300,96 +271,7 @@ TRN.SceneConverter.prototype = {
 				"roomIndex"			: m
 			};
 
-			// portal in the room
-			var portals = [];
-			for (var p = 0; p < room.portals.length; ++p) {
-				var portal = room.portals[p];
-				portals.push({
-					"adjoiningRoom": portal.adjoiningRoom,
-					"normal": { x:portal.normal.x, y:-portal.normal.y, z:-portal.normal.z },
-					"vertices": [
-						{ x:portal.vertices[0].x+info.x, y:-portal.vertices[0].y, z:-portal.vertices[0].z-info.z },
-						{ x:portal.vertices[1].x+info.x, y:-portal.vertices[1].y, z:-portal.vertices[1].z-info.z },
-						{ x:portal.vertices[2].x+info.x, y:-portal.vertices[2].y, z:-portal.vertices[2].z-info.z },
-						{ x:portal.vertices[3].x+info.x, y:-portal.vertices[3].y, z:-portal.vertices[3].z-info.z }
-					]
-				});
-			}
-			this.sc.objects['room' + m].portals = portals;
-
-			// static meshes in the room
-			for (var s = 0; s < room.staticMeshes.length; ++s) {
-				var staticMesh = room.staticMeshes[s];
-				var x = staticMesh.x, y = -staticMesh.y, z = -staticMesh.z, rot = staticMesh.rotation;
-				var objectID = staticMesh.objectID;
-
-				var gstaticMesh = this.findStatichMeshByID(objectID);
-				if (gstaticMesh == null) continue;
-
-				var mindex = gstaticMesh.mesh, mflags = gstaticMesh.flags;
-				var nonCollisionable = (mflags & 1) != 0, visible = (mflags & 2) != 0;
-
-				if (!visible) continue;
-
-				var q = glMatrix.quat.create();
-				rot = ((rot & 0xC000) >> 14) * 90;
-				glMatrix.quat.setAxisAngle( q, [0,1,0], glMatrix.glMatrix.toRadian(-rot) );
-
-				var internalLit = this.createMesh(mindex);
-
-				if (internalLit == 0) {
-					console.log('Static mesh objID=', objectID, ', meshIndex=', mindex, 'in room ', m, 'is externally lit.')
-				}
-
-				var materials = [];
-				for (var mat = 0; mat < this.sc.embeds['mesh' + mindex]._materials.length; ++mat) {
-					var material = jQuery.extend(true, {}, this.sc.embeds['mesh' + mindex]._materials[mat]);
-					material.uniforms.lighting.value = this.convertIntensity(staticMesh.intensity1);
-					materials.push(material);
-				}
-				
-				this.sc.objects['room' + m + '_staticmesh' + s] = {
-					"geometry" 		: "mesh" + mindex,
-					"material" 		: materials,
-					"position" 		: [ x, y, z ],
-					"quaternion" 	: q,
-					"scale"	   		: [ 1, 1, 1 ],
-					"visible"  		: !room.isAlternate,
-					"type"			: 'staticmesh',
-					"roomIndex"		: m,
-					"objectid"		: objectID+50000
-				};
-
-			}
-
-			// sprites in the room
-			for (var s = 0; s < rdata.sprites.length; ++s) {
-				var sprite = rdata.sprites[s], spriteIndex = sprite.texture;
-				var rvertex = rdata.vertices[sprite.vertex];
-				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater, isFlickering);
-
-				if (!this.createSpriteSeq(spriteIndex, vertexInfo.flag, vertexInfo.color)) continue;
-
-				var materials = [];
-				for (var mat = 0; mat < this.sc.embeds['sprite' + spriteIndex]._materials.length; ++mat) {
-					var material = jQuery.extend(true, {}, this.sc.embeds['sprite' + spriteIndex]._materials[mat]);
-					materials.push(material);
-				}
-				//console.log('room',m,'sprite',s,this.sc.embeds['sprite' + spriteIndex])
-				
-				this.sc.objects['room' + m + '_sprite' + s] = {
-					"geometry" 		: "sprite" + spriteIndex,
-					"material" 		: materials,
-					"position" 		: [ vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z ],
-					"quaternion" 	: [ 0, 0, 0, 1 ],
-					"scale"	   		: [ 1, 1, 1 ],
-					"visible"  		: !room.isAlternate,
-					"type"			: 'sprite',
-					"roomIndex"		: m
-				};
-			}
-
-			// lights in the room
+            // lights in the room
 			if (room.lights.length > maxLightsInRoom) {
 				maxLightsInRoom = room.lights.length;
 				roomL = m;
@@ -409,7 +291,7 @@ TRN.SceneConverter.prototype = {
 			var lights = [];
 			for (var l = 0; l < room.lights.length; ++l) {
 				var light = room.lights[l], color = [1,1,1];
-				var px = light.x, py = -light.y, pz = -light.z;
+				var px = light.x*TRN.Consts.worldScale, py = -light.y*TRN.Consts.worldScale, pz = -light.z*TRN.Consts.worldScale;
 				var fadeIn = 0, fadeOut = 0;
 				var plight = { type:'point' };
 				switch(this.trlevel.rversion) {
@@ -419,7 +301,7 @@ TRN.SceneConverter.prototype = {
 		                if (intensity > 0x2000) intensity = 0x2000;
 		                intensity = intensity / 0x2000;
 		                glMatrix.vec3.set(color, intensity, intensity, intensity);
-		                fadeOut = light.fade1;
+		                fadeOut = light.fade1*TRN.Consts.worldScale;
 						break;
 					case 'TR3':
 		                var r = light.color.r / 255.0;
@@ -429,7 +311,7 @@ TRN.SceneConverter.prototype = {
 		                if (intensity > 0x2000) intensity = 0x2000; // without this test, cut5 in TR3 (for eg) is wrong
 		                intensity = intensity / 0x2000;
 		                glMatrix.vec3.set(color, r*intensity, g*intensity, b*intensity);
-		                fadeOut = light.fade;
+		                fadeOut = light.fade*TRN.Consts.worldScale;
 						break;
 					case 'TR4':
 						if (light.lightType > 2) {
@@ -447,9 +329,9 @@ TRN.SceneConverter.prototype = {
 		                switch (light.lightType) {
 		                	case 0: // directional light
 		                		var bb = this.getBoundingBox(room.roomData.vertices);
-		                		px = (bb[0] + bb[1]) / 2.0 + info.x;
+		                		px = (bb[0] + bb[1]) / 2.0 + info.x*TRN.Consts.worldScale;
 		                		py = -(bb[2] + bb[3]) / 2.0;
-		                		pz = -(bb[4] + bb[5]) / 2.0 - info.z;
+		                		pz = -(bb[4] + bb[5]) / 2.0 - info.z*TRN.Consts.worldScale;
 		                		fadeOut = Math.sqrt((bb[1]-bb[0])*(bb[1]-bb[0]) + (bb[3]-bb[2])*(bb[3]-bb[2]) + (bb[5]-bb[4])*(bb[5]-bb[4]));
 		                		plight.type = 'directional';
 		                		plight.dx = light.dx;
@@ -457,12 +339,12 @@ TRN.SceneConverter.prototype = {
 		                		plight.dz = -light.dz;
 		                		break;
 		                	case 1: // point light
-		                		fadeIn = light.in;
-		                		fadeOut = light.out;
+		                		fadeIn = light.in*TRN.Consts.worldScale;
+		                		fadeOut = light.out*TRN.Consts.worldScale;
 		                		break;
 		                	case 2: // spot light
-		                		fadeIn = light.length;
-		                		fadeOut = light.cutOff;
+		                		fadeIn = light.length*TRN.Consts.worldScale;
+		                		fadeOut = light.cutOff*TRN.Consts.worldScale;
 		                		if (fadeOut < fadeIn) {
 		                			fadeIn = fadeOut;
 		                			fadeOut = light.length;
@@ -493,6 +375,142 @@ TRN.SceneConverter.prototype = {
 
 			this.sc.objects['room' + m].lights = lights;
 			this.sc.objects['room' + m].ambientColor = ambientColor;
+
+            // room geometry
+            var attributes = {
+				_flags: { type:"f4", value:[] }
+			};
+			var tiles2material = {};
+
+			roomJSON.attributes = attributes;
+
+			// push the vertices + vertex colors of the room
+			var hasEffects = false;
+			for (var v = 0; v < rdata.vertices.length; ++v) {
+				var rvertex = rdata.vertices[v];
+				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater);
+
+				roomJSON.vertices.push(vertexInfo.x+info.x*TRN.Consts.worldScale, vertexInfo.y, vertexInfo.z-info.z*TRN.Consts.worldScale);
+				attributes._flags.value.push(vertexInfo.flag);
+				roomJSON.colors.push(vertexInfo.color);
+
+				hasEffects |= vertexInfo.flag[0]==1 || vertexInfo.flag[1]==1 || vertexInfo.flag[2]==1;
+			}
+
+			// create the tri/quad faces
+			this.makeFaces(roomJSON, [rdata.rectangles, rdata.triangles], tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0);
+            
+            // make the material list
+            var materials = this.makeMaterialList(tiles2material, 'room', { room_effects:hasEffects });
+
+            for (var mat = 0; mat < materials.length; ++mat) {
+                materials[mat].uniforms.ambientColor = { type:"f3", value: ambientColor };
+                if (!isFlickering)  materials[mat].uniforms.flickerColor = { type:"f3", value: [1, 1, 1] };
+                if (isFilledWithWater)  materials[mat].uniforms.tintColor = { type:"f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
+            }
+    
+			// add the room to the scene
+			this.sc.embeds['room' + m] = roomJSON;
+			this.sc.geometries['room' + m] = {
+				"type": "embedded",
+				"id"  : "room" + m
+			};
+			this.sc.objects['room' + m].material = materials;
+
+			// portal in the room
+			var portals = [];
+			for (var p = 0; p < room.portals.length; ++p) {
+				var portal = room.portals[p];
+				portals.push({
+					"adjoiningRoom": portal.adjoiningRoom,
+					"normal": { x:portal.normal.x, y:-portal.normal.y, z:-portal.normal.z },
+					"vertices": [
+						{ x:(portal.vertices[0].x+info.x)*TRN.Consts.worldScale, y:-portal.vertices[0].y*TRN.Consts.worldScale, z:(-portal.vertices[0].z-info.z)*TRN.Consts.worldScale },
+						{ x:(portal.vertices[1].x+info.x)*TRN.Consts.worldScale, y:-portal.vertices[1].y*TRN.Consts.worldScale, z:(-portal.vertices[1].z-info.z)*TRN.Consts.worldScale },
+						{ x:(portal.vertices[2].x+info.x)*TRN.Consts.worldScale, y:-portal.vertices[2].y*TRN.Consts.worldScale, z:(-portal.vertices[2].z-info.z)*TRN.Consts.worldScale },
+						{ x:(portal.vertices[3].x+info.x)*TRN.Consts.worldScale, y:-portal.vertices[3].y*TRN.Consts.worldScale, z:(-portal.vertices[3].z-info.z)*TRN.Consts.worldScale }
+					]
+				});
+			}
+			this.sc.objects['room' + m].portals = portals;
+
+			// static meshes in the room
+			for (var s = 0; s < room.staticMeshes.length; ++s) {
+				var staticMesh = room.staticMeshes[s];
+				var x = staticMesh.x*TRN.Consts.worldScale, y = -staticMesh.y*TRN.Consts.worldScale, z = -staticMesh.z*TRN.Consts.worldScale, rot = staticMesh.rotation;
+				var objectID = staticMesh.objectID;
+
+				var gstaticMesh = this.findStatichMeshByID(objectID);
+				if (gstaticMesh == null) continue;
+
+				var mindex = gstaticMesh.mesh, mflags = gstaticMesh.flags;
+				var nonCollisionable = (mflags & 1) != 0, visible = (mflags & 2) != 0;
+
+				if (!visible) continue;
+
+				var q = glMatrix.quat.create();
+				rot = ((rot & 0xC000) >> 14) * 90;
+				glMatrix.quat.setAxisAngle( q, [0,1,0], glMatrix.glMatrix.toRadian(-rot) );
+
+				var internalLit = this.createMesh(mindex);
+
+				if (internalLit == 0) {
+					console.log('Static mesh objID=', objectID, ', meshIndex=', mindex, 'in room ', m, 'is externally lit.')
+				}
+
+				var materials = [];
+				for (var mat = 0; mat < this.sc.embeds['mesh' + mindex]._materials.length; ++mat) {
+					var material = jQuery.extend(true, {}, this.sc.embeds['mesh' + mindex]._materials[mat]);
+					material.uniforms.lighting.value = this.convertIntensity(staticMesh.intensity1);
+                    material.uniforms.ambientColor = { type:"f3", value: ambientColor };
+                    if (!isFlickering)  material.uniforms.flickerColor = { type: "f3", value: [1 ,1, 1] };
+                    if (isFilledWithWater)  material.uniforms.tintColor = { type: "f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
+					materials.push(material);
+				}
+				
+				this.sc.objects['room' + m + '_staticmesh' + s] = {
+					"geometry" 		: "mesh" + mindex,
+					"material" 		: materials,
+					"position" 		: [ x, y, z ],
+					"quaternion" 	: q,
+					"scale"	   		: [ 1, 1, 1 ],
+					"visible"  		: !room.isAlternate,
+					"type"			: 'staticmesh',
+					"roomIndex"		: m,
+					"objectid"		: objectID+50000
+				};
+
+			}
+
+			// sprites in the room
+			for (var s = 0; s < rdata.sprites.length; ++s) {
+				var sprite = rdata.sprites[s], spriteIndex = sprite.texture;
+				var rvertex = rdata.vertices[sprite.vertex];
+				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater);
+
+				if (!this.createSpriteSeq(spriteIndex, vertexInfo.flag, vertexInfo.color)) continue;
+
+				var materials = [];
+				for (var mat = 0; mat < this.sc.embeds['sprite' + spriteIndex]._materials.length; ++mat) {
+					var material = jQuery.extend(true, {}, this.sc.embeds['sprite' + spriteIndex]._materials[mat]);
+                    material.uniforms.ambientColor = { type:"f3", value: ambientColor };
+                    if (!isFlickering)  material.uniforms.flickerColor = { type: "f3", value: [1 ,1, 1] };
+                    if (isFilledWithWater)  material.uniforms.tintColor = { type: "f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
+					materials.push(material);
+				}
+				//console.log('room',m,'sprite',s,this.sc.embeds['sprite' + spriteIndex])
+				
+				this.sc.objects['room' + m + '_sprite' + s] = {
+					"geometry" 		: "sprite" + spriteIndex,
+					"material" 		: materials,
+					"position" 		: [ vertexInfo.x+info.x*TRN.Consts.worldScale, vertexInfo.y, vertexInfo.z-info.z*TRN.Consts.worldScale ],
+					"quaternion" 	: [ 0, 0, 0, 1 ],
+					"scale"	   		: [ 1, 1, 1 ],
+					"visible"  		: !room.isAlternate,
+					"type"			: 'sprite',
+					"roomIndex"		: m
+                };
+			}
 		}
 
 		console.log('num max lights in one room=' + maxLightsInRoom + '. room=' + roomL)
@@ -528,11 +546,11 @@ TRN.SceneConverter.prototype = {
 			for (var key = 0; key < animNumKeys; key++)	{
 				var frame = frameOffset + key * frameStep, sframe = frame;
 
-				var BBLoX =  this.trlevel.frames[frame++], BBHiX =  this.trlevel.frames[frame++];
-				var BBLoY = -this.trlevel.frames[frame++], BBHiY = -this.trlevel.frames[frame++];
-				var BBLoZ = -this.trlevel.frames[frame++], BBHiZ = -this.trlevel.frames[frame++];
+				var BBLoX =  this.trlevel.frames[frame++]*TRN.Consts.worldScale, BBHiX =  this.trlevel.frames[frame++]*TRN.Consts.worldScale;
+				var BBLoY = -this.trlevel.frames[frame++]*TRN.Consts.worldScale, BBHiY = -this.trlevel.frames[frame++]*TRN.Consts.worldScale;
+				var BBLoZ = -this.trlevel.frames[frame++]*TRN.Consts.worldScale, BBHiZ = -this.trlevel.frames[frame++]*TRN.Consts.worldScale;
 
-				var transX = this.trlevel.frames[frame++], transY = -this.trlevel.frames[frame++], transZ = -this.trlevel.frames[frame++];
+				var transX = this.trlevel.frames[frame++]*TRN.Consts.worldScale, transY = -this.trlevel.frames[frame++]*TRN.Consts.worldScale, transZ = -this.trlevel.frames[frame++]*TRN.Consts.worldScale;
 
 				var numAnimatedMeshesUnknown = 99999, numAnimatedMeshes = numAnimatedMeshesUnknown;
 				if (this.trlevel.rversion == 'TR1') {
@@ -677,7 +695,7 @@ TRN.SceneConverter.prototype = {
 
 			var meshJSON = this.createNewJSONEmbed();
 			var attributes = {
-				flags: { type:"f4", value:[] }
+				_flags: { type:"f4", value:[] }
 			};
 			var tiles2material = {};
 			var stackIdx = 0, stack = [], parent = -1;
@@ -690,9 +708,9 @@ TRN.SceneConverter.prototype = {
 			for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
 				if (idx != 0) {
 					var sflag = this.trlevel.meshTrees[meshTree++].coord;
-					px = this.trlevel.meshTrees[meshTree++].coord;
-					py = this.trlevel.meshTrees[meshTree++].coord;
-					pz = this.trlevel.meshTrees[meshTree++].coord;
+					px = this.trlevel.meshTrees[meshTree++].coord*TRN.Consts.worldScale;
+					py = this.trlevel.meshTrees[meshTree++].coord*TRN.Consts.worldScale;
+					pz = this.trlevel.meshTrees[meshTree++].coord*TRN.Consts.worldScale;
 					if (sflag & 1) {
 						if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
 						parent = stack[--stackIdx];
@@ -768,7 +786,11 @@ TRN.SceneConverter.prototype = {
 					// change material to a material that handles lights
 					material.material = this.getMaterial('moveable', { numLights:this.countLightTypes(room.lights) });
 					material.uniforms.lighting.value = 1.0;
-				}
+                }
+                material.uniforms.ambientColor = { type:"f3", value: room.ambientColor };
+                if (!room.flickering) material.uniforms.flickerColor = { type: "f3", value: [1, 1, 1] };
+                if (room.filledWithWater)  material.uniforms.tintColor = { type: "f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
+
 				materials.push(material);
 			}
 		}
@@ -776,10 +798,10 @@ TRN.SceneConverter.prototype = {
 		this.sc.objects[jsonid] = {
 			"geometry" 				: hasGeometry ? "moveable" + objIDForVisu : null,
 			"material" 				: materials,
-			"position" 				: [ x, y, z ],
+			"position" 				: [ x*TRN.Consts.worldScale, y*TRN.Consts.worldScale, z*TRN.Consts.worldScale ],
 			"quaternion" 			: rotation,
 			"scale"	   				: [ 1, 1, 1 ],
-			"visible"  				: !room.isAlternate && visible,
+			"visible"  				: room.visible && visible,
 			"objectid" 				: moveable.objectID,
 			"type"   				: 'moveable',
 			"has_anims"				: true,
@@ -803,7 +825,7 @@ TRN.SceneConverter.prototype = {
 	},
 
 	createSpriteSeqInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, spriteSeq) {
- 		var room = this.trlevel.rooms[roomIndex];
+ 		var room = this.sc.objects['room' + roomIndex];
 		var spriteIndex = spriteSeq.offset;
 
 		var rvertex = {
@@ -812,14 +834,16 @@ TRN.SceneConverter.prototype = {
 			lighting1: lighting,
 			lighting2: lighting
 		};
-		var vertexInfo = this.processRoomVertex(rvertex, room.isFilledWithWater, room.isFlickering);
+		var vertexInfo = this.processRoomVertex(rvertex, room.isFilledWithWater);
 
 		if (this.createSpriteSeq(spriteSeq, vertexInfo.flag, vertexInfo.color)) {
 			var spriteid = 'spriteseq' + spriteSeq.objectID;
 
 			var materials = [];
 			for (var mat = 0; mat < this.sc.embeds[spriteid]._materials.length; ++mat) {
-				var material = jQuery.extend(true, {}, this.sc.embeds[spriteid]._materials[mat]);
+                var material = jQuery.extend(true, {}, this.sc.embeds[spriteid]._materials[mat]);
+                if (!room.flickering) material.uniforms.flickerColor = { type:"f3", value: [1, 1, 1] };
+                if (room.filledWithWater)  material.uniforms.tintColor= { type:"f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
 				materials.push(material);
 			}
 			
@@ -829,7 +853,7 @@ TRN.SceneConverter.prototype = {
 				"position" 	: [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
 				"quaternion": [ 0, 0, 0, 1 ],
 				"scale"	   	: [ 1, 1, 1 ],
-				"visible"  	: !room.isAlternate,
+				"visible"  	: room.visible,
 				"objectid" 	: spriteSeq.objectID,
 				"isSprite" 	: 'sprite',
 				"roomIndex"	: roomIndex
@@ -917,9 +941,9 @@ TRN.SceneConverter.prototype = {
 			// translate starting position of Lara
 			var startTrans = this.confMgr.levelVector3(this.sc.levelShortFileName, 'behaviour[name="Lara"] > starttrans', true, null);
 			if (startTrans != null) {
-				laraMoveable.position[0] += startTrans.x;
-				laraMoveable.position[1] += startTrans.y;
-				laraMoveable.position[2] += startTrans.z;
+				laraMoveable.position[0] += startTrans.x*TRN.Consts.worldScale;
+				laraMoveable.position[1] += startTrans.y*TRN.Consts.worldScale;
+				laraMoveable.position[2] += startTrans.z*TRN.Consts.worldScale;
 			}
 
 		}
@@ -932,7 +956,8 @@ TRN.SceneConverter.prototype = {
 			var materials = [];
 			for (var mat = 0; mat < this.sc.embeds['moveable' + moveable.objectID]._materials.length; ++mat) {
 				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + moveable.objectID]._materials[mat]);
-				material.uniforms.lighting.value = 1.0;
+                material.uniforms.lighting.value = 1.0;
+                material.uniforms.flickerColor = { type: "f3", value: [1, 1, 1] };
 				material.depthWrite = false;
 				//material.depthTest = false;
 				materials.push(material);
@@ -992,7 +1017,7 @@ TRN.SceneConverter.prototype = {
 			var meshData = TRN.SkyDome.create(
 				/*curvature*/ 10.0,
 				/*tiling*/ 3,
-				/*distance*/ 2000.0,
+				/*distance*/ 2000.0*TRN.Consts.worldScale,
 				/*orientation*/ [0,0,0,1],
 				/*xsegments*/ 16, 
 				/*ysegments*/ 16,
@@ -1003,9 +1028,13 @@ TRN.SceneConverter.prototype = {
 			meshJSON.vertices = meshData.vertices;
             meshJSON.uvs[0] = meshData.textures;
             meshJSON.colors = [];
-
+            meshJSON.attributes = {
+                _flags: { type:"f4", value:[] }
+            };
+    
             for (var v = 0; v < meshJSON.vertices.length; ++v) {
                 meshJSON.colors.push(0xFFFFFF);
+                meshJSON.attributes._flags.value.push([0, 0, 0, 0]);
             }
 
 			var faces = meshData.faces, numFaces = faces.length / 3;
@@ -1084,21 +1113,22 @@ TRN.SceneConverter.prototype = {
 		this.sc.waterColor = {
 			"in" : this.confMgr.globalColor('water > colorin'),
 			"out" : this.confMgr.globalColor('water > colorout')
-		};
+        };
 		//this.sc.texturePath = "TRN/texture/" + this.trlevel.rversion.toLowerCase() + "/";
 		this.sc.soundPath = "TRN/sound/" + this.trlevel.rversion.toLowerCase() + "/";
 		this.sc.rversion = this.trlevel.rversion;
+        this.sc.useUVRotate = this.confMgr.levelBoolean(this.sc.levelShortFileName, 'uvrotate', true, false);
 
-		this.laraObjectID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
+        this.laraObjectID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
 
 		// get Lara's position => camera starting point
 		var laraPos = { x:0, y:0, z:0, rotY:0 };
 		for (var i = 0; i < this.trlevel.items.length; ++i) {
 			var item = this.trlevel.items[i];
 			if (item.objectID == this.laraObjectID) {
-				laraPos.x = item.x;
-				laraPos.y = -item.y;
-				laraPos.z = -item.z;
+				laraPos.x =  item.x*TRN.Consts.worldScale;
+				laraPos.y = -item.y*TRN.Consts.worldScale;
+				laraPos.z = -item.z*TRN.Consts.worldScale;
 				laraPos.rotY = -(item.angle >> 14) * 90;
 				break;
 			}
@@ -1120,7 +1150,7 @@ TRN.SceneConverter.prototype = {
 			var ofstDir = this.confMgr.levelFloat(this.sc.levelShortFileName, 'behaviour[name="Lara"] > dirdist', true, 0.0);
 			var ofstUp = this.confMgr.levelFloat(this.sc.levelShortFileName, 'behaviour[name="Lara"] > updist', true, 0.0);
 
-			var v3 = [0, ofstUp, ofstDir];
+			var v3 = [0, ofstUp*TRN.Consts.worldScale, ofstDir*TRN.Consts.worldScale];
 			var q = glMatrix.quat.create();
 
 			glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraPos.rotY));
@@ -1138,8 +1168,8 @@ TRN.SceneConverter.prototype = {
 		this.sc.objects.camera1 = {
 			"type"  : "PerspectiveCamera",
 			"fov"   : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > fov', true, 50),
-			"near"  : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > neardist', true, 50),
-			"far"   : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > fardist', true, 10000),
+			"near"  : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > neardist', true, 50)*TRN.Consts.worldScale,
+			"far"   : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > fardist', true, 10000)*TRN.Consts.worldScale,
 			"position": [ camPos.x, camPos.y, camPos.z ],
 			"quaternion": q
 		}

@@ -235,6 +235,9 @@ TRN.Play.prototype = {
 				var q = new THREE.Quaternion();
 				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sceneJSON.cutScene.origin.rotY) );
 
+                eyePos.multiplyScalar(TRN.Consts.worldScale);
+                lkat.multiplyScalar(TRN.Consts.worldScale);
+
 				lkat.applyQuaternion(q);
 
 				this.camera.fov = fov;
@@ -342,25 +345,21 @@ TRN.Play.prototype = {
 						var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
 
 						material.uniforms.map.value = this.scene.textures[coords.texture];
-						material.uniforms.offsetRepeat.value[0] = coords.minU;
-						material.uniforms.offsetRepeat.value[1] = coords.minV;
+						material.uniforms.offsetRepeat.value[0] = coords.minU - userData.animatedTexture.minU;
+                        material.uniforms.offsetRepeat.value[1] = coords.minV - userData.animatedTexture.minV;
 					} else {
-						//console.log(obj, i, material);
-						//var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
 						var coords = animTexture.animcoords[0];
-						if (!material.uniforms.map.value) {
+						/*if (!material.uniforms.map.value) {
 							material.uniforms.map.value = this.scene.textures[coords.texture];
-							material.uniforms.offsetRepeat.value[3] = 0.5;
-							//if (this.gcounter==0 && objJSON.roomIndex == 76) console.log(material.uniforms.map.value)
-						}
+						}*/
 						var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.uvRotateTileHeight/2.0)/material.uniforms.map.value.image.height;
 						pgr = pgr - h * Math.floor(pgr / h);
-						material.uniforms.offsetRepeat.value[0] = coords.minU;
-						material.uniforms.offsetRepeat.value[1] = coords.minV + h - pgr;
+						material.uniforms.offsetRepeat.value[0] = coords.minU - userData.animatedTexture.minU;
+						material.uniforms.offsetRepeat.value[1] = coords.minV - userData.animatedTexture.minV*0.5 + h - pgr;
+                        material.uniforms.offsetRepeat.value[3] = 0.5;
 					}
 
 				} else if (objJSON.hasScrollAnim) {
-					//if (this.gcounter == 0 && objJSON.roomIndex == 76) console.log(objJSON);
 					var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.moveableScrollAnimTileHeight/2.0)/material.uniforms.map.value.image.height;
 					pgr = pgr - h * Math.floor(pgr / h);
 					material.uniforms.offsetRepeat.value[1] = h - pgr;

@@ -88,10 +88,24 @@ TRN.MasterLoader = {
 
 		var this_ = this;
 
-        var gltf = new TRNUtil.GLTFConverter(trlevel, sceneJSON);
-        gltf.convert();
-        console.log(gltf.data);
-        console.log(JSON.stringify(gltf.data, undefined, 4));
+        {
+            var gltf = new TRNUtil.GLTFConverter(trlevel, sceneJSON);
+            gltf.convert();
+            TRN.saveData = function() {
+                var blob = new Blob([JSON.stringify(gltf.data, undefined, 4)], {
+                    type: "text/plain;charset=utf-8"
+                });
+                var url = URL.createObjectURL(blob)
+                var a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.download = 'test.gltf';
+                a.click();
+                setTimeout(function () { URL.revokeObjectURL(url) }, 4E4) // 40s
+
+            }
+            jQuery('body').prepend('<span style="color:white;cursor:pointer;position:absolute;left:0;top:0" onclick="TRN.saveData()">Get .gltf file</span>');
+        }
 
 		var loader = new THREE.SceneLoader();
 
@@ -383,7 +397,7 @@ TRN.MasterLoader = {
 			var attributes = sceneJSON.embeds[sceneJSON.geometries[objJSON.geometry].id].attributes;
 
 			if (attributes) {
-				attributes.flags.needsUpdate = true;
+				attributes._flags.needsUpdate = true;
 			}
 
 			for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
@@ -421,17 +435,9 @@ TRN.MasterLoader = {
 					material.uniforms.mapBump.value = scene.textures['texture' + material.uniforms.mapBump.value];
 				}
 
-				if (room && room.filledWithWater) {
-					material.uniforms.tintColor.value = [sceneJSON.waterColor.in.r, sceneJSON.waterColor.in.g, sceneJSON.waterColor.in.b];
-				}
-
 				if (globalTintColor != null) {
 					// used in cut scene 3 in TR1
 					material.uniforms.tintColor.value = globalTintColor;
-				}
-
-				if (room && typeof material.uniforms.ambientColor != 'undefined') {
-					material.uniforms.ambientColor.value = room.ambientColor;
 				}
 
 				if (objJSON.has_anims && room && room.lights.length > 0) { // only animated objects are externally lit and need light definitions from the room
