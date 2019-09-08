@@ -1,6 +1,8 @@
-#define NUM_DIR_LIGHTS 		##num_dir_lights##
-#define NUM_POINT_LIGHTS 	##num_point_lights##
-#define NUM_SPOT_LIGHTS 	##num_spot_lights##
+#define WORD_SCALE ##world_scale##
+
+#define NUM_DIRLIGHTS 		##num_dir_lights##
+#define NUM_POINTLIGHTS 	##num_point_lights##
+#define NUM_SPOTLIGHTS 	    ##num_spot_lights##
 #define TR_VERSION			##tr_version##
 
 #define saturate(a) clamp( a, 0.0, 1.0 )
@@ -14,7 +16,7 @@ uniform float 	lighting; /* not used */
 
 uniform vec3 	ambientColor;
 
-attribute vec4 flags;
+attribute vec4 _flags;
 
 varying vec2 vUv;
 varying vec3 vColor;
@@ -50,19 +52,19 @@ float punctualLightIntensityToIrradianceFactor( const in float lightDistance, co
 	return 1.0;
 }
 
-#if NUM_DIR_LIGHTS > 0
-	uniform vec3 directionalLight_direction[NUM_DIR_LIGHTS];
-	uniform vec3 directionalLight_color[NUM_DIR_LIGHTS];
+#if NUM_DIRLIGHTS > 0
+	uniform vec3 directionalLight_direction[NUM_DIRLIGHTS];
+	uniform vec3 directionalLight_color[NUM_DIRLIGHTS];
 	void getDirectionalDirectLightIrradiance( in int directionalLight, const in GeometricContext geometry, out IncidentLight directLight ) {
 		directLight.color = directionalLight_color[directionalLight];
 		directLight.direction = transformDirection(directionalLight_direction[directionalLight], viewMatrix);
 	}
 #endif
 
-#if NUM_POINT_LIGHTS > 0
-	uniform vec3 pointLight_position[NUM_POINT_LIGHTS];
-	uniform vec3 pointLight_color[NUM_POINT_LIGHTS];
-	uniform float pointLight_distance[NUM_POINT_LIGHTS];
+#if NUM_POINTLIGHTS > 0
+	uniform vec3 pointLight_position[NUM_POINTLIGHTS];
+	uniform vec3 pointLight_color[NUM_POINTLIGHTS];
+	uniform float pointLight_distance[NUM_POINTLIGHTS];
 	void getPointDirectLightIrradiance( in int pointLight, const in GeometricContext geometry, out IncidentLight directLight ) {
 		vec3 lVector = (viewMatrix*vec4(pointLight_position[pointLight], 1.0)).xyz - geometry.position;
 		directLight.direction = normalize( lVector );
@@ -76,13 +78,13 @@ float punctualLightIntensityToIrradianceFactor( const in float lightDistance, co
 	}
 #endif
 
-#if NUM_SPOT_LIGHTS > 0
-	uniform vec3 spotLight_position[NUM_SPOT_LIGHTS];
-	uniform vec3 spotLight_color[NUM_SPOT_LIGHTS];
-	uniform float spotLight_distance[NUM_SPOT_LIGHTS];
-	uniform vec3 spotLight_direction[NUM_SPOT_LIGHTS];
-	uniform float spotLight_coneCos[NUM_SPOT_LIGHTS];
-	uniform float spotLight_penumbraCos[NUM_SPOT_LIGHTS];
+#if NUM_SPOTLIGHTS > 0
+	uniform vec3 spotLight_position[NUM_SPOTLIGHTS];
+	uniform vec3 spotLight_color[NUM_SPOTLIGHTS];
+	uniform float spotLight_distance[NUM_SPOTLIGHTS];
+	uniform vec3 spotLight_direction[NUM_SPOTLIGHTS];
+	uniform float spotLight_coneCos[NUM_SPOTLIGHTS];
+	uniform float spotLight_penumbraCos[NUM_SPOTLIGHTS];
 	void getSpotDirectLightIrradiance( in int spotLight, const in GeometricContext geometry, out IncidentLight directLight  ) {
 		vec3 lVector = (viewMatrix*vec4(spotLight_position[spotLight], 1.0)).xyz - geometry.position;
 		directLight.direction = normalize( lVector );
@@ -111,19 +113,19 @@ void main() {
 
 	vColor = tintColor * mix(vec3Unit, flickerColor, step(0.5, rnd));
 
-	float sum = position[0] + position[1] + position[2];
+	float sum = (position[0] + position[1] + position[2])/WORD_SCALE;
 	float time = curTime * 0.00157;
 
 	// perturb the vertex color (for underwater effect, for eg)
 	float perturb = 0.5 * abs( sin(sum * 8.0 + time) ) + 0.5;
-	vColor *= mix(1.0, perturb, flags.x);
+	vColor *= mix(1.0, perturb, _flags.x);
 
 	// perturb the vertex position
 	vec4 pos = skinned;
 
-	pos.x += mix(0.0, 8.0 * sin(sum * 10.0 + time), flags.z);
-	pos.y -= mix(0.0, 8.0 * sin(sum * 10.0 + time), flags.z);
-	pos.z -= mix(0.0, 8.0 * sin(sum * 10.0 + time), flags.z);
+	pos.x += mix(0.0, 8.0 * WORD_SCALE * sin(sum * 10.0 + time), _flags.z);
+	pos.y -= mix(0.0, 8.0 * WORD_SCALE * sin(sum * 10.0 + time), _flags.z);
+	pos.z -= mix(0.0, 8.0 * WORD_SCALE * sin(sum * 10.0 + time), _flags.z);
 
 	vec4 mvPosition;
 	mvPosition = modelViewMatrix * pos;
@@ -151,16 +153,16 @@ void main() {
 	vec3 directLightColor_Diffuse;
 	float dotNL;
 
-	#if NUM_DIR_LIGHTS > 0
-		for ( int i = 0; i < NUM_DIR_LIGHTS; i ++ ) {
+	#if NUM_DIRLIGHTS > 0
+		for ( int i = 0; i < NUM_DIRLIGHTS; i ++ ) {
 			getDirectionalDirectLightIrradiance( i, geometry, directLight );
 			dotNL = dot( geometry.normal, directLight.direction );
 			vLightFront += saturate( dotNL ) * directLight.color;
 		}
 	#endif
 
-	#if NUM_POINT_LIGHTS > 0
-		for ( int i = 0; i < NUM_POINT_LIGHTS; i ++ ) {
+	#if NUM_POINTLIGHTS > 0
+		for ( int i = 0; i < NUM_POINTLIGHTS; i ++ ) {
 			getPointDirectLightIrradiance( i, geometry, directLight );
 			dotNL = dot( geometry.normal, directLight.direction );
 			#if TR_VERSION < 4
@@ -170,8 +172,8 @@ void main() {
 		}
 	#endif
 
-	#if NUM_SPOT_LIGHTS > 0
-		for ( int i = 0; i < NUM_SPOT_LIGHTS; i ++ ) {
+	#if NUM_SPOTLIGHTS > 0
+		for ( int i = 0; i < NUM_SPOTLIGHTS; i ++ ) {
 			getSpotDirectLightIrradiance( i, geometry, directLight );
 			dotNL = dot( geometry.normal, directLight.direction );
 			vLightFront += saturate( dotNL ) * directLight.color;
