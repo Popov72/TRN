@@ -590,8 +590,6 @@ namespace TRNUtil {
 
             let materials = obj.material as [];
             
-            //let oembed = this.__embeds[(this.__geometries[obj.geometry as string] as JsonMap).id as string] as JsonMap;
-
             let mesh: Mesh = {
                 "name": `${objName} mesh`,
                 "primitives": [],
@@ -606,137 +604,6 @@ namespace TRNUtil {
                 });
             }
 
-            /*let vertices = oembed.vertices as [], uvs = (oembed.uvs as [[]])[0], colors = oembed.colors as [], flags = ((oembed.attributes as JsonMap)._flags as JsonMap).value as [];
-            let faces = oembed.faces as [], numFaces3 = 0, numFaces4 = 0;
-
-            if (materials.length == 0 || faces.length == 0) {
-                console.log('No materials and/or no faces on ' + objName + ': object not exported. ', obj, oembed);
-                return null;
-            }
-
-            let f = 0;
-            while (f < faces.length) {
-                let ftype = faces[f] as number;
-                if (ftype & 1) {
-                    f += 14;
-                    numFaces4++;
-                } else {
-                    f += 11;
-                    numFaces3++;
-                }
-            }
-            //console.log(f, faces.length);
-
-            let numVertices = numFaces3*3 + numFaces4*4, numTriangles = numFaces3 + numFaces4*2;
-            let verticesSize = numVertices*3*4, textcoordsSize = numVertices*2*4, colorsSize = numVertices*3*4, flagsSize = numVertices*4*4;
-            let indicesSize = numTriangles*3*2;
-
-            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + indicesSize);
-
-            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4));
-            let min = [1e20, 1e20, 1e20], max = [-1e20, -1e20, -1e20 ];
-            let ofst = 0;
-            f = 0;
-            while (f < faces.length) {
-                let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 11 : 14;
-                for (let v = 0; v < numVert; ++v) {
-                    let [x, y, z] = [vertices[faces[f+v+1]*3 + 0], vertices[faces[f+v+1]*3 + 1], vertices[faces[f+v+1]*3 + 2]];
-                    min[0] = Math.min(min[0], x);    min[1] = Math.min(min[1], y);    min[2] = Math.min(min[2], z);
-                    max[0] = Math.max(max[0], x);    max[1] = Math.max(max[1], y);    max[2] = Math.max(max[2], z);
-                    attributesView.set([x, y, z], ofst);
-                    attributesView.set([uvs[faces[f+v+numVert+2]*2+0], uvs[faces[f+v+numVert+2]*2+1]], ofst + 3);
-                    let color = colors[faces[f+v+1]] as number, cr = (color & 0xFF0000) >> 16, cg = (color & 0xFF00) >> 8, cb = (color & 0xFF);
-                    attributesView.set([cr/255.0, cg/255.0, cb/255.0], ofst + 5);
-                    attributesView.set(flags[faces[f+v+1]], ofst + 8);
-                    ofst += 12;
-                }
-                f += faceSize;
-            }
-            //console.log(f, faces.length);
-            //console.log(ofst*4, verticesSize + textcoordsSize)
-
-            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize, numTriangles*3);
-            let accessorOffsets: number[] = [], accessorCounts: number[] = [];
-
-            for (let mat = 0, ofst = 0; mat < materials.length; ++mat) {
-                accessorOffsets.push(ofst*2);
-                let fIndex = 0;
-                f = 0;
-                while  (f < faces.length) {
-                    let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 11 : 14;
-                    let faceMat: number = faces[f+(isTri ? 4 : 5)];
-                    if (faceMat == mat) {
-                        if (!isTri) {
-                            indicesView.set([fIndex+0, fIndex+1, fIndex+3], ofst);
-                            indicesView.set([fIndex+1, fIndex+2, fIndex+3], ofst + 3);
-                            ofst += 6;
-                        } else {
-                            indicesView.set([fIndex+0, fIndex+1, fIndex+2], ofst);
-                            ofst += 3;
-                            }
-                    }
-                    fIndex += 3;
-                    if (!isTri) fIndex++;
-                    f += faceSize;
-                }
-                accessorCounts.push((ofst*2-accessorOffsets[mat])/2);
-            }
-            //console.log(f, faces.length);
-
-            let bufferDataIndex = this.addBuffer(bufferData, undefined, `${objName} mesh data`);
-
-            let bufferViewAttributesIndex = this.addBufferView({
-                "name": `${objName}_vertices_attributes`,
-                "buffer": bufferDataIndex,
-                "byteLength": numVertices*(3+2+3+4)*4,
-                "byteOffset": 0,
-                "byteStride": (3+2+3+4)*4,
-                "target": bufferViewTarget.ARRAY_BUFFER,
-            });
-            let bufferViewIndicesIndex = this.addBufferView({
-                "name": `${objName}_indices`,
-                "buffer": bufferDataIndex,
-                "byteLength": numTriangles*3*2,
-                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize,
-                "target": bufferViewTarget.ELEMENT_ARRAY_BUFFER,
-            });
-
-            let accessorPositionIndex = this.addAccessor({
-                "name": `${objName}_position`,
-                "bufferView": bufferViewAttributesIndex,
-                "byteOffset": 0,
-                "componentType": accessorElementSize.FLOAT,
-                "count": numVertices,
-                "type": accessorType.VEC3,
-                "min": min,
-                "max": max,
-            });
-            let accessorTexcoordIndex = this.addAccessor({
-                "name": `${objName}_textcoord`,
-                "bufferView": bufferViewAttributesIndex,
-                "byteOffset": 3*4,
-                "componentType": accessorElementSize.FLOAT,
-                "count": numVertices,
-                "type": accessorType.VEC2,
-            });
-            let accessorColorIndex = this.addAccessor({
-                "name": `${objName}_vertexcolor`,
-                "bufferView": bufferViewAttributesIndex,
-                "byteOffset": (3+2)*4,
-                "componentType": accessorElementSize.FLOAT,
-                "count": numVertices,
-                "type": accessorType.VEC3,
-            });
-            let accessorFlagIndex = this.addAccessor({
-                "name": `${objName}_flag`,
-                "bufferView": bufferViewAttributesIndex,
-                "byteOffset": (3+2+3)*4,
-                "componentType": accessorElementSize.FLOAT,
-                "count": numVertices,
-                "type": accessorType.VEC4,
-            });
-            */
-
             let geomData = this._mapNameToGeometry[obj.geometry as string];
 
             if (geomData == null) {
@@ -745,8 +612,6 @@ namespace TRNUtil {
                     return null;
                 }
                 this._mapNameToGeometry[obj.geometry as string] = geomData;
-            } else {
-                //console.log(`Geometry for ${objName} not recreated.`);
             }
 
             if (geomData.accessorIndicesIndex.length != materials.length) {
