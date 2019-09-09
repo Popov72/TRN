@@ -24,7 +24,8 @@ TRN.Play = function (container) {
 
 	this.renderer = new THREE.WebGLRenderer({ antialias: true });
 	this.renderer.setSize(this.container.width(), this.container.height());
-	this.renderer.autoUpdateObjects = false; // to avoid having initWebGLObjects called every frame
+    this.renderer.autoUpdateObjects = false; // to avoid having initWebGLObjects called every frame
+    this.renderer.autoClear = false;
 	//renderer.sortObjects = false;
 
 	this.needWebGLInit = false;
@@ -84,13 +85,27 @@ TRN.Play.prototype = {
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
-		this.renderer.initWebGLObjects(this.scene.scene);
-
 		this.startTime = this.quantumTime = (new Date()).getTime();
+
+        this.sceneBackground = new THREE.Scene();
+
+        if (this.scene.scene.getObjectByName("skydome")) {
+            this.sceneBackground.skydome = this.scene.scene.getObjectByName("skydome");
+            this.scene.scene.remove(this.sceneBackground.skydome);
+            this.sceneBackground.add(this.sceneBackground.skydome);
+        }
+        if (this.scene.scene.getObjectByName("sky")) {
+            this.sceneBackground.sky = this.scene.scene.getObjectByName("sky");
+            this.scene.scene.remove(this.sceneBackground.sky);
+            this.sceneBackground.add(this.sceneBackground.sky);
+        }
+
+		this.renderer.initWebGLObjects(this.scene.scene);
+        this.renderer.initWebGLObjects(this.sceneBackground);
 
 		this.animate();
 
-		this.onWindowResize();
+        this.onWindowResize();
 
 		if (this.sceneJSON.cutScene.frames != null) {
 			TRN.Helper.startSound(this.sceneJSON.cutScene.sound);
@@ -136,6 +151,10 @@ TRN.Play.prototype = {
 	},
 
 	render : function () {
+
+        this.renderer.clear(true, true, true);
+
+        this.renderer.render( this.sceneBackground, this.camera );
 
 		this.renderer.render( this.scene.scene, this.camera );
 
@@ -270,12 +289,12 @@ TRN.Play.prototype = {
 
 	updateObjects : function (curTime) {
 
-		if (this.scene.objects.sky) {
-			this.scene.objects.sky.position = this.camera.position;
+		if (this.sceneBackground.sky) {
+			this.sceneBackground.sky.position = this.camera.position;
 		}
-		if (this.scene.objects.skydome) {
-			this.scene.objects.skydome.position = this.camera.position;
-			var material = this.scene.objects.skydome.material.materials[0];
+		if (this.sceneBackground.skydome) {
+			this.sceneBackground.skydome.position = this.camera.position;
+			var material = this.sceneBackground.skydome.material.materials[0];
 			if (material.uniforms) {
 				var pgr = curTime / (50.0*1000.0);
 				pgr = pgr - Math.floor(pgr);
