@@ -97,7 +97,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				}				
 				break;
 			case 'moveable':
-				matName = 'TR_moveable' + (params.numLights ? '_l' + params.numLights.directional + '_' + params.numLights.point + '_' + params.numLights.spot : '');
+                matName = 'TR_moveable' + (params.numLights ? '_l' + params.numLights.directional + '_' + params.numLights.point + '_' + params.numLights.spot : '');
 				if (!this.sc.materials[matName]) {
 					var vertexShader;
 					doReplace = true;
@@ -290,17 +290,6 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		// texture coords
 		var isAnimatedObject = obj.objHasScrollAnim;
 
-		/*var minU = 0, minV = 0, maxV = 0;
-		if (anmTexture || isAnimatedObject) {
-			minU = minV = 1;
-			for (var tv = 0; tv < vertices.length; ++tv) {
-				var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
-				var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
-				if (minU > u) minU = u;
-				if (minV > v) minV = v;
-				if (maxV < v) maxV = v;
-			}
-		}*/
 		var numUVs = parseInt(obj.uvs[0].length / 2);
 		for (var tv = 0; tv < vertices.length; ++tv) {
 			obj.faces.push(numUVs++);
@@ -448,7 +437,6 @@ TRN.extend(TRN.SceneConverter.prototype, {
 	},
 
 	findSpriteSequenceByID : function(objectID) {
-		var spriteSeq = null;
 		for (var sq = 0; sq < this.trlevel.spriteSequences.length; ++sq) {
 			if (this.trlevel.spriteSequences[sq].objectID == objectID) {
 				return this.trlevel.spriteSequences[sq];
