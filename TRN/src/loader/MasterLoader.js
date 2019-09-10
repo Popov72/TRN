@@ -240,7 +240,7 @@ TRN.MasterLoader = {
 				var obj = scene.objects[objID];
 				var objJSON = sceneJSON.objects[objID];
 
-				if (!objJSON.has_anims) continue;
+				if (!objJSON || !objJSON.has_anims) continue;
 
 				if (sceneJSON.cutScene.frames) {
 
@@ -306,11 +306,31 @@ TRN.MasterLoader = {
 			obj.initPos = new THREE.Vector3();
 			obj.initPos.copy(obj.position);
 
-			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID.indexOf('sky') < 0) {
+			if (!objJSON || !objJSON.has_anims && objID.indexOf('camera') < 0 && objID.indexOf('sky') < 0) {
 
-				obj.updateMatrix();
+                obj.updateMatrix();
+                obj.updateMatrixWorld(true);
                 obj.matrixAutoUpdate = false;
-                
+
+            }
+
+            if (obj.geometry && !obj.geometry.boundingBox) {
+                obj.geometry.computeBoundingBox();
+            }
+
+            if (objJSON && obj instanceof THREE.SkinnedMesh && TRN.Helper.objSize(obj.children) > 0) {
+                function copySkin(parent, children) {
+                    var newChildren = children.filter( c => c instanceof THREE.SkinnedMesh );
+                    if (parent) parent.children = newChildren;
+                    newChildren.forEach(c => {
+                        c.boneMatrices = obj.boneMatrices;
+                        c.geometry.boundingBox = obj.geometry.boundingBox;
+                        c.geometry.boundingSphere = obj.geometry.boundingSphere;
+                        c.updateMatrixWorld = THREE.Mesh.prototype.updateMatrixWorld;
+                        if (c.children) copySkin(c, c.children);
+                    });
+                }
+                copySkin(null, obj.children);
             }
 		}
 
@@ -336,12 +356,10 @@ TRN.MasterLoader = {
 
 			if (!(obj instanceof THREE.Mesh)) continue;
 
-			if (!objJSON.has_anims) {
-				obj.geometry.computeBoundingBox();
-				obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
-			}
+            obj.geometry.computeBoundingBox();
+            obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
 
-			if (objJSON.type == "room") {
+			if (objJSON && objJSON.type == "room") {
 				var portals = objJSON.portals, meshPortals = [];
 				objJSON.meshPortals = meshPortals;
 				for (var p = 0; p < portals.length; ++p) {
@@ -382,25 +400,22 @@ TRN.MasterLoader = {
 			}
 
 			obj.frustumCulled = true;
-			obj.dummy = objJSON.dummy;
+			obj.dummy = objJSON && objJSON.dummy;
 
 			var material = new THREE.MeshFaceMaterial();
-			obj.material = material;
 
 			obj.geometry.computeFaceNormals();
 			obj.geometry.computeVertexNormals();
 
-			var room = objJSON.type == 'room' ? objJSON : sceneJSON.objects['room' + objJSON.roomIndex];
+			var attributes = sceneJSON.embeds[sceneJSON.geometries[obj.geometry.name/*objJSON.geometry*/].id].attributes;
 
-			var attributes = sceneJSON.embeds[sceneJSON.geometries[objJSON.geometry].id].attributes;
-
-			if (attributes) {
+			/*if (attributes) {
 				attributes._flags.needsUpdate = true;
-			}
+			}*/
 
-			for (var mt_ = 0; mt_ < objJSON.material.length; ++mt_) {
+			for (var mt_ = 0; mt_ < obj.material.length; ++mt_) {
 
-				var elem = objJSON.material[mt_];
+				var elem = obj.material[mt_];
 				material.materials[mt_] = scene.materials[elem.material].clone();
 				if (elem.uniforms) {
 					material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
@@ -416,7 +431,9 @@ TRN.MasterLoader = {
 					material.materials[mt_][mkey] = elem[mkey];
 
 				}
-			}
+            }
+            
+			obj.material = material;
 
 			var materials = material.materials;
 

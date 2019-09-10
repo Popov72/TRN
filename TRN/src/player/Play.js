@@ -207,7 +207,7 @@ TRN.Play.prototype = {
 				var boundingBox = obj.trackInstance.track.keys[obj.trackInstance.param.curKey].boundingBox;
 
 				boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
-				obj.geometry.boundingBox = boundingBox;
+				obj.geometry.boundingBox.set(boundingBox.min, boundingBox.max);
 
 				if (obj.boxHelper) {
 					this.needWebGLInit = true;
@@ -311,6 +311,15 @@ TRN.Play.prototype = {
 			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
 
 			if (obj.dummy) continue;
+
+            if (!objJSON) {
+                var oparent = obj;
+                while (oparent != null) {
+                    objJSON = this.sceneJSON.objects[oparent.name];
+                    if (objJSON) break;
+                    oparent = oparent.parent;
+                }
+            }
 
 			if (objJSON.type == 'room') {
 
