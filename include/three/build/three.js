@@ -34050,6 +34050,10 @@ THREE.BoxHelper = function ( size ) {
 
 THREE.BoxHelper.prototype = Object.create( THREE.Line.prototype );
 
+THREE.BoxHelper.prototype.updateMatrixWorld = function () { //! Popov
+    // the .matrixWorld will be updated by the object this helper is linked to
+};
+
 THREE.BoxHelper.prototype.update = function ( object ) {
 
 	var geometry = object.geometry;
