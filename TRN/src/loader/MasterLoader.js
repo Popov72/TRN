@@ -497,7 +497,7 @@ TRN.MasterLoader = {
 		var obj = scene.objects[TRN.Consts.objNameForPistolAnim];
 		var lara = oscene.findObjectById(TRN.ObjectID.Lara);
 
-		if (obj && lara) {
+		if (obj && lara && false) {
 			var mswap = new TRN.MeshSwap(obj, lara);
 
 			mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.rightThighIndex]);

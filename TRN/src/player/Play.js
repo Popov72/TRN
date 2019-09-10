@@ -417,7 +417,7 @@ TRN.Play.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
 							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
 
-							if (oswap) {
+							if (oswap && false) {
 								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.leftHandIndex]);
@@ -430,7 +430,7 @@ TRN.Play.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
 							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
 
-							if (oswap) {
+							if (oswap && false) {
 								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([TRN.Consts.rightThighIndex, TRN.Consts.rightHandIndex]);
@@ -446,7 +446,7 @@ TRN.Play.prototype = {
 							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
 							var oswap = this.scene.objects['meshswap' + idx];
 
-							if (oswap) {
+							if (oswap && false) {
 								var mswap = new TRN.MeshSwap(obj, oswap);
 
 								mswap.swapall();
