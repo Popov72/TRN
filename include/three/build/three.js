@@ -10688,7 +10688,11 @@ THREE.SceneLoader.prototype.parse = function ( json, callbackFinished, url ) {
 
 						var needsTangents = false;
 
+                        if (typeof(objJSON.material) != "string") { //! Popov
+                            material = objJSON.material;
+                        } else {
 						material = result.materials[ objJSON.material ];
+                        }
 						needsTangents = material instanceof THREE.ShaderMaterial;
 
 						pos = objJSON.position;
