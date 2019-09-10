@@ -863,17 +863,6 @@ TRN.SceneConverter.prototype = {
 	},
 
 	createItems : function () {
-		var movObjID2Index = {}, sprObjID2Index = {};
-
-		for (var m = 0; m < this.trlevel.moveables.length; ++m) {
-			var moveable = this.trlevel.moveables[m];
-			movObjID2Index[moveable.objectID] = m;
-		}
-
-		for (var sq = 0; sq < this.trlevel.spriteSequences.length; ++sq) {
-			var spriteSeq = this.trlevel.spriteSequences[sq];
-			sprObjID2Index[spriteSeq.objectID] = sq;
-		}
 
 		var laraMoveable = null;
 		var numMoveableInstances = 0, numSpriteSeqInstances = 0;
@@ -1121,6 +1110,20 @@ TRN.SceneConverter.prototype = {
         this.sc.useUVRotate = this.confMgr.levelBoolean(this.sc.levelShortFileName, 'uvrotate', true, false);
 
         this.laraObjectID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'lara > id', true, 0);
+
+		this.movObjID2Index = {};
+
+		for (var m = 0; m < this.trlevel.moveables.length; ++m) {
+			var moveable = this.trlevel.moveables[m];
+			this.movObjID2Index[moveable.objectID] = m;
+		}
+
+		this.sprObjID2Index = {};
+
+		for (var sq = 0; sq < this.trlevel.spriteSequences.length; ++sq) {
+			var spriteSeq = this.trlevel.spriteSequences[sq];
+			this.sprObjID2Index[spriteSeq.objectID] = sq;
+		}
 
 		// get Lara's position => camera starting point
 		var laraPos = { x:0, y:0, z:0, rotY:0 };
