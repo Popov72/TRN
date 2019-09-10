@@ -395,8 +395,50 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return lstMat;
 	},
 
+    setMaterialLightsUniform : function(room, material) {
+        if (!room || room.lights.length == 0) return;
+
+        material.uniforms.directionalLight_direction = { type: "fv", value: [] };
+        material.uniforms.directionalLight_color = { type: "fv", value: [] };
+
+        material.uniforms.pointLight_position = { type: "fv", value: [] };
+        material.uniforms.pointLight_color = { type: "fv", value: [] };
+        material.uniforms.pointLight_distance = { type: "fv1", value: [] };
+
+        material.uniforms.spotLight_position = { type: "fv", value: [] };
+        material.uniforms.spotLight_color = { type: "fv", value: [] };
+        material.uniforms.spotLight_distance = { type: "fv1", value: [] };
+        material.uniforms.spotLight_direction = { type: "fv", value: [] };
+        material.uniforms.spotLight_coneCos = { type: "fv1", value: [] };
+        material.uniforms.spotLight_penumbraCos = { type: "fv1", value: [] };
+
+        for (var l = 0; l < room.lights.length; ++l) {
+
+            var light = room.lights[l];
+
+            switch(light.type) {
+                case 'directional':
+                    material.uniforms.directionalLight_direction.value = material.uniforms.directionalLight_direction.value.concat([light.dx, light.dy, light.dz]);
+                    material.uniforms.directionalLight_color.value = material.uniforms.directionalLight_color.value.concat(light.color);
+                    break;
+                case 'point':
+                    material.uniforms.pointLight_position.value = material.uniforms.pointLight_position.value.concat([light.x, light.y, light.z]);
+                    material.uniforms.pointLight_color.value = material.uniforms.pointLight_color.value.concat(light.color);
+                    material.uniforms.pointLight_distance.value.push(light.fadeOut);
+                    break;
+                case 'spot':
+                    material.uniforms.spotLight_position.value = material.uniforms.spotLight_position.value.concat([light.x, light.y, light.z]);
+                    material.uniforms.spotLight_color.value = material.uniforms.spotLight_color.value.concat(light.color);
+                    material.uniforms.spotLight_distance.value.push(light.fadeOut);
+                    material.uniforms.spotLight_direction.value = material.uniforms.spotLight_direction.value.concat([light.dx, light.dy, light.dz]);
+                    material.uniforms.spotLight_coneCos.value.push(light.coneCos);
+                    material.uniforms.spotLight_penumbraCos.value.push(light.penumbraCos);
+                    break;
+            }
+        }
+    },
+
 	findStatichMeshByID : function (objectID) {
-		var gstaticMesh = null;
 		for (var sg = 0; sg < this.trlevel.staticMeshes.length; ++sg) {
 			if (this.trlevel.staticMeshes[sg].objectID == objectID) {
 				return this.trlevel.staticMeshes[sg];

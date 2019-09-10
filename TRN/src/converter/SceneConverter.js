@@ -786,6 +786,7 @@ TRN.SceneConverter.prototype = {
 					// change material to a material that handles lights
 					material.material = this.getMaterial('moveable', { numLights:this.countLightTypes(room.lights) });
 					material.uniforms.lighting.value = 1.0;
+                    this.setMaterialLightsUniform(room, material);
                 }
                 material.uniforms.ambientColor = { type:"f3", value: room.ambientColor };
                 if (!room.flickering) material.uniforms.flickerColor = { type: "f3", value: [1, 1, 1] };
