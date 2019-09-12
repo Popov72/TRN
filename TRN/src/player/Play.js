@@ -207,7 +207,7 @@ TRN.Play.prototype = {
 				var boundingBox = obj.trackInstance.track.keys[obj.trackInstance.param.curKey].boundingBox;
 
 				boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
-				obj.geometry.boundingBox.set(boundingBox.min, boundingBox.max);
+				obj.geometry.boundingBox = boundingBox;
 
 				if (obj.boxHelper) {
 					this.needWebGLInit = true;
@@ -311,15 +311,6 @@ TRN.Play.prototype = {
 			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
 
 			if (obj.dummy) continue;
-
-            if (!objJSON) {
-                var oparent = obj;
-                while (oparent != null) {
-                    objJSON = this.sceneJSON.objects[oparent.name];
-                    if (objJSON) break;
-                    oparent = oparent.parent;
-                }
-            }
 
 			if (objJSON.type == 'room') {
 
@@ -426,7 +417,7 @@ TRN.Play.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
 							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
 
-							if (oswap && false) {
+							if (oswap) {
 								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.leftHandIndex]);
@@ -439,7 +430,7 @@ TRN.Play.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
 							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
 
-							if (oswap && false) {
+							if (oswap) {
 								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([TRN.Consts.rightThighIndex, TRN.Consts.rightHandIndex]);
@@ -455,7 +446,7 @@ TRN.Play.prototype = {
 							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
 							var oswap = this.scene.objects['meshswap' + idx];
 
-							if (oswap && false) {
+							if (oswap) {
 								var mswap = new TRN.MeshSwap(obj, oswap);
 
 								mswap.swapall();
