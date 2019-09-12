@@ -14,7 +14,7 @@ TRN.Scene.prototype = {
 
 			var objJSON = this.sceneJSON.objects[objID];
 
-			if (objJSON.objectid == idObject) return this.scene.objects[objID];
+			if (objJSON && objJSON.objectid == idObject) return this.scene.objects[objID];
 
 		}
 

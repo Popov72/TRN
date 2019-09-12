@@ -170,7 +170,7 @@ TRN.Play.prototype = {
 
 			var obj = this.scene.objects[objID];
 
-			if (obj.trackInstance && obj.visible) {
+			if (obj.trackInstance /*&& obj.visible*/) {
 
 				if (!obj.trackInstance.runForward(delta)) {
 
@@ -310,7 +310,7 @@ TRN.Play.prototype = {
 
 			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
 
-			if (obj.dummy) continue;
+			if (obj.dummy || !obj.visible) continue;
 
             if (!objJSON) {
                 var oparent = obj;
@@ -329,11 +329,13 @@ TRN.Play.prototype = {
 
 			}
 
-			if (singleRoomMode) {
-				obj.visible = objJSON.roomIndex == this.sceneJSON.curRoom && !objJSON.isAlternateRoom;
-			} else {
-				obj.visible = !objJSON.isAlternateRoom;
-			}
+            if (!objJSON.customVisibility) {
+                if (singleRoomMode) {
+                    obj.visible = objJSON.roomIndex == this.sceneJSON.curRoom && !objJSON.isAlternateRoom;
+                } else {
+                    obj.visible = !objJSON.isAlternateRoom;
+                }
+            }
 
 			if (obj.boxHelper) obj.boxHelper.visible = obj.visible;
 
@@ -426,12 +428,10 @@ TRN.Play.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
 							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
 
-							if (oswap && false) {
+							if (oswap) {
 								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.leftHandIndex]);
-
-								updateWebGLObjects = true;
 							}
 							break;
 						}
@@ -439,12 +439,10 @@ TRN.Play.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
 							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
 
-							if (oswap && false) {
+							if (oswap) {
 								var mswap = new TRN.MeshSwap(oswap, obj);
 
 								mswap.swap([TRN.Consts.rightThighIndex, TRN.Consts.rightHandIndex]);
-
-								updateWebGLObjects = true;
 							}
 							break;
 						}
@@ -455,7 +453,7 @@ TRN.Play.prototype = {
 							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
 							var oswap = this.scene.objects['meshswap' + idx];
 
-							if (oswap && false) {
+							if (oswap) {
 								var mswap = new TRN.MeshSwap(obj, oswap);
 
 								mswap.swapall();

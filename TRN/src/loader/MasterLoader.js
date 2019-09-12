@@ -240,7 +240,8 @@ TRN.MasterLoader = {
 				var obj = scene.objects[objID];
 				var objJSON = sceneJSON.objects[objID];
 
-				if (!objJSON || !objJSON.has_anims) continue;
+                if (!objJSON || !objJSON.has_anims) continue;
+                if (obj.name == 'pistolanim') continue;
 
 				if (sceneJSON.cutScene.frames) {
 
@@ -332,7 +333,32 @@ TRN.MasterLoader = {
                 }
                 copySkin(null, obj.children);
             }
-		}
+        }
+        
+        // for meshes used in mesh swap, we copy the skin properties of Lara main mesh
+        var lara = oscene.findObjectById(TRN.ObjectID.Lara);
+        var meshSwaps = [
+            scene.scene.getObjectByName("pistolanim")/*,
+            scene.scene.getObjectByName("meshswap1"),
+            scene.scene.getObjectByName("meshswap2"),
+            scene.scene.getObjectByName("meshswap3")*/
+        ];
+
+        meshSwaps.forEach(ms => {
+            if (ms == null) return;
+            function copySkin(parent, children) {
+                var newChildren = children.filter( c => c instanceof THREE.SkinnedMesh );
+                if (parent) parent.children = newChildren;
+                newChildren.forEach(c => {
+                    c.boneMatrices = lara.boneMatrices;
+                    c.geometry.boundingBox = lara.geometry.boundingBox;
+                    c.geometry.boundingSphere = lara.geometry.boundingSphere;
+                    c.updateMatrixWorld = THREE.Mesh.prototype.updateMatrixWorld;
+                    if (c.children) copySkin(c, c.children);
+                });
+            }
+            copySkin(null, [ms]);
+        });
 
 		// don't flip Y coordinates in textures
 		for (var texture in scene.textures) {
@@ -472,11 +498,12 @@ TRN.MasterLoader = {
 		var obj = scene.objects[TRN.Consts.objNameForPistolAnim];
 		var lara = oscene.findObjectById(TRN.ObjectID.Lara);
 
-		if (obj && lara && false) {
-			var mswap = new TRN.MeshSwap(obj, lara);
-
-			mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.rightThighIndex]);
+		if (obj && lara) {
+            (new TRN.MeshSwap(obj, lara)).swap([TRN.Consts.leftThighIndex, TRN.Consts.rightThighIndex]);
 		}
+
+        /*var mswap = new TRN.MeshSwap(scene.scene.getObjectByName("moveable123_1"), scene.scene.getObjectByName("meshswap2"));
+        mswap.swapall();*/
 
 		var camera = scene.currentCamera;
 

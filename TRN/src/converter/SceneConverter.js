@@ -800,6 +800,7 @@ TRN.SceneConverter.prototype = {
                 "quaternion" 	        : [0, 0, 0, 1],
                 "scale"	   		        : [ 1, 1, 1 ],
                 "visible"  				: room.visible && visible,
+                "customVisibility"      : true,
                 "objectid" 				: moveable.objectID,
                 "type"   				: 'moveable',
                 "has_anims"				: idx == 0,
@@ -1071,7 +1072,7 @@ TRN.SceneConverter.prototype = {
 				var mindex = this.movObjID2Index[pistolAnimId];
 
 				if (typeof(mindex) != "undefined") {
-					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, [0,0,0,1], this.trlevel.moveables[mindex], 'pistolanim', false);
+					var mobj = this.createMoveableAsMultiMeshes(0, laraRoomIndex, 0, 0, 0, -1, [0,0,0,1], this.trlevel.moveables[mindex], 'pistolanim', false);
 
 					mobj.dummy = true;
 				}
