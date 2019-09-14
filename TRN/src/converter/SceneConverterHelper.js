@@ -443,7 +443,25 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			}
 		}
 		return null;
-	}
+    },
+    
+    numAnimationsForMoveable : function(moveableIdx) {
+        var curr_moveable = this.trlevel.moveables[moveableIdx];
+
+        if (curr_moveable.animation != 0xFFFF) {
+            var next_anim_index = this.trlevel.animations.length;
+            for (var i = moveableIdx + 1; i < this.trlevel.moveables.length; ++i) {
+                if (this.trlevel.moveables[i].animation != 0xFFFF) {
+                    next_anim_index = this.trlevel.moveables[i].animation;
+                    break;
+                }
+            }
+            return next_anim_index - curr_moveable.animation;
+        }
+    
+        return 0;
+    }
+    
 
 });
 
