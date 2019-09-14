@@ -32,7 +32,7 @@ var BasicControls = function ( object, domElement ) {
 	this.states[this.KEYS.MOUSEY] =  {state:this.STATES.ROTNX,   on:false}; // mouse move +Y
 	
 	this.factor = 1.0;
-	this.moveFactor = 4000*TRN.Consts.worldScale;
+	this.moveFactor = 6000*TRN.Consts.worldScale;
 	this.rotFactor = 100;
     this.mouseRotFactor = 10;
 	
@@ -126,7 +126,7 @@ var BasicControls = function ( object, domElement ) {
 			
 			switch(ostate.state) {
 				case _this.STATES.FASTER:
-					moveScale *= 3;
+					moveScale *= 4;
 					rotScale *= 3;
 					rotMouseScale *= 3;
 					break;
