@@ -227,46 +227,7 @@ namespace TRNUtil {
             this.outputTextures();
             this.outputCamera();
             this.outputObjects();
-
-            let materials = (((this._gltf.scenes! as JsonArray)[0] as JsonMap).extras as JsonMap).TRN_materials as JsonMap;
-            for (let matName in materials) {
-                let material = materials[matName] as JsonMap, matparams = material.parameters as JsonMap, uniforms = matparams.uniforms as JsonMap;
-
-                let addUniforms: string = "";
-
-                if (matparams.skinning) {
-                    addUniforms =
-                        "attribute vec4 skinIndex;\n" +
-                        "attribute vec4 skinWeight;\n";
-                    ;
-                }
-
-                matparams.vertexShader = 
-                    "precision highp float;\n" +
-                    "uniform mat4 modelMatrix;\n" +
-                    "uniform mat4 modelViewMatrix;\n" +
-                    "uniform mat4 projectionMatrix;\n" +
-                    "uniform mat4 viewMatrix;\n" +
-                    "uniform mat3 normalMatrix;\n" +
-                    /*"uniform vec3 cameraPosition;\n" +*/
-                    "attribute vec3 position;\n" +
-                    "attribute vec3 normal;\n" +
-                    "attribute vec2 uv;\n" +
-                    /*"attribute vec2 uv2;\n" +*/
-                    "attribute vec3 color;\n" +
-                    addUniforms +
-                    "\n" + matparams.vertexShader;
-                
-                matparams.fragmentShader =
-                    "precision highp float;\n" +
-                    "uniform mat4 viewMatrix;\n" +
-                    /*"uniform vec3 cameraPosition;\n" +*/
-                    "\n" + matparams.fragmentShader;
-
-                for (let n in uniforms) {
-                    delete (uniforms[n] as JsonMap).type;
-                }
-            }
+            this.outputMaterials();
 
             console.log('glc=', this._glc);
         }
@@ -399,6 +360,48 @@ namespace TRNUtil {
                     }
                 }
             ];
+        }
+
+        private outputMaterials() {
+            let materials = (((this._gltf.scenes! as JsonArray)[0] as JsonMap).extras as JsonMap).TRN_materials as JsonMap;
+            for (let matName in materials) {
+                let material = materials[matName] as JsonMap, matparams = material.parameters as JsonMap, uniforms = matparams.uniforms as JsonMap;
+
+                let addUniforms: string = "";
+
+                if (matparams.skinning) {
+                    addUniforms =
+                        "attribute vec4 skinIndex;\n" +
+                        "attribute vec4 skinWeight;\n";
+                    ;
+                }
+
+                matparams.vertexShader = 
+                    "precision highp float;\n" +
+                    "uniform mat4 modelMatrix;\n" +
+                    "uniform mat4 modelViewMatrix;\n" +
+                    "uniform mat4 projectionMatrix;\n" +
+                    "uniform mat4 viewMatrix;\n" +
+                    "uniform mat3 normalMatrix;\n" +
+                    /*"uniform vec3 cameraPosition;\n" +*/
+                    "attribute vec3 position;\n" +
+                    "attribute vec3 normal;\n" +
+                    "attribute vec2 uv;\n" +
+                    /*"attribute vec2 uv2;\n" +*/
+                    "attribute vec3 color;\n" +
+                    addUniforms +
+                    "\n" + matparams.vertexShader;
+                
+                matparams.fragmentShader =
+                    "precision highp float;\n" +
+                    "uniform mat4 viewMatrix;\n" +
+                    /*"uniform vec3 cameraPosition;\n" +*/
+                    "\n" + matparams.fragmentShader;
+
+                for (let n in uniforms) {
+                    delete (uniforms[n] as JsonMap).type;
+                }
+            }
         }
 
         private outputObjects() {
