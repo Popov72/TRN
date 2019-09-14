@@ -701,6 +701,7 @@ TRN.SceneConverter.prototype = {
 			var stackIdx = 0, stack = [], parent = -1;
 			var px = 0, py = 0, pz = 0, ofsvert = 0, bones = [], skinIndices = [], skinWeights = [];
 
+            meshJSON.moveableIndex = m;
 			meshJSON.attributes = attributes;
 			meshJSON.objHasScrollAnim = moveable.objectID >= startObjIdAnim && moveable.objectID <= endObjIdAnim;
 
@@ -805,7 +806,8 @@ TRN.SceneConverter.prototype = {
 			"visible"  				: room.visible && visible,
 			"objectid" 				: moveable.objectID,
 			"type"   				: 'moveable',
-			"has_anims"				: true,
+            "has_anims"				: true,
+            "numAnimations"         : hasGeometry ? this.numAnimationsForMoveable(this.sc.embeds["moveable" + objIDForVisu].moveableIndex) : 0,
 			"roomIndex"				: roomIndex,
 			"animationStartIndex"	: moveable.animation,
 			"skin"					: true,
@@ -1059,6 +1061,53 @@ TRN.SceneConverter.prototype = {
 		console.log('Num moveable instances=', numMoveableInstances, '. Num sprite sequence instances=', numSpriteSeqInstances);
 	},
 
+    // remove animations for moveables that have a single animation with a single keyframe
+    optimizeAnimations : function () {
+
+        var numOptimized = 0;
+
+        for (var objID in this.sc.objects) {
+
+            var objJSON = this.sc.objects[objID];
+
+            if (!objJSON.has_anims) continue;
+
+            var track = this.sc.animTracks[objJSON.animationStartIndex];
+
+            if (track.nextTrack != objJSON.animationStartIndex) { // the moveables has more than one anim
+                continue;
+            }
+
+            if (track.commands.length == 0 && track.numFrames == 1 && track.keys.length == 1 && track.keys[0].data.length == 1 && objJSON.numAnimations == 1) {
+                var qobj = objJSON.quaternion;
+                var qanim = [track.keys[0].data[0].quaternion.x, track.keys[0].data[0].quaternion.y, track.keys[0].data[0].quaternion.z, track.keys[0].data[0].quaternion.w];
+                var trans = [track.keys[0].data[0].position.x, track.keys[0].data[0].position.y, track.keys[0].data[0].position.z];
+
+                var qobjinv = [0,0,0,0];
+
+                glMatrix.quat.invert(qobjinv, qobj);
+
+                glMatrix.vec3.transformQuat(trans, trans, qobj)
+
+                objJSON.position[0] += trans[0];
+                objJSON.position[1] += trans[1];
+                objJSON.position[2] += trans[2];
+
+                glMatrix.quat.multiply(qobj, qobj, qanim);
+
+                objJSON.quaternion = qobj;
+
+                objJSON.has_anims = false;
+
+                numOptimized++;
+            }
+
+        }
+
+        console.log('Number of moveables optimized for animations=' + numOptimized);
+
+    },
+
 	convert : function (trlevel, callback_created) {
 		glMatrix.glMatrix.setMatrixArrayType(Array);
 
@@ -1188,7 +1237,9 @@ TRN.SceneConverter.prototype = {
 
 		this.createAnimations();
 
-		this.createItems();
+        this.createItems();
+        
+        this.optimizeAnimations();
 
 		if (this.sc.cutScene.frames) {
 			// update position/quaternion for some specific items if we play a cut scene
