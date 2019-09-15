@@ -31,9 +31,9 @@ const vec3 vec3Unit = vec3(1.0, 1.0, 1.0);
 		return bone;
 	}
 #else
-	uniform mat4 boneGlobalMatrices[ 64 ];
+	uniform mat4 boneMatrices[ 64 ];
 	mat4 getBoneMatrix( const in float i ) {
-		mat4 bone = boneGlobalMatrices[ int(i) ];
+		mat4 bone = boneMatrices[ int(i) ];
 		return bone;
 	}
 #endif

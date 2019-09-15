@@ -3,6 +3,8 @@
  * @author Larry Battle / http://bateru.com/news
  */
 
+ // Popov: changed all boneGlobalMatrices to boneMatrices
+
 var THREE = THREE || { REVISION: '58' };
 
 self.console = self.console || {
@@ -16498,11 +16500,11 @@ THREE.ShaderChunk = {
 
 			"#else",
 
-				"uniform mat4 boneGlobalMatrices[ MAX_BONES ];",
+				"uniform mat4 boneMatrices[ MAX_BONES ];",
 
 				"mat4 getBoneMatrix( const in float i ) {",
 
-					"mat4 bone = boneGlobalMatrices[ int(i) ];",
+					"mat4 bone = boneMatrices[ int(i) ];",
 					"return bone;",
 
 				"}",
@@ -23573,9 +23575,9 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 			} else {
 
-				if ( p_uniforms.boneGlobalMatrices !== null ) {
+				if ( p_uniforms.boneMatrices !== null ) {
 
-					_gl.uniformMatrix4fv( p_uniforms.boneGlobalMatrices, false, object.boneMatrices );
+					_gl.uniformMatrix4fv( p_uniforms.boneMatrices, false, object.boneMatrices );
 
 				}
 
@@ -24950,7 +24952,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 		} else {
 
-			identifiers.push( 'boneGlobalMatrices' );
+			identifiers.push( 'boneMatrices' );
 
 		}
 
