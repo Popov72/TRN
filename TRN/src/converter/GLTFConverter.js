@@ -69,6 +69,7 @@ var TRNUtil;
             this._bufferViews = [];
             this._accessors = [];
             this._materials = [];
+            this._skins = [];
             this._gltf = {
                 "asset": {
                     "version": "2.0",
@@ -93,6 +94,7 @@ var TRNUtil;
                 "bufferViews": this._bufferViews,
                 "accessors": this._accessors,
                 "materials": this._materials,
+                "skins": this._skins,
             };
             this.__objects = this.sceneJSON.objects;
             this.__embeds = this.sceneJSON.embeds;
@@ -114,40 +116,7 @@ var TRNUtil;
             this.outputTextures();
             this.outputCamera();
             this.outputObjects();
-            var materials = this._gltf.scenes[0].extras.TRN_materials;
-            for (var matName in materials) {
-                var material = materials[matName], matparams = material.parameters, uniforms = matparams.uniforms;
-                var addUniforms = "";
-                if (matparams.skinning) {
-                    addUniforms =
-                        "attribute vec4 skinIndex;\n" +
-                            "attribute vec4 skinWeight;\n";
-                    ;
-                }
-                matparams.vertexShader =
-                    "precision highp float;\n" +
-                        "uniform mat4 modelMatrix;\n" +
-                        "uniform mat4 modelViewMatrix;\n" +
-                        "uniform mat4 projectionMatrix;\n" +
-                        "uniform mat4 viewMatrix;\n" +
-                        "uniform mat3 normalMatrix;\n" +
-                        /*"uniform vec3 cameraPosition;\n" +*/
-                        "attribute vec3 position;\n" +
-                        "attribute vec3 normal;\n" +
-                        "attribute vec2 uv;\n" +
-                        /*"attribute vec2 uv2;\n" +*/
-                        "attribute vec3 color;\n" +
-                        addUniforms +
-                        "\n" + matparams.vertexShader;
-                matparams.fragmentShader =
-                    "precision highp float;\n" +
-                        "uniform mat4 viewMatrix;\n" +
-                        /*"uniform vec3 cameraPosition;\n" +*/
-                        "\n" + matparams.fragmentShader;
-                for (var n in uniforms) {
-                    delete uniforms[n].type;
-                }
-            }
+            this.outputMaterials();
             console.log('glc=', this._glc);
         };
         GLTFConverter.prototype.addNode = function (name, addToRootNodes, rotation, translation, scale) {
@@ -155,9 +124,9 @@ var TRNUtil;
             var node = {
                 name: name, rotation: rotation, scale: scale, translation: translation
             }, index = this._nodes.length;
-            if (node.translation) {
+            /*if (node.translation) {
                 node.translation = [node.translation[0], node.translation[1], node.translation[2]];
-            }
+            }*/
             this._nodes.push(node);
             if (addToRootNodes)
                 this._inodes.push(index);
@@ -196,6 +165,9 @@ var TRNUtil;
         };
         GLTFConverter.prototype.addMaterial = function (obj) {
             return this._materials.push(obj), this._materials.length - 1;
+        };
+        GLTFConverter.prototype.addSkin = function (obj) {
+            return this._skins.push(obj), this._skins.length - 1;
         };
         GLTFConverter.prototype.outputTextures = function () {
             this._gltf.samplers = [
@@ -257,6 +229,42 @@ var TRNUtil;
                 }
             ];
         };
+        GLTFConverter.prototype.outputMaterials = function () {
+            var materials = this._gltf.scenes[0].extras.TRN_materials;
+            for (var matName in materials) {
+                var material = materials[matName], matparams = material.parameters, uniforms = matparams.uniforms;
+                var addUniforms = "";
+                if (matparams.skinning) {
+                    addUniforms =
+                        "attribute vec4 skinIndex;\n" +
+                            "attribute vec4 skinWeight;\n";
+                    ;
+                }
+                matparams.vertexShader =
+                    "precision highp float;\n" +
+                        "uniform mat4 modelMatrix;\n" +
+                        "uniform mat4 modelViewMatrix;\n" +
+                        "uniform mat4 projectionMatrix;\n" +
+                        "uniform mat4 viewMatrix;\n" +
+                        "uniform mat3 normalMatrix;\n" +
+                        /*"uniform vec3 cameraPosition;\n" +*/
+                        "attribute vec3 position;\n" +
+                        "attribute vec3 normal;\n" +
+                        "attribute vec2 uv;\n" +
+                        /*"attribute vec2 uv2;\n" +*/
+                        "attribute vec3 color;\n" +
+                        addUniforms +
+                        "\n" + matparams.vertexShader;
+                matparams.fragmentShader =
+                    "precision highp float;\n" +
+                        "uniform mat4 viewMatrix;\n" +
+                        /*"uniform vec3 cameraPosition;\n" +*/
+                        "\n" + matparams.fragmentShader;
+                for (var n in uniforms) {
+                    delete uniforms[n].type;
+                }
+            }
+        };
         GLTFConverter.prototype.outputObjects = function () {
             var rootNode = this.addNode("rootNode", true);
             for (var name_2 in this.__objects) {
@@ -282,6 +290,8 @@ var TRNUtil;
             var embedId = this.__geometries[geometryId].id;
             var oembed = this.__embeds[embedId];
             var vertices = oembed.vertices, uvs = oembed.uvs[0], colors = oembed.colors, flags = oembed.attributes._flags.value;
+            var skinIndices = oembed.skinIndices, skinWeights = oembed.skinWeights;
+            var hasSkin = skinIndices != null && skinWeights != null;
             var faces = oembed.faces, numFaces3 = 0, numFaces4 = 0;
             if (faces.length == 0) {
                 console.log("No faces in embed " + embedId + ": geometry not created/mesh not exported.", oembed);
@@ -305,10 +315,12 @@ var TRNUtil;
             // allocate the data buffer
             var numVertices = numFaces3 * 3 + numFaces4 * 4, numTriangles = numFaces3 + numFaces4 * 2;
             var verticesSize = numVertices * 3 * 4, textcoordsSize = numVertices * 2 * 4, colorsSize = numVertices * 3 * 4, flagsSize = numVertices * 4 * 4;
+            var skinIndicesSize = hasSkin ? numVertices * 1 * 4 : 0, skinWeightsSize = hasSkin ? numVertices * 4 * 4 : 0;
             var indicesSize = numTriangles * 3 * 2;
-            var bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + indicesSize);
+            var bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize + indicesSize);
             // fill the buffer with the attributes
-            var attributesView = new Float32Array(bufferData, 0, numVertices * (3 + 2 + 3 + 4));
+            var attributesView = new Float32Array(bufferData, 0, numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)));
+            var attributesSkinIndicesView = new Uint8Array(bufferData, 0, 4 * numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)));
             var min = [1e20, 1e20, 1e20], max = [-1e20, -1e20, -1e20];
             var ofst = 0;
             f = 0;
@@ -322,11 +334,21 @@ var TRNUtil;
                     max[0] = Math.max(max[0], x);
                     max[1] = Math.max(max[1], y);
                     max[2] = Math.max(max[2], z);
+                    // coordinates
                     attributesView.set([x, y, z], ofst);
+                    // uvs
                     attributesView.set([uvs[faces[f + v + numVert + 2] * 2 + 0], uvs[faces[f + v + numVert + 2] * 2 + 1]], ofst + 3);
+                    // vertex color
                     var color = colors[faces[f + v + 1]], cr = (color & 0xFF0000) >> 16, cg = (color & 0xFF00) >> 8, cb = (color & 0xFF);
                     attributesView.set([cr / 255.0, cg / 255.0, cb / 255.0], ofst + 5);
+                    // flags
                     attributesView.set(flags[faces[f + v + 1]], ofst + 8);
+                    // skin data
+                    if (hasSkin) {
+                        attributesSkinIndicesView.set([skinIndices[faces[f + v + 1] * 2 + 0], skinIndices[faces[f + v + 1] * 2 + 1], 0, 0], (ofst + 12) * 4);
+                        attributesView.set([skinWeights[faces[f + v + 1] * 2 + 0], skinWeights[faces[f + v + 1] * 2 + 1], 0, 0], ofst + 13);
+                        ofst += 5;
+                    }
                     ofst += 12;
                 }
                 f += faceSize;
@@ -334,7 +356,7 @@ var TRNUtil;
             //console.log(f, faces.length);
             //console.log(ofst*4, verticesSize + textcoordsSize)
             // fill the buffer with the indices
-            var indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize, numTriangles * 3);
+            var indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize, numTriangles * 3);
             var accessorOffsets = [], accessorCounts = [];
             for (var mat = 0, ofst_1 = 0; mat < lstMatNumbers.length; ++mat) {
                 accessorOffsets.push(ofst_1 * 2);
@@ -366,16 +388,16 @@ var TRNUtil;
             var bufferViewAttributesIndex = this.addBufferView({
                 "name": embedId + "_vertices_attributes",
                 "buffer": bufferDataIndex,
-                "byteLength": numVertices * (3 + 2 + 3 + 4) * 4,
+                "byteLength": numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)) * 4,
                 "byteOffset": 0,
-                "byteStride": (3 + 2 + 3 + 4) * 4,
+                "byteStride": (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)) * 4,
                 "target": bufferViewTarget.ARRAY_BUFFER,
             });
             var bufferViewIndicesIndex = this.addBufferView({
                 "name": embedId + "_indices",
                 "buffer": bufferDataIndex,
                 "byteLength": numTriangles * 3 * 2,
-                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize,
+                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize,
                 "target": bufferViewTarget.ELEMENT_ARRAY_BUFFER,
             });
             var accessorPositionIndex = this.addAccessor({
@@ -412,6 +434,22 @@ var TRNUtil;
                 "count": numVertices,
                 "type": accessorType.VEC4,
             });
+            var accessorSkinIndexIndex = !hasSkin ? -1 : this.addAccessor({
+                "name": embedId + "_skinindex",
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3 + 2 + 3 + 4) * 4,
+                "componentType": accessorElementSize.UNSIGNED_BYTE,
+                "count": numVertices,
+                "type": accessorType.VEC4,
+            });
+            var accessorSkinWeightIndex = !hasSkin ? -1 : this.addAccessor({
+                "name": embedId + "_skinweight",
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3 + 2 + 3 + 4 + 1) * 4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC4,
+            });
             var accessorIndicesIndex = [];
             for (var i = 0; i < accessorOffsets.length; ++i) {
                 accessorIndicesIndex.push(this.addAccessor({
@@ -430,8 +468,66 @@ var TRNUtil;
                 accessorTexcoordIndex: accessorTexcoordIndex,
                 accessorColorIndex: accessorColorIndex,
                 accessorFlagIndex: accessorFlagIndex,
-                accessorIndicesIndex: accessorIndicesIndex
+                accessorSkinIndexIndex: accessorSkinIndexIndex,
+                accessorSkinWeightIndex: accessorSkinWeightIndex,
+                accessorIndicesIndex: accessorIndicesIndex,
             };
+        };
+        GLTFConverter.prototype.createSkin = function (objName, geometryId) {
+            var embedId = this.__geometries[geometryId].id;
+            var oembed = this.__embeds[embedId];
+            var hasSkin = oembed.skinIndices != undefined && oembed.skinWeights != undefined;
+            if (!hasSkin) {
+                return null;
+            }
+            var bones = oembed.bones;
+            var numJoints = bones.length;
+            var bufferDataSkinMatrices = new ArrayBuffer(numJoints * 4 * 4 * 4); // 4*4 mat, each component being a float (4 bytes)
+            var skinMatricesView = new Float32Array(bufferDataSkinMatrices, 0, numJoints * 4 * 4);
+            var firstJointNodeIndex = this._nodes.length;
+            var joints = Array.from({ length: numJoints }, function (v, k) { return firstJointNodeIndex + k; });
+            var posStack = [];
+            for (var j = 0; j < numJoints; ++j) {
+                var bone = bones[j], pos = bone.pos_init.slice(0);
+                var node = this.addNode("bone #" + j + " for " + objName, false, bone.rotq, bone.pos);
+                if (bone.parent >= 0) {
+                    var parentNode = this._nodes[bone.parent + firstJointNodeIndex];
+                    if (parentNode.children === undefined) {
+                        parentNode.children = [];
+                    }
+                    parentNode.children.push(node.index);
+                    /*let p = <number>bone.parent;
+                    if (p != -1) {
+                        pos[0] += posStack[p][0];
+                        pos[1] += posStack[p][1];
+                        pos[2] += posStack[p][2];
+                    }*/
+                }
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, pos[0],pos[1],pos[2],1], j*4*4);
+                skinMatricesView.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], j * 4 * 4);
+                posStack.push(pos);
+            }
+            var bufferDataSkinMatricesIndex = this.addBuffer(bufferDataSkinMatrices, undefined, objName + " skin data");
+            var bufferViewSkinMatricesIndex = this.addBufferView({
+                "name": objName + "_skin_matrices",
+                "buffer": bufferDataSkinMatricesIndex,
+                "byteLength": numJoints * 4 * 4 * 4,
+                "byteOffset": 0,
+            });
+            var accessorSkinMatricesIndex = this.addAccessor({
+                "name": objName + "_skin_matrices",
+                "bufferView": bufferViewSkinMatricesIndex,
+                "byteOffset": 0,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numJoints,
+                "type": accessorType.MAT4,
+            });
+            var skinIndex = this.addSkin({
+                "name": objName + " skin",
+                "inverseBindMatrices": accessorSkinMatricesIndex,
+                "joints": joints,
+            });
+            return { skinIndex: skinIndex, firstJointNodeIndex: firstJointNodeIndex };
         };
         GLTFConverter.prototype.createMesh = function (objName, addAsRootNode) {
             if (addAsRootNode === void 0) { addAsRootNode = false; }
@@ -550,6 +646,10 @@ var TRNUtil;
                     "mode": primitiveMode.TRIANGLES,
                     "material": this_1.addMaterial(gmaterial),
                 };
+                if (geomData.accessorSkinIndexIndex >= 0) {
+                    primitive.attributes["JOINTS_0"] = geomData.accessorSkinIndexIndex;
+                    primitive.attributes["WEIGHTS_0"] = geomData.accessorSkinWeightIndex;
+                }
                 mesh.primitives.push(primitive);
             };
             var this_1 = this;
@@ -558,6 +658,11 @@ var TRNUtil;
             }
             var meshNode = this.addNode(objName, addAsRootNode, obj.quaternion, obj.position, obj.scale);
             meshNode.node.mesh = this.addMesh(mesh);
+            var skin = this.createSkin(objName, obj.geometry);
+            if (skin != null) {
+                meshNode.node.skin = skin.skinIndex;
+                //meshNode.node.children = [skin.firstJointNodeIndex];
+            }
             return meshNode;
         };
         return GLTFConverter;

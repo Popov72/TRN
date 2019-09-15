@@ -67,6 +67,7 @@ namespace TRNUtil {
         "scale"?: vec4,
         "translation"?: vec3,
         "children"?: number[],
+        "skin"?: number,
         [name:string]: any,
     }
 
@@ -136,12 +137,20 @@ namespace TRNUtil {
         "mimeType": string,
     }
 
+    interface Skin {
+        "name"?: string,
+        "inverseBindMatrices": number,
+        "joints": Array<number>,
+    }
+
     interface _GeometryData {
         "bufferViewAttributesIndex": number,
         "accessorPositionIndex": number,
         "accessorTexcoordIndex": number,
         "accessorColorIndex": number,
         "accessorFlagIndex": number,
+        "accessorSkinIndexIndex": number,
+        "accessorSkinWeightIndex": number,
         "accessorIndicesIndex": Array<number>,
     }
 
@@ -149,7 +158,7 @@ namespace TRNUtil {
         [name: string]: _GeometryData,
     }
 
-    type AnyJson =  boolean | number | string | null | JsonArray | JsonMap | Buffer | BufferView | Accessor | Mesh | Texture | Image;
+    type AnyJson =  boolean | number | string | null | JsonArray | JsonMap | Buffer | BufferView | Accessor | Mesh | Texture | Image | Skin;
     interface JsonMap {  [key: string]: AnyJson; }
     interface JsonArray extends Array<AnyJson> {}
 
@@ -163,6 +172,7 @@ namespace TRNUtil {
         private _bufferViews:       BufferView[];
         private _accessors:         Accessor[];
         private _materials:         JsonMap[];
+        private _skins:             Skin[];
 
         private __objects:          JsonMap;
         private __embeds:           JsonMap;
@@ -181,6 +191,8 @@ namespace TRNUtil {
             this._bufferViews = [];
             this._accessors = [];
             this._materials = [];
+            this._skins = [];
+
             this._gltf = {
                 "asset": {
                     "version": "2.0",
@@ -205,6 +217,7 @@ namespace TRNUtil {
                 "bufferViews": this._bufferViews,
                 "accessors": this._accessors,
                 "materials": this._materials,
+                "skins": this._skins,
             };
 
             this.__objects = this.sceneJSON.objects! as JsonMap;
@@ -237,9 +250,9 @@ namespace TRNUtil {
                 name, rotation, scale, translation
             }, index = this._nodes.length;
 
-            if (node.translation) {
+            /*if (node.translation) {
                 node.translation = [node.translation[0], node.translation[1], node.translation[2]];
-            }
+            }*/
 
             this._nodes.push(node);
 
@@ -288,6 +301,10 @@ namespace TRNUtil {
 
         private addMaterial(obj: JsonMap): number {
             return this._materials.push(obj), this._materials.length-1;
+        }
+
+        private addSkin(obj: Skin): number {
+            return this._skins.push(obj), this._skins.length-1;
         }
 
         private outputTextures(): void {
@@ -431,6 +448,8 @@ namespace TRNUtil {
             let oembed = this.__embeds[embedId] as JsonMap;
 
             let vertices = oembed.vertices as [], uvs = (oembed.uvs as [[]])[0], colors = oembed.colors as [], flags = ((oembed.attributes as JsonMap)._flags as JsonMap).value as [];
+            let skinIndices = oembed.skinIndices as [], skinWeights = oembed.skinWeights as [];
+            let hasSkin = skinIndices != null && skinWeights != null;
             let faces = oembed.faces as [], numFaces3 = 0, numFaces4 = 0;
 
             if (faces.length == 0) {
@@ -456,12 +475,14 @@ namespace TRNUtil {
             // allocate the data buffer
             let numVertices = numFaces3*3 + numFaces4*4, numTriangles = numFaces3 + numFaces4*2;
             let verticesSize = numVertices*3*4, textcoordsSize = numVertices*2*4, colorsSize = numVertices*3*4, flagsSize = numVertices*4*4;
+            let skinIndicesSize = hasSkin ? numVertices*1*4 : 0, skinWeightsSize = hasSkin ? numVertices*4*4 : 0;
             let indicesSize = numTriangles*3*2;
 
-            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + indicesSize);
+            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize + indicesSize);
 
             // fill the buffer with the attributes
-            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4));
+            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4+(hasSkin ? 1+4 : 0)));
+            let attributesSkinIndicesView = new Uint8Array(bufferData, 0, 4*numVertices*(3+2+3+4+(hasSkin ? 1+4 : 0)));
             let min = [1e20, 1e20, 1e20], max = [-1e20, -1e20, -1e20 ];
             let ofst = 0;
             f = 0;
@@ -471,11 +492,27 @@ namespace TRNUtil {
                     let [x, y, z] = [vertices[faces[f+v+1]*3 + 0], vertices[faces[f+v+1]*3 + 1], vertices[faces[f+v+1]*3 + 2]];
                     min[0] = Math.min(min[0], x);    min[1] = Math.min(min[1], y);    min[2] = Math.min(min[2], z);
                     max[0] = Math.max(max[0], x);    max[1] = Math.max(max[1], y);    max[2] = Math.max(max[2], z);
+                    
+                    // coordinates
                     attributesView.set([x, y, z], ofst);
+
+                    // uvs
                     attributesView.set([uvs[faces[f+v+numVert+2]*2+0], uvs[faces[f+v+numVert+2]*2+1]], ofst + 3);
+
+                    // vertex color
                     let color = colors[faces[f+v+1]] as number, cr = (color & 0xFF0000) >> 16, cg = (color & 0xFF00) >> 8, cb = (color & 0xFF);
                     attributesView.set([cr/255.0, cg/255.0, cb/255.0], ofst + 5);
+
+                    // flags
                     attributesView.set(flags[faces[f+v+1]], ofst + 8);
+
+                    // skin data
+                    if (hasSkin) {
+                        attributesSkinIndicesView.set([skinIndices[faces[f+v+1]*2+0], skinIndices[faces[f+v+1]*2+1], 0, 0], (ofst + 12)*4);
+                        attributesView.set([skinWeights[faces[f+v+1]*2+0], skinWeights[faces[f+v+1]*2+1], 0, 0], ofst + 13);
+                        ofst += 5;
+                    }
+
                     ofst += 12;
                 }
                 f += faceSize;
@@ -484,7 +521,7 @@ namespace TRNUtil {
             //console.log(ofst*4, verticesSize + textcoordsSize)
 
             // fill the buffer with the indices
-            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize, numTriangles*3);
+            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize, numTriangles*3);
             let accessorOffsets: number[] = [], accessorCounts: number[] = [];
 
             for (let mat = 0, ofst = 0; mat < lstMatNumbers.length; ++mat) {
@@ -517,16 +554,16 @@ namespace TRNUtil {
             let bufferViewAttributesIndex = this.addBufferView({
                 "name": `${embedId}_vertices_attributes`,
                 "buffer": bufferDataIndex,
-                "byteLength": numVertices*(3+2+3+4)*4,
+                "byteLength": numVertices*(3+2+3+4+(hasSkin ? 1+4:0))*4,
                 "byteOffset": 0,
-                "byteStride": (3+2+3+4)*4,
+                "byteStride": (3+2+3+4+(hasSkin ? 1+4:0))*4,
                 "target": bufferViewTarget.ARRAY_BUFFER,
             });
             let bufferViewIndicesIndex = this.addBufferView({
                 "name": `${embedId}_indices`,
                 "buffer": bufferDataIndex,
                 "byteLength": numTriangles*3*2,
-                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize,
+                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize,
                 "target": bufferViewTarget.ELEMENT_ARRAY_BUFFER,
             });
 
@@ -564,6 +601,22 @@ namespace TRNUtil {
                 "count": numVertices,
                 "type": accessorType.VEC4,
             });
+            let accessorSkinIndexIndex = !hasSkin ? -1 : this.addAccessor({
+                "name": `${embedId}_skinindex`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3+2+3+4)*4,
+                "componentType": accessorElementSize.UNSIGNED_BYTE,
+                "count": numVertices,
+                "type": accessorType.VEC4,
+            });
+            let accessorSkinWeightIndex = !hasSkin ? -1 : this.addAccessor({
+                "name": `${embedId}_skinweight`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3+2+3+4+1)*4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC4,
+            });
 
             let accessorIndicesIndex: Array<number> = [];
             for (let i = 0; i < accessorOffsets.length; ++i) {
@@ -583,8 +636,78 @@ namespace TRNUtil {
                 accessorTexcoordIndex,
                 accessorColorIndex,
                 accessorFlagIndex,
-                accessorIndicesIndex
+                accessorSkinIndexIndex,
+                accessorSkinWeightIndex,
+                accessorIndicesIndex,
             };
+        }
+
+        private createSkin(objName: string, geometryId: string): Object | null {
+            let embedId = (this.__geometries[geometryId] as JsonMap).id as string;
+            let oembed = this.__embeds[embedId] as JsonMap;
+
+            let hasSkin = oembed.skinIndices != undefined && oembed.skinWeights != undefined;
+
+            if (!hasSkin) {
+                return null;
+            }
+
+            let bones = oembed.bones as [];
+            let numJoints = bones.length;
+
+            let bufferDataSkinMatrices = new ArrayBuffer(numJoints*4*4*4); // 4*4 mat, each component being a float (4 bytes)
+            let skinMatricesView = new Float32Array(bufferDataSkinMatrices, 0, numJoints*4*4);
+            
+            let firstJointNodeIndex = this._nodes.length;
+            let joints = Array.from({length: numJoints}, (v, k) => firstJointNodeIndex+k); 
+
+            let posStack: Array<Array<number>> = [];
+            for (let j = 0; j < numJoints; ++j) {
+                let bone = bones[j] as JsonMap, pos = (bone.pos_init as []).slice(0) as Array<number>;
+                let node = this.addNode(`bone #${j} for ${objName}`, false, bone.rotq as [], bone.pos as []);
+                if (<number>bone.parent >= 0) {
+                    var parentNode = this._nodes[<number>bone.parent + firstJointNodeIndex];
+                    if (parentNode.children === undefined) {
+                        parentNode.children = [];
+                    }
+                    parentNode.children.push(node.index);
+                    /*let p = <number>bone.parent;
+                    if (p != -1) {
+                        pos[0] += posStack[p][0];
+                        pos[1] += posStack[p][1];
+                        pos[2] += posStack[p][2];
+                    }*/
+                }
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, pos[0],pos[1],pos[2],1], j*4*4);
+                skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1], j*4*4);
+                posStack.push(pos);
+            }
+
+            let bufferDataSkinMatricesIndex = this.addBuffer(bufferDataSkinMatrices, undefined, `${objName} skin data`);
+            let bufferViewSkinMatricesIndex = this.addBufferView({
+                "name": `${objName}_skin_matrices`,
+                "buffer": bufferDataSkinMatricesIndex,
+                "byteLength": numJoints*4*4*4,
+                "byteOffset": 0,
+                //"target": bufferViewTarget.ARRAY_BUFFER,
+            });
+            let accessorSkinMatricesIndex = this.addAccessor({
+                "name": `${objName}_skin_matrices`,
+                "bufferView": bufferViewSkinMatricesIndex,
+                "byteOffset": 0,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numJoints,
+                "type": accessorType.MAT4,
+            });
+    
+            let skinIndex = this.addSkin({
+                "name": `${objName} skin`,
+                "inverseBindMatrices": accessorSkinMatricesIndex,
+                "joints": joints,
+            });
+
+            return { skinIndex, firstJointNodeIndex };
+
         }
 
         private createMesh(objName: string, addAsRootNode: boolean = false): NodeIndex | null {
@@ -607,10 +730,10 @@ namespace TRNUtil {
                 });
             }
 
-            let geomData = this._mapNameToGeometry[obj.geometry as string];
+            let geomData: _GeometryData | null = this._mapNameToGeometry[obj.geometry as string];
 
             if (geomData == null) {
-                geomData = this.createGeometry(obj.geometry as string)!;
+                geomData = this.createGeometry(obj.geometry as string);
                 if (geomData == null) {
                     return null;
                 }
@@ -716,12 +839,24 @@ namespace TRNUtil {
                     "material": this.addMaterial(gmaterial),
                 };
 
+                if (geomData.accessorSkinIndexIndex >= 0) {
+                    primitive.attributes["JOINTS_0"]  = geomData.accessorSkinIndexIndex;
+                    primitive.attributes["WEIGHTS_0"] = geomData.accessorSkinWeightIndex;
+                }
+
                 mesh.primitives.push(primitive);
             }
 
             let meshNode = this.addNode(objName, addAsRootNode, obj.quaternion as vec4, obj.position as vec3, obj.scale as vec3);
 
             meshNode.node.mesh = this.addMesh(mesh);
+
+            let skin: any = this.createSkin(objName, obj.geometry as string);
+
+            if (skin != null) {
+                meshNode.node.skin = skin.skinIndex;
+                //meshNode.node.children = [skin.firstJointNodeIndex];
+            }
 
             return meshNode;
         }
