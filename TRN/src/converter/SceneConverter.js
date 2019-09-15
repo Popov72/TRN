@@ -811,7 +811,7 @@ TRN.SceneConverter.prototype = {
 			"roomIndex"				: roomIndex,
 			"animationStartIndex"	: moveable.animation,
 			"skin"					: true,
-			"use_vertex_texture" 	: false,
+			"use_vertex_texture" 	: true,
 			"hasScrollAnim"			: hasGeometry ? hasGeometry.objHasScrollAnim : false
 		};
 
@@ -968,7 +968,7 @@ TRN.SceneConverter.prototype = {
 				"animationStartIndex"	: moveable.animation,
 				"has_anims"				: !skyNoAnim,
 				"skin"					: true,
-				"use_vertex_texture" 	: false
+				"use_vertex_texture" 	: true
 			};
 			numMoveableInstances++;	
 		}
@@ -1001,7 +1001,7 @@ TRN.SceneConverter.prototype = {
 				"visible"  				: true,
 				"type"					: 'skydome',
 				"skin"					: false,
-				"use_vertex_texture" 	: false,
+				"use_vertex_texture" 	: true,
 				"dummy"					: true
 			};
 			

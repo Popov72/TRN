@@ -23414,7 +23414,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 			maxBones: maxBones,
 			useVertexTexture: _supportsBoneTextures && object && object.useVertexTexture,
 			boneTextureWidth: object && object.boneTextureWidth,
-			boneTextureHeight: object && object.boneTextureHeight,
+            boneTextureHeight: object && object.boneTextureHeight,
 
 			morphTargets: material.morphTargets,
 			morphNormals: material.morphNormals,
@@ -23568,6 +23568,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 					var textureUnit = getTextureUnit();
 
+                    _gl.uniform1i( p_uniforms.boneTextureSize, object.boneTextureWidth ); //! Popov
 					_gl.uniform1i( p_uniforms.boneTexture, textureUnit );
 					_this.setTexture( object.boneTexture, textureUnit );
 
@@ -24948,7 +24949,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 		if ( parameters.useVertexTexture ) {
 
-			identifiers.push( 'boneTexture' );
+            identifiers.push( 'boneTexture' );
+            identifiers.push( 'boneTextureSize' );
 
 		} else {
 
