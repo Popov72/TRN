@@ -41,7 +41,17 @@ Note that you can use any web server for this matter. I described how to use Pyt
 You can also use PHP in much the same way than Python to start a simple HTTP server: install PHP on your computer (if not already installed), then use the command **PHP -S localhost:8000** from the TRN directory to start a simple web server.
 
 ## Roadmap
-* Use the [**BabylonJS engine**](https://www.babylonjs.com/) to be able to add particle effects for fires (torches, fire camps, ...)
+* [x] Use the [**BabylonJS engine**](https://www.babylonjs.com/)
+* [x] Convert TR level to GLTF2 format and use this format in **ThreeJS** / **BabylonJS**:
+  * [ ] Animations
+  * [ ] Cutscenes / sounds
+  * [ ] Shaders
+    * [x] Done in ThreeJS
+  * [ ] Mesh swap
+  * [ ] Calculate and export normals
+* [ ] Use behaviours
+* [ ] TR4 cutscenes replay
+* [ ] Add particle effects for fires (torches, fire camps, ...)
 
 ## Screenshots
 Click on the picture to view the corresponding level.<br>
