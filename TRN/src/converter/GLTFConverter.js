@@ -731,28 +731,34 @@ var TRNUtil;
                 //console.log(name, hasAnim, animStartIndex, numAnimations, obj);
                 if (!hasAnim || !obj.visible || animStartIndex < 0 || numAnimations <= 0)
                     return "continue";
-                if (name_3 != "moveable0_0")
-                    return "continue";
+                //if (name != "moveable0_0") continue;
                 // Get the bone positions of the mesh in posStack
                 var posStack = [];
                 var embedId = this_2.__geometries[obj.geometry].id;
                 var oembed = this_2.__embeds[embedId];
                 var bones = oembed.bones;
                 bones.forEach(function (b) { return posStack.push(b.pos_init); });
+                var numData = bones.length;
                 // 
                 var animIndex = 0;
                 var track = this_2.__animTracks[animStartIndex + animIndex];
-                //console.log(track);
                 // Calculate the size and create the data buffer
                 var bufferTimeSize = 0, bufferDataTransSize = 0, bufferDataQuatSize = 0;
-                var keys = track.keys;
+                var keys = track.keys, bad = false;
                 for (var k = 0; k < keys.length; ++k) {
-                    var key_1 = keys[k];
-                    var dataKey = key_1.data;
+                    var key = keys[k];
+                    var dataKey = key.data;
                     var numDataKey = dataKey.length;
                     bufferTimeSize += 1;
-                    bufferDataTransSize += numDataKey * 3;
-                    bufferDataQuatSize += numDataKey * 4;
+                    bufferDataTransSize += numData * 3;
+                    bufferDataQuatSize += numData * 4;
+                    if (numData > numDataKey) {
+                        bad = true;
+                    }
+                }
+                if (bad) {
+                    console.log('No animation for object ' + name_3 + ' because mismatched number of data in keys! numData=' + numData, obj, track);
+                    return "continue";
                 }
                 var buffer = new ArrayBuffer(bufferTimeSize * 4 + (bufferDataTransSize + bufferDataQuatSize) * 4);
                 // Fill the buffer
@@ -760,20 +766,20 @@ var TRNUtil;
                 var dataView = new Float32Array(buffer, bufferTimeSize * 4, bufferDataTransSize + bufferDataQuatSize);
                 var timeMin = 1e10, timeMax = -1e10;
                 for (var k = 0; k < keys.length; ++k) {
-                    var key_2 = keys[k];
-                    var data_1 = key_2.data;
-                    var time = key_2.time / fps;
+                    var key = keys[k];
+                    var data = key.data;
+                    var time = key.time / fps;
                     timeMin = Math.min(timeMin, time);
                     timeMax = Math.max(timeMax, time);
                     timeView.set([time], k);
-                    for (var d = 0; d < data_1.length; ++d) {
-                        var trans = data_1[d].position;
-                        var quat = data_1[d].quaternion;
-                        var x = trans.x + posStack[d][0];
-                        var y = trans.y + posStack[d][1];
-                        var z = trans.z + posStack[d][2];
+                    for (var d = 0; d < numData; ++d) {
+                        var trans = data[d].position;
+                        var quat = data[d].quaternion;
+                        var x = trans.x + (posStack.length > d ? posStack[d][0] : 0);
+                        var y = trans.y + (posStack.length > d ? posStack[d][1] : 0);
+                        var z = trans.z + (posStack.length > d ? posStack[d][2] : 0);
                         dataView.set([x, y, z], d * keys.length * 3 + k * 3);
-                        dataView.set([quat.x, quat.y, quat.z, quat.w], d * keys.length * 4 + k * 4 + data_1.length * keys.length * 3);
+                        dataView.set([quat.x, quat.y, quat.z, quat.w], d * keys.length * 4 + k * 4 + numData * keys.length * 3);
                         //dataView.set([0,0,0], d*keys.length*3+k*3)
                         //dataView.set([0,0,0,1], d*keys.length*4+k*4+data.length*keys.length*3)
                     }
@@ -814,9 +820,7 @@ var TRNUtil;
                 };
                 var firstNodeSkin = this_2._skins[this_2._mapNameToSkin[name_3]].joints[0];
                 var samplerIndex = 0;
-                var key = keys[0];
-                var data = key.data;
-                for (var d = 0; d < data.length; ++d) {
+                for (var d = 0; d < numData; ++d) {
                     animation.channels.push({
                         "sampler": samplerIndex++,
                         "target": {

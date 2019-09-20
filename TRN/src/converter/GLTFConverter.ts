@@ -966,7 +966,7 @@ namespace TRNUtil {
 
                 if (!hasAnim || !obj.visible || animStartIndex < 0 || numAnimations <= 0) continue;
 
-                if (name != "moveable0_0") continue;
+                //if (name != "moveable0_0") continue;
                 
                 // Get the bone positions of the mesh in posStack
                 let posStack: Array<Array<number>> = [];
@@ -978,23 +978,32 @@ namespace TRNUtil {
 
                 bones.forEach( b => posStack.push( b.pos_init as Array<number> ) );
 
+                let numData = bones.length;
+
                 // 
                 let animIndex = 0;
                 let track = this.__animTracks[animStartIndex + animIndex] as JsonMap;
 
-                //console.log(track);
-
                 // Calculate the size and create the data buffer
                 let bufferTimeSize = 0, bufferDataTransSize = 0, bufferDataQuatSize = 0;
-                let keys = track.keys as Array<JsonMap>;
+                let keys = track.keys as Array<JsonMap>, bad = false;
                 for (let k = 0; k < keys.length; ++k) {
                     let key = keys[k] as JsonMap;
                     let dataKey = key.data as Array<JsonMap>;
                     let numDataKey = dataKey.length;
 
                     bufferTimeSize += 1;
-                    bufferDataTransSize += numDataKey * 3;
-                    bufferDataQuatSize += numDataKey * 4;
+                    bufferDataTransSize += numData * 3;
+                    bufferDataQuatSize += numData * 4;
+
+                    if (numData > numDataKey) {
+                        bad = true;
+                    }
+                }
+
+                if (bad) {
+                    console.log('No animation for object ' + name + ' because mismatched number of data in keys! numData=' + numData, obj, track);
+                    continue;
                 }
 
                 let buffer = new ArrayBuffer(bufferTimeSize * 4 + (bufferDataTransSize + bufferDataQuatSize) * 4);
@@ -1014,16 +1023,16 @@ namespace TRNUtil {
                     
                     timeView.set([time], k);
 
-                    for (let d = 0; d < data.length; ++d) {
+                    for (let d = 0; d < numData; ++d) {
                         let trans = (data[d] as JsonMap).position as JsonMap;
                         let quat  = (data[d] as JsonMap).quaternion as JsonMap;
 
-                        let x = trans.x as number + posStack[d][0];
-                        let y = trans.y as number + posStack[d][1];
-                        let z = trans.z as number + posStack[d][2];
+                        let x = trans.x as number + (posStack.length > d ? posStack[d][0] : 0);
+                        let y = trans.y as number + (posStack.length > d ? posStack[d][1] : 0);
+                        let z = trans.z as number + (posStack.length > d ? posStack[d][2] : 0);
                         
                         dataView.set([x, y, z], d*keys.length*3+k*3);
-                        dataView.set([quat.x! as number,  quat.y! as number,  quat.z! as number,  quat.w! as number], d*keys.length*4+k*4+data.length*keys.length*3);
+                        dataView.set([quat.x! as number,  quat.y! as number,  quat.z! as number,  quat.w! as number], d*keys.length*4+k*4+numData*keys.length*3);
                         //dataView.set([0,0,0], d*keys.length*3+k*3)
                         //dataView.set([0,0,0,1], d*keys.length*4+k*4+data.length*keys.length*3)
                     }
@@ -1069,10 +1078,7 @@ namespace TRNUtil {
                 let firstNodeSkin = this._skins[this._mapNameToSkin[name]].joints[0];
                 let samplerIndex = 0;
 
-                let key = keys[0] as JsonMap;
-                let data = key.data as Array<JsonMap>;
-
-                for (let d = 0; d < data.length; ++d) {
+                for (let d = 0; d < numData; ++d) {
                     animation.channels.push({
                         "sampler": samplerIndex++,
                         "target": {
