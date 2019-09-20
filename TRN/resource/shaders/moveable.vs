@@ -18,6 +18,9 @@ const vec3 vec3Unit = vec3(1.0, 1.0, 1.0);
 
 #ifdef BONE_TEXTURE
 
+    uniform mat4 bindMatrix;
+    uniform mat4 bindMatrixInverse;
+
     uniform highp sampler2D boneTexture;
     uniform int boneTextureSize;
 
@@ -55,9 +58,10 @@ void main() {
 	mat4 boneMatX = getBoneMatrix( skinIndex.x );
 	mat4 boneMatY = getBoneMatrix( skinIndex.y );
 
-	vec4 skinVertex = vec4( position, 1.0 );
-	vec4 skinned  = boneMatX * skinVertex * skinWeight.x;
-	skinned 	  += boneMatY * skinVertex * skinWeight.y;
+	vec4 skinVertex = bindMatrix * vec4( position, 1.0 );
+	vec4 skinned  = boneMatX * skinVertex * skinWeight.x
+	 	          + boneMatY * skinVertex * skinWeight.y;
+    skinned = bindMatrixInverse * skinned;
 
 	vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
 

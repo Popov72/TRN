@@ -118,7 +118,19 @@ TRN.extend(TRN.SceneConverter.prototype, {
 								"curTime": { type: "f", value: 0.0 },
 								"rnd": { type: "f", value: 0.0 },
 								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
-								"lighting": { type: "f", value: 0.0 }
+                                "lighting": { type: "f", value: 0.0 },
+                                "bindMatrix": { type: "m4", value: [
+                                    1,0,0,0,
+                                    0,1,0,0,
+                                    0,0,1,0,
+                                    0,0,0,1
+                                ] },
+                                "bindMatrixInverse": { type: "m4", value: [
+                                    1,0,0,0,
+                                    0,1,0,0,
+                                    0,0,1,0,
+                                    0,0,0,1
+                                ] },
 							},
 							"vertexShader": vertexShader,
 							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),

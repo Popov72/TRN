@@ -24103,7 +24103,12 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 				}
 
-				value.flattenToArray( uniform._array );
+                if (value instanceof THREE.Matrix4) { //! Popov
+                    value.flattenToArray( uniform._array );
+                } else {
+                    uniform._array.set(value);
+                }
+
 				_gl.uniformMatrix4fv( location, false, uniform._array );
 
 			} else if ( type === "m4v" ) { // array of THREE.Matrix4
