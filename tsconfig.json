@@ -10,6 +10,7 @@
         "es2015.promise",
         "es2015.collection",
         "es2015.iterable",
+        "es2015.core",
         "es2019.array"
     ],                             /* Specify library files to be included in the compilation. */
     "allowJs": false,                       /* Allow javascript files to be compiled. */

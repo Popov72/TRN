@@ -143,6 +143,39 @@ namespace TRNUtil {
         "joints": Array<number>,
     }
 
+    enum channelTargetPath {
+        translation = "translation",
+        rotation    = "rotation",
+        scale       = "scale",
+        weights     = "weights",
+    }
+
+    interface Channel {
+        "sampler": number,
+        "target": {
+            "node": number,
+            "path": channelTargetPath,
+        }
+    }
+
+    enum samplerInterpolation {
+        LINEAR      = "LINEAR",
+        STEP        = "STEP",
+        CUBICSPLINE = "CUBICSPLINE",
+    }
+
+    interface Sampler {
+        "input": number,
+        "interpolation": samplerInterpolation,
+        "output": number,
+    }
+
+    interface Animation {
+        "name"?: string,
+        "channels": Array<Channel>,
+        "samplers": Array<Sampler>,
+    }
+
     interface _GeometryData {
         "bufferViewAttributesIndex": number,
         "accessorPositionIndex": number,
@@ -158,7 +191,11 @@ namespace TRNUtil {
         [name: string]: _GeometryData,
     }
 
-    type AnyJson =  boolean | number | string | null | JsonArray | JsonMap | Buffer | BufferView | Accessor | Mesh | Texture | Image | Skin;
+    interface _MapSkin {
+        [name: string]: number,
+    }
+
+    type AnyJson =  boolean | number | string | null | JsonArray | JsonMap | Buffer | BufferView | Accessor | Mesh | Texture | Image | Skin | Animation;
     interface JsonMap {  [key: string]: AnyJson; }
     interface JsonArray extends Array<AnyJson> {}
 
@@ -173,15 +210,18 @@ namespace TRNUtil {
         private _accessors:         Accessor[];
         private _materials:         JsonMap[];
         private _skins:             Skin[];
+        private _animations:        Animation[];
 
         private __objects:          JsonMap;
         private __embeds:           JsonMap;
         private __geometries:       JsonMap;
         private __animatedTextures: JsonMap;
+        private __animTracks:       JsonMap;
 
         private _cameraNode:        Node | null;
         private _glc:               number;
         private _mapNameToGeometry: _MapGeometryData;
+        private _mapNameToSkin:     _MapSkin;
 
         constructor(public trLevel:JsonMap, public sceneJSON:JsonMap) {
             this._nodes = [];
@@ -192,6 +232,7 @@ namespace TRNUtil {
             this._accessors = [];
             this._materials = [];
             this._skins = [];
+            this._animations = [];
 
             this._gltf = {
                 "asset": {
@@ -218,16 +259,19 @@ namespace TRNUtil {
                 "accessors": this._accessors,
                 "materials": this._materials,
                 "skins": this._skins,
+                "animations": this._animations,
             };
 
             this.__objects = this.sceneJSON.objects! as JsonMap;
             this.__embeds = this.sceneJSON.embeds! as JsonMap;
             this.__geometries = this.sceneJSON.geometries! as JsonMap;
             this.__animatedTextures = this.sceneJSON.animatedTextures! as JsonMap;
+            this.__animTracks = this.sceneJSON.animTracks! as JsonMap;
 
             this._cameraNode = null;
             this._glc = 0;
             this._mapNameToGeometry = {};
+            this._mapNameToSkin = {};
         }
 
         get data() { 
@@ -241,8 +285,9 @@ namespace TRNUtil {
             this.outputCamera();
             this.outputObjects();
             this.outputMaterials();
+            this.outputAnimations();
 
-            console.log('glc=', this._glc);
+            console.log(`GLTF Converter: Number of meshes without textures=${this._glc}`);
         }
 
         private addNode(name: string, addToRootNodes: boolean = false, rotation?: vec4, translation?: vec3, scale?: vec3): NodeIndex {
@@ -253,6 +298,14 @@ namespace TRNUtil {
             /*if (node.translation) {
                 node.translation = [node.translation[0], node.translation[1], node.translation[2]];
             }*/
+
+            node.extras = {
+                "TRN_node": {
+                    "translation": translation,
+                    "quaternion": rotation,
+                    "scale": scale,
+                }
+            };
 
             this._nodes.push(node);
 
@@ -305,6 +358,10 @@ namespace TRNUtil {
 
         private addSkin(obj: Skin): number {
             return this._skins.push(obj), this._skins.length-1;
+        }
+
+        private addAnimation(obj: Animation): number {
+            return this._animations.push(obj), this._animations.length-1;
         }
 
         private outputTextures(): void {
@@ -427,18 +484,15 @@ namespace TRNUtil {
             for (let name in this.__objects) {
                 let obj = this.__objects[name] as JsonMap;
                 let geom = this.__geometries[obj.geometry as string] as JsonMap;
-                if (!obj.visible/* || name.substring(0, 4) != "room" || name.indexOf("moveable") >= 0*/) {
+                if (!obj.visible /*|| name != "room0" && !name.startsWith("moveable0_0")*/) {
                     //console.log('Object/Mesh ' + name + ' not visible');
                     continue;
                 }
                 if (geom !== undefined && "id" in geom) {
-                    //if (name.substring(0, 4) != 'room') { continue; }
                     let meshNode = this.createMesh(name);
                     if (meshNode != null) {
                         this.addChildToNode(rootNode.node, meshNode.index);
                     }
-                } else {
-                    //console.log(name, obj, geom);
                 }
             }
         }
@@ -453,7 +507,7 @@ namespace TRNUtil {
             let faces = oembed.faces as [], numFaces3 = 0, numFaces4 = 0;
 
             if (faces.length == 0) {
-                console.log(`No faces in embed ${embedId}: geometry not created/mesh not exported.`, oembed);
+                console.log(`GLTF Converter: No faces in embed ${embedId}: geometry not created/mesh not exported.`, oembed);
                 return null;
             }
 
@@ -470,7 +524,6 @@ namespace TRNUtil {
                 lstMatNumbers[faceMat] = 0;
                 f += faceSize;
             }
-            //console.log(f, faces.length);
 
             // allocate the data buffer
             let numVertices = numFaces3*3 + numFaces4*4, numTriangles = numFaces3 + numFaces4*2;
@@ -479,6 +532,27 @@ namespace TRNUtil {
             let indicesSize = numTriangles*3*2;
 
             let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize + indicesSize);
+
+            // Get the skeleton to offset the vertex data (for skinned mesh)
+            let posStack: Array<Array<number>> = [];
+
+            if (hasSkin) {
+                let bones = oembed.bones as Array<JsonMap>;
+                let numJoints = bones.length;
+
+                for (let j = 0; j < numJoints; ++j) {
+                    let bone = bones[j], pos = (bone.pos_init as []).slice(0) as Array<number>;
+                    if (<number>bone.parent >= 0) {
+                        let p = <number>bone.parent;
+                        if (p != -1) {
+                            pos[0] += posStack[p][0];
+                            pos[1] += posStack[p][1];
+                            pos[2] += posStack[p][2];
+                        }
+                    }
+                    posStack.push(pos);
+                }
+            }
 
             // fill the buffer with the attributes
             let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4+(hasSkin ? 1+4 : 0)));
@@ -489,10 +563,18 @@ namespace TRNUtil {
             while (f < faces.length) {
                 let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 11 : 14;
                 for (let v = 0; v < numVert; ++v) {
-                    let [x, y, z] = [vertices[faces[f+v+1]*3 + 0], vertices[faces[f+v+1]*3 + 1], vertices[faces[f+v+1]*3 + 2]];
+                    let [x , y, z] = [vertices[faces[f+v+1]*3 + 0] as number, vertices[faces[f+v+1]*3 + 1] as number, vertices[faces[f+v+1]*3 + 2] as number];
+                    
+                    if (hasSkin) {
+                        let boneIdx = skinIndices[faces[f+v+1]*2+0] as number;
+                        x += posStack[boneIdx][0];
+                        y += posStack[boneIdx][1];
+                        z += posStack[boneIdx][2];
+                    }
+
                     min[0] = Math.min(min[0], x);    min[1] = Math.min(min[1], y);    min[2] = Math.min(min[2], z);
                     max[0] = Math.max(max[0], x);    max[1] = Math.max(max[1], y);    max[2] = Math.max(max[2], z);
-                    
+
                     // coordinates
                     attributesView.set([x, y, z], ofst);
 
@@ -517,8 +599,6 @@ namespace TRNUtil {
                 }
                 f += faceSize;
             }
-            //console.log(f, faces.length);
-            //console.log(ofst*4, verticesSize + textcoordsSize)
 
             // fill the buffer with the indices
             let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize, numTriangles*3);
@@ -547,7 +627,6 @@ namespace TRNUtil {
                 }
                 accessorCounts.push((ofst*2-accessorOffsets[mat])/2);
             }
-            //console.log(f, faces.length);
 
             let bufferDataIndex = this.addBuffer(bufferData, undefined, `${embedId} embed data`);
 
@@ -642,7 +721,7 @@ namespace TRNUtil {
             };
         }
 
-        private createSkin(objName: string, geometryId: string): Object | null {
+        private createSkin(objName: string, geometryId: string, translation: vec3, quaternion: vec4): Object | null {
             let embedId = (this.__geometries[geometryId] as JsonMap).id as string;
             let oembed = this.__embeds[embedId] as JsonMap;
 
@@ -652,7 +731,7 @@ namespace TRNUtil {
                 return null;
             }
 
-            let bones = oembed.bones as [];
+            let bones = oembed.bones as Array<JsonMap>;
             let numJoints = bones.length;
 
             let bufferDataSkinMatrices = new ArrayBuffer(numJoints*4*4*4); // 4*4 mat, each component being a float (4 bytes)
@@ -663,23 +742,34 @@ namespace TRNUtil {
 
             let posStack: Array<Array<number>> = [];
             for (let j = 0; j < numJoints; ++j) {
-                let bone = bones[j] as JsonMap, pos = (bone.pos_init as []).slice(0) as Array<number>;
-                let node = this.addNode(`bone #${j} for ${objName}`, false, bone.rotq as [], bone.pos as []);
+                let bone = bones[j], pos = (bone.pos_init as []).slice(0) as Array<number>, rotq = bone.rotq as Array<number>;
+                /*if (j == 0) {
+                    pos = translation;
+                    rotq = quaternion;
+                }*/
+                let node = this.addNode(`bone #${j} for ${objName}`, false, rotq, pos);
                 if (<number>bone.parent >= 0) {
                     var parentNode = this._nodes[<number>bone.parent + firstJointNodeIndex];
                     if (parentNode.children === undefined) {
                         parentNode.children = [];
                     }
                     parentNode.children.push(node.index);
-                    /*let p = <number>bone.parent;
+                    let p = <number>bone.parent;
                     if (p != -1) {
                         pos[0] += posStack[p][0];
                         pos[1] += posStack[p][1];
                         pos[2] += posStack[p][2];
-                    }*/
+                    }
                 }
-                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, pos[0],pos[1],pos[2],1], j*4*4);
-                skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1], j*4*4);
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, (bone.pos_init! as Array<number>)[0],(bone.pos_init! as Array<number>)[1],(bone.pos_init! as Array<number>)[2],1], j*4*4);
+                /*if ( j== 0) {
+                    skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, translation[0],translation[1],translation[2],1], j*4*4);
+                } else*/ {
+                    skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0,  -pos[0], -pos[1], -pos[2],1], j*4*4);
+                }
+                //let posp = <number>bone.parent >= 0 ? bones[<number>bone.parent].pos_init as [] : [0,0,0];
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, -posp[0],-posp[1],-posp[2],1], j*4*4);
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1], j*4*4);
                 posStack.push(pos);
             }
 
@@ -689,7 +779,6 @@ namespace TRNUtil {
                 "buffer": bufferDataSkinMatricesIndex,
                 "byteLength": numJoints*4*4*4,
                 "byteOffset": 0,
-                //"target": bufferViewTarget.ARRAY_BUFFER,
             });
             let accessorSkinMatricesIndex = this.addAccessor({
                 "name": `${objName}_skin_matrices`,
@@ -741,7 +830,7 @@ namespace TRNUtil {
             }
 
             if (geomData.accessorIndicesIndex.length != materials.length) {
-                console.log(`Mesh ${objName} has ${materials.length} materials whereas its geometry has ${geomData.accessorIndicesIndex.length}! object not exported.`, obj, geomData);
+                console.log(`GLTF Converter: Mesh ${objName} has ${materials.length} materials whereas its geometry has ${geomData.accessorIndicesIndex.length}! objects not exported.`, obj, geomData);
                 return null;
             }
 
@@ -817,7 +906,7 @@ namespace TRNUtil {
                     gmaterial.pbrMetallicRoughness.baseColorTexture = { "index": numTexture };
                 } else {
                     this._glc++;
-                    console.log('No texture', objName, mat, material, obj);
+                    console.log('GLTF Converter: No texture for mesh', objName, mat, material, obj);
                 }
 
                 if (material.hasAlpha) {
@@ -847,18 +936,192 @@ namespace TRNUtil {
                 mesh.primitives.push(primitive);
             }
 
-            let meshNode = this.addNode(objName, addAsRootNode, obj.quaternion as vec4, obj.position as vec3, obj.scale as vec3);
+            let skin: any = this.createSkin(objName, obj.geometry as string, obj.position as vec3, obj.quaternion as vec4);
+
+            let meshNode = this.addNode(objName, addAsRootNode, /*skin != null ? [0,0,0,1] :*/ obj.quaternion as vec4, /*skin != null ? [0,0,0] :*/ obj.position as vec3, /*skin != null ? [1,1,1] :*/ obj.scale as vec3);
 
             meshNode.node.mesh = this.addMesh(mesh);
 
-            let skin: any = this.createSkin(objName, obj.geometry as string);
-
             if (skin != null) {
                 meshNode.node.skin = skin.skinIndex;
-                //meshNode.node.children = [skin.firstJointNodeIndex];
+                this._mapNameToSkin[objName] = skin.skinIndex;
+                meshNode.node.children = [skin.firstJointNodeIndex];
             }
 
             return meshNode;
         }
-    }
-}
+
+        private outputAnimations(): void {
+
+            const fps = 30;
+
+            for (let name in this.__objects) {
+                let obj = this.__objects[name] as JsonMap;
+
+                let hasAnim = obj.has_anims !== undefined ? obj.has_anims as boolean : false;
+                let animStartIndex = obj._animationStartIndex !== undefined ? obj._animationStartIndex as number : -1;
+                let numAnimations = obj.numAnimations !== undefined ? obj.numAnimations as number : -1;
+
+                //console.log(name, hasAnim, animStartIndex, numAnimations, obj);
+
+                if (!hasAnim || !obj.visible || animStartIndex < 0 || numAnimations <= 0) continue;
+
+                if (name != "moveable0_0") continue;
+                
+                // Get the bone positions of the mesh in posStack
+                let posStack: Array<Array<number>> = [];
+
+                let embedId = (this.__geometries[obj.geometry as string] as JsonMap).id as string;
+                let oembed = this.__embeds[embedId] as JsonMap;
+
+                let bones = oembed.bones as Array<JsonMap>;
+
+                bones.forEach( b => posStack.push( b.pos_init as Array<number> ) );
+
+                // 
+                let animIndex = 0;
+                let track = this.__animTracks[animStartIndex + animIndex] as JsonMap;
+
+                //console.log(track);
+
+                // Calculate the size and create the data buffer
+                let bufferTimeSize = 0, bufferDataTransSize = 0, bufferDataQuatSize = 0;
+                let keys = track.keys as Array<JsonMap>;
+                for (let k = 0; k < keys.length; ++k) {
+                    let key = keys[k] as JsonMap;
+                    let dataKey = key.data as Array<JsonMap>;
+                    let numDataKey = dataKey.length;
+
+                    bufferTimeSize += 1;
+                    bufferDataTransSize += numDataKey * 3;
+                    bufferDataQuatSize += numDataKey * 4;
+                }
+
+                let buffer = new ArrayBuffer(bufferTimeSize * 4 + (bufferDataTransSize + bufferDataQuatSize) * 4);
+
+                // Fill the buffer
+                let timeView = new Float32Array(buffer, 0, bufferTimeSize);
+                let dataView = new Float32Array(buffer, bufferTimeSize * 4, bufferDataTransSize + bufferDataQuatSize);
+                let timeMin = 1e10, timeMax = -1e10;
+                for (let k = 0; k < keys.length; ++k) {
+                    let key = keys[k] as JsonMap;
+                    let data = key.data as Array<JsonMap>;
+
+                    let time = (key.time as number) / fps;
+
+                    timeMin = Math.min(timeMin, time);
+                    timeMax = Math.max(timeMax, time);
+                    
+                    timeView.set([time], k);
+
+                    for (let d = 0; d < data.length; ++d) {
+                        let trans = (data[d] as JsonMap).position as JsonMap;
+                        let quat  = (data[d] as JsonMap).quaternion as JsonMap;
+
+                        let x = trans.x as number + posStack[d][0];
+                        let y = trans.y as number + posStack[d][1];
+                        let z = trans.z as number + posStack[d][2];
+                        
+                        dataView.set([x, y, z], d*keys.length*3+k*3);
+                        dataView.set([quat.x! as number,  quat.y! as number,  quat.z! as number,  quat.w! as number], d*keys.length*4+k*4+data.length*keys.length*3);
+                        //dataView.set([0,0,0], d*keys.length*3+k*3)
+                        //dataView.set([0,0,0,1], d*keys.length*4+k*4+data.length*keys.length*3)
+                    }
+                }
+    
+                let bufferIndex = this.addBuffer(buffer, undefined, `${name} anim #${animIndex}`);
+                let bufferViewTimeIndex = this.addBufferView({
+                    "name": `${name} anim #${animIndex} time`,
+                    "buffer": bufferIndex,
+                    "byteLength": bufferTimeSize*4,
+                    "byteOffset": 0,
+                });
+                let accessorTimeIndex = this.addAccessor({
+                    "name": `${name} anim #${animIndex} time`,
+                    "bufferView": bufferViewTimeIndex,
+                    "byteOffset": 0,
+                    "componentType": accessorElementSize.FLOAT,
+                    "count": keys.length,
+                    "type": accessorType.SCALAR,
+                    "min": [timeMin],
+                    "max": [timeMax],
+                });
+
+                let translationViewIndex = this.addBufferView({
+                    "name": `${name} anim #${animIndex} data view`,
+                    "buffer": bufferIndex,
+                    "byteLength": bufferDataTransSize*4,
+                    "byteOffset": bufferTimeSize*4,
+                });
+                let quaternionViewIndex = this.addBufferView({
+                    "name": `${name} anim #${animIndex} rotations`,
+                    "buffer": bufferIndex,
+                    "byteLength": bufferDataQuatSize*4,
+                    "byteOffset": bufferTimeSize*4+bufferDataTransSize*4,
+                });
+
+                let animation: Animation = {
+                    "name": `Animation #${animIndex} for object ${name}`,
+                    "channels": [],
+                    "samplers": []
+                };
+
+                let firstNodeSkin = this._skins[this._mapNameToSkin[name]].joints[0];
+                let samplerIndex = 0;
+
+                let key = keys[0] as JsonMap;
+                let data = key.data as Array<JsonMap>;
+
+                for (let d = 0; d < data.length; ++d) {
+                    animation.channels.push({
+                        "sampler": samplerIndex++,
+                        "target": {
+                            "node": firstNodeSkin+d,
+                            "path": channelTargetPath.translation,
+                        }
+                    });
+                    animation.channels.push({
+                        "sampler": samplerIndex++,
+                        "target": {
+                            "node": firstNodeSkin+d,
+                            "path": channelTargetPath.rotation,
+                        }
+                    });
+
+                    let accessorTranslationIndex = this.addAccessor({
+                        "name": `${name} anim #${animIndex} node #${d} translation`,
+                        "bufferView": translationViewIndex,
+                        "byteOffset": 3*keys.length*4*d,
+                        "componentType": accessorElementSize.FLOAT,
+                        "count": keys.length as number,
+                        "type": accessorType.VEC3,
+                    });
+                    let accessorQuaternionIndex = this.addAccessor({
+                        "name": `${name} anim #${animIndex} node #${d} quaternion`,
+                        "bufferView": quaternionViewIndex,
+                        "byteOffset": 4*keys.length*4*d,
+                        "componentType": accessorElementSize.FLOAT,
+                        "count": keys.length as number,
+                        "type": accessorType.VEC4,
+                    });
+    
+                    animation.samplers.push({
+                        "input": accessorTimeIndex,
+                        "interpolation": samplerInterpolation.LINEAR,
+                        "output": accessorTranslationIndex,
+                    });
+                    animation.samplers.push({
+                        "input": accessorTimeIndex,
+                        "interpolation": samplerInterpolation.LINEAR,
+                        "output": accessorQuaternionIndex,
+                    });
+                }
+
+                this.addAnimation(animation);
+            }
+
+        } // function outputAnimations
+
+    } // class GLTFConverter
+
+} // TRN namespace

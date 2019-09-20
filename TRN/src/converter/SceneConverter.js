@@ -619,10 +619,10 @@ TRN.SceneConverter.prototype = {
 					glMatrix.quat.multiply(qy, qy, qx);
 					glMatrix.quat.multiply(qy, qy, qz);
 
-					keyData.push({
-						"position": 	{ x:transX, y:transY, z:transZ },
-						"quaternion":	{ x:qy[0], y:qy[1], z:qy[2], w:qy[3] }
-					});
+                    keyData.push({
+                        "position": 	{ x:transX, y:transY, z:transZ },
+                        "quaternion":	{ x:qy[0], y:qy[1], z:qy[2], w:qy[3] }
+                    });
 
 					transX = transY = transZ = 0;
 
@@ -810,6 +810,7 @@ TRN.SceneConverter.prototype = {
             "numAnimations"         : hasGeometry ? this.numAnimationsForMoveable(this.sc.embeds["moveable" + objIDForVisu].moveableIndex) : 0,
 			"roomIndex"				: roomIndex,
 			"animationStartIndex"	: moveable.animation,
+			"_animationStartIndex"	: moveable.animation, // this one won't change, whereas animationStartIndex can be changed before starting, for Lara for eg, to set the "standing" anim
 			"skin"					: true,
 			"use_vertex_texture" 	: true,
 			"hasScrollAnim"			: hasGeometry ? hasGeometry.objHasScrollAnim : false

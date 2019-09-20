@@ -58,6 +58,19 @@ var TRNUtil;
         samplerWrap[samplerWrap["MIRRORED_REPEAT"] = 33648] = "MIRRORED_REPEAT";
         samplerWrap[samplerWrap["REPEAT"] = 10497] = "REPEAT";
     })(samplerWrap || (samplerWrap = {}));
+    var channelTargetPath;
+    (function (channelTargetPath) {
+        channelTargetPath["translation"] = "translation";
+        channelTargetPath["rotation"] = "rotation";
+        channelTargetPath["scale"] = "scale";
+        channelTargetPath["weights"] = "weights";
+    })(channelTargetPath || (channelTargetPath = {}));
+    var samplerInterpolation;
+    (function (samplerInterpolation) {
+        samplerInterpolation["LINEAR"] = "LINEAR";
+        samplerInterpolation["STEP"] = "STEP";
+        samplerInterpolation["CUBICSPLINE"] = "CUBICSPLINE";
+    })(samplerInterpolation || (samplerInterpolation = {}));
     var GLTFConverter = /** @class */ (function () {
         function GLTFConverter(trLevel, sceneJSON) {
             this.trLevel = trLevel;
@@ -70,6 +83,7 @@ var TRNUtil;
             this._accessors = [];
             this._materials = [];
             this._skins = [];
+            this._animations = [];
             this._gltf = {
                 "asset": {
                     "version": "2.0",
@@ -95,14 +109,17 @@ var TRNUtil;
                 "accessors": this._accessors,
                 "materials": this._materials,
                 "skins": this._skins,
+                "animations": this._animations,
             };
             this.__objects = this.sceneJSON.objects;
             this.__embeds = this.sceneJSON.embeds;
             this.__geometries = this.sceneJSON.geometries;
             this.__animatedTextures = this.sceneJSON.animatedTextures;
+            this.__animTracks = this.sceneJSON.animTracks;
             this._cameraNode = null;
             this._glc = 0;
             this._mapNameToGeometry = {};
+            this._mapNameToSkin = {};
         }
         Object.defineProperty(GLTFConverter.prototype, "data", {
             get: function () {
@@ -117,7 +134,8 @@ var TRNUtil;
             this.outputCamera();
             this.outputObjects();
             this.outputMaterials();
-            console.log('glc=', this._glc);
+            this.outputAnimations();
+            console.log("GLTF Converter: Number of meshes without textures=" + this._glc);
         };
         GLTFConverter.prototype.addNode = function (name, addToRootNodes, rotation, translation, scale) {
             if (addToRootNodes === void 0) { addToRootNodes = false; }
@@ -127,6 +145,13 @@ var TRNUtil;
             /*if (node.translation) {
                 node.translation = [node.translation[0], node.translation[1], node.translation[2]];
             }*/
+            node.extras = {
+                "TRN_node": {
+                    "translation": translation,
+                    "quaternion": rotation,
+                    "scale": scale,
+                }
+            };
             this._nodes.push(node);
             if (addToRootNodes)
                 this._inodes.push(index);
@@ -168,6 +193,9 @@ var TRNUtil;
         };
         GLTFConverter.prototype.addSkin = function (obj) {
             return this._skins.push(obj), this._skins.length - 1;
+        };
+        GLTFConverter.prototype.addAnimation = function (obj) {
+            return this._animations.push(obj), this._animations.length - 1;
         };
         GLTFConverter.prototype.outputTextures = function () {
             this._gltf.samplers = [
@@ -270,19 +298,15 @@ var TRNUtil;
             for (var name_2 in this.__objects) {
                 var obj = this.__objects[name_2];
                 var geom = this.__geometries[obj.geometry];
-                if (!obj.visible /* || name.substring(0, 4) != "room" || name.indexOf("moveable") >= 0*/) {
+                if (!obj.visible /*|| name != "room0" && !name.startsWith("moveable0_0")*/) {
                     //console.log('Object/Mesh ' + name + ' not visible');
                     continue;
                 }
                 if (geom !== undefined && "id" in geom) {
-                    //if (name.substring(0, 4) != 'room') { continue; }
                     var meshNode = this.createMesh(name_2);
                     if (meshNode != null) {
                         this.addChildToNode(rootNode.node, meshNode.index);
                     }
-                }
-                else {
-                    //console.log(name, obj, geom);
                 }
             }
         };
@@ -294,7 +318,7 @@ var TRNUtil;
             var hasSkin = skinIndices != null && skinWeights != null;
             var faces = oembed.faces, numFaces3 = 0, numFaces4 = 0;
             if (faces.length == 0) {
-                console.log("No faces in embed " + embedId + ": geometry not created/mesh not exported.", oembed);
+                console.log("GLTF Converter: No faces in embed " + embedId + ": geometry not created/mesh not exported.", oembed);
                 return null;
             }
             // count number of tri / quad
@@ -311,13 +335,30 @@ var TRNUtil;
                 lstMatNumbers[faceMat] = 0;
                 f += faceSize;
             }
-            //console.log(f, faces.length);
             // allocate the data buffer
             var numVertices = numFaces3 * 3 + numFaces4 * 4, numTriangles = numFaces3 + numFaces4 * 2;
             var verticesSize = numVertices * 3 * 4, textcoordsSize = numVertices * 2 * 4, colorsSize = numVertices * 3 * 4, flagsSize = numVertices * 4 * 4;
             var skinIndicesSize = hasSkin ? numVertices * 1 * 4 : 0, skinWeightsSize = hasSkin ? numVertices * 4 * 4 : 0;
             var indicesSize = numTriangles * 3 * 2;
             var bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize + indicesSize);
+            // Get the skeleton to offset the vertex data (for skinned mesh)
+            var posStack = [];
+            if (hasSkin) {
+                var bones = oembed.bones;
+                var numJoints = bones.length;
+                for (var j = 0; j < numJoints; ++j) {
+                    var bone = bones[j], pos = bone.pos_init.slice(0);
+                    if (bone.parent >= 0) {
+                        var p = bone.parent;
+                        if (p != -1) {
+                            pos[0] += posStack[p][0];
+                            pos[1] += posStack[p][1];
+                            pos[2] += posStack[p][2];
+                        }
+                    }
+                    posStack.push(pos);
+                }
+            }
             // fill the buffer with the attributes
             var attributesView = new Float32Array(bufferData, 0, numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)));
             var attributesSkinIndicesView = new Uint8Array(bufferData, 0, 4 * numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)));
@@ -328,6 +369,12 @@ var TRNUtil;
                 var isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 11 : 14;
                 for (var v = 0; v < numVert; ++v) {
                     var _a = [vertices[faces[f + v + 1] * 3 + 0], vertices[faces[f + v + 1] * 3 + 1], vertices[faces[f + v + 1] * 3 + 2]], x = _a[0], y = _a[1], z = _a[2];
+                    if (hasSkin) {
+                        var boneIdx = skinIndices[faces[f + v + 1] * 2 + 0];
+                        x += posStack[boneIdx][0];
+                        y += posStack[boneIdx][1];
+                        z += posStack[boneIdx][2];
+                    }
                     min[0] = Math.min(min[0], x);
                     min[1] = Math.min(min[1], y);
                     min[2] = Math.min(min[2], z);
@@ -353,8 +400,6 @@ var TRNUtil;
                 }
                 f += faceSize;
             }
-            //console.log(f, faces.length);
-            //console.log(ofst*4, verticesSize + textcoordsSize)
             // fill the buffer with the indices
             var indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize, numTriangles * 3);
             var accessorOffsets = [], accessorCounts = [];
@@ -383,7 +428,6 @@ var TRNUtil;
                 }
                 accessorCounts.push((ofst_1 * 2 - accessorOffsets[mat]) / 2);
             }
-            //console.log(f, faces.length);
             var bufferDataIndex = this.addBuffer(bufferData, undefined, embedId + " embed data");
             var bufferViewAttributesIndex = this.addBufferView({
                 "name": embedId + "_vertices_attributes",
@@ -473,7 +517,7 @@ var TRNUtil;
                 accessorIndicesIndex: accessorIndicesIndex,
             };
         };
-        GLTFConverter.prototype.createSkin = function (objName, geometryId) {
+        GLTFConverter.prototype.createSkin = function (objName, geometryId, translation, quaternion) {
             var embedId = this.__geometries[geometryId].id;
             var oembed = this.__embeds[embedId];
             var hasSkin = oembed.skinIndices != undefined && oembed.skinWeights != undefined;
@@ -488,23 +532,34 @@ var TRNUtil;
             var joints = Array.from({ length: numJoints }, function (v, k) { return firstJointNodeIndex + k; });
             var posStack = [];
             for (var j = 0; j < numJoints; ++j) {
-                var bone = bones[j], pos = bone.pos_init.slice(0);
-                var node = this.addNode("bone #" + j + " for " + objName, false, bone.rotq, bone.pos);
+                var bone = bones[j], pos = bone.pos_init.slice(0), rotq = bone.rotq;
+                /*if (j == 0) {
+                    pos = translation;
+                    rotq = quaternion;
+                }*/
+                var node = this.addNode("bone #" + j + " for " + objName, false, rotq, pos);
                 if (bone.parent >= 0) {
                     var parentNode = this._nodes[bone.parent + firstJointNodeIndex];
                     if (parentNode.children === undefined) {
                         parentNode.children = [];
                     }
                     parentNode.children.push(node.index);
-                    /*let p = <number>bone.parent;
+                    var p = bone.parent;
                     if (p != -1) {
                         pos[0] += posStack[p][0];
                         pos[1] += posStack[p][1];
                         pos[2] += posStack[p][2];
-                    }*/
+                    }
                 }
-                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, pos[0],pos[1],pos[2],1], j*4*4);
-                skinMatricesView.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], j * 4 * 4);
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, (bone.pos_init! as Array<number>)[0],(bone.pos_init! as Array<number>)[1],(bone.pos_init! as Array<number>)[2],1], j*4*4);
+                /*if ( j== 0) {
+                    skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, translation[0],translation[1],translation[2],1], j*4*4);
+                } else*/ {
+                    skinMatricesView.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -pos[0], -pos[1], -pos[2], 1], j * 4 * 4);
+                }
+                //let posp = <number>bone.parent >= 0 ? bones[<number>bone.parent].pos_init as [] : [0,0,0];
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, -posp[0],-posp[1],-posp[2],1], j*4*4);
+                //skinMatricesView.set([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1], j*4*4);
                 posStack.push(pos);
             }
             var bufferDataSkinMatricesIndex = this.addBuffer(bufferDataSkinMatrices, undefined, objName + " skin data");
@@ -554,7 +609,7 @@ var TRNUtil;
                 this._mapNameToGeometry[obj.geometry] = geomData;
             }
             if (geomData.accessorIndicesIndex.length != materials.length) {
-                console.log("Mesh " + objName + " has " + materials.length + " materials whereas its geometry has " + geomData.accessorIndicesIndex.length + "! object not exported.", obj, geomData);
+                console.log("GLTF Converter: Mesh " + objName + " has " + materials.length + " materials whereas its geometry has " + geomData.accessorIndicesIndex.length + "! objects not exported.", obj, geomData);
                 return null;
             }
             var _loop_1 = function (mat) {
@@ -626,7 +681,7 @@ var TRNUtil;
                 }
                 else {
                     this_1._glc++;
-                    console.log('No texture', objName, mat, material, obj);
+                    console.log('GLTF Converter: No texture for mesh', objName, mat, material, obj);
                 }
                 if (material.hasAlpha) {
                     gmaterial.alphaMode = "BLEND";
@@ -656,17 +711,162 @@ var TRNUtil;
             for (var mat = 0; mat < materials.length; ++mat) {
                 _loop_1(mat);
             }
-            var meshNode = this.addNode(objName, addAsRootNode, obj.quaternion, obj.position, obj.scale);
+            var skin = this.createSkin(objName, obj.geometry, obj.position, obj.quaternion);
+            var meshNode = this.addNode(objName, addAsRootNode, /*skin != null ? [0,0,0,1] :*/ obj.quaternion, /*skin != null ? [0,0,0] :*/ obj.position, /*skin != null ? [1,1,1] :*/ obj.scale);
             meshNode.node.mesh = this.addMesh(mesh);
-            var skin = this.createSkin(objName, obj.geometry);
             if (skin != null) {
                 meshNode.node.skin = skin.skinIndex;
-                //meshNode.node.children = [skin.firstJointNodeIndex];
+                this._mapNameToSkin[objName] = skin.skinIndex;
+                meshNode.node.children = [skin.firstJointNodeIndex];
             }
             return meshNode;
         };
+        GLTFConverter.prototype.outputAnimations = function () {
+            var fps = 30;
+            var _loop_2 = function (name_3) {
+                var obj = this_2.__objects[name_3];
+                var hasAnim = obj.has_anims !== undefined ? obj.has_anims : false;
+                var animStartIndex = obj._animationStartIndex !== undefined ? obj._animationStartIndex : -1;
+                var numAnimations = obj.numAnimations !== undefined ? obj.numAnimations : -1;
+                //console.log(name, hasAnim, animStartIndex, numAnimations, obj);
+                if (!hasAnim || !obj.visible || animStartIndex < 0 || numAnimations <= 0)
+                    return "continue";
+                if (name_3 != "moveable0_0")
+                    return "continue";
+                // Get the bone positions of the mesh in posStack
+                var posStack = [];
+                var embedId = this_2.__geometries[obj.geometry].id;
+                var oembed = this_2.__embeds[embedId];
+                var bones = oembed.bones;
+                bones.forEach(function (b) { return posStack.push(b.pos_init); });
+                // 
+                var animIndex = 0;
+                var track = this_2.__animTracks[animStartIndex + animIndex];
+                //console.log(track);
+                // Calculate the size and create the data buffer
+                var bufferTimeSize = 0, bufferDataTransSize = 0, bufferDataQuatSize = 0;
+                var keys = track.keys;
+                for (var k = 0; k < keys.length; ++k) {
+                    var key_1 = keys[k];
+                    var dataKey = key_1.data;
+                    var numDataKey = dataKey.length;
+                    bufferTimeSize += 1;
+                    bufferDataTransSize += numDataKey * 3;
+                    bufferDataQuatSize += numDataKey * 4;
+                }
+                var buffer = new ArrayBuffer(bufferTimeSize * 4 + (bufferDataTransSize + bufferDataQuatSize) * 4);
+                // Fill the buffer
+                var timeView = new Float32Array(buffer, 0, bufferTimeSize);
+                var dataView = new Float32Array(buffer, bufferTimeSize * 4, bufferDataTransSize + bufferDataQuatSize);
+                var timeMin = 1e10, timeMax = -1e10;
+                for (var k = 0; k < keys.length; ++k) {
+                    var key_2 = keys[k];
+                    var data_1 = key_2.data;
+                    var time = key_2.time / fps;
+                    timeMin = Math.min(timeMin, time);
+                    timeMax = Math.max(timeMax, time);
+                    timeView.set([time], k);
+                    for (var d = 0; d < data_1.length; ++d) {
+                        var trans = data_1[d].position;
+                        var quat = data_1[d].quaternion;
+                        var x = trans.x + posStack[d][0];
+                        var y = trans.y + posStack[d][1];
+                        var z = trans.z + posStack[d][2];
+                        dataView.set([x, y, z], d * keys.length * 3 + k * 3);
+                        dataView.set([quat.x, quat.y, quat.z, quat.w], d * keys.length * 4 + k * 4 + data_1.length * keys.length * 3);
+                        //dataView.set([0,0,0], d*keys.length*3+k*3)
+                        //dataView.set([0,0,0,1], d*keys.length*4+k*4+data.length*keys.length*3)
+                    }
+                }
+                var bufferIndex = this_2.addBuffer(buffer, undefined, name_3 + " anim #" + animIndex);
+                var bufferViewTimeIndex = this_2.addBufferView({
+                    "name": name_3 + " anim #" + animIndex + " time",
+                    "buffer": bufferIndex,
+                    "byteLength": bufferTimeSize * 4,
+                    "byteOffset": 0,
+                });
+                var accessorTimeIndex = this_2.addAccessor({
+                    "name": name_3 + " anim #" + animIndex + " time",
+                    "bufferView": bufferViewTimeIndex,
+                    "byteOffset": 0,
+                    "componentType": accessorElementSize.FLOAT,
+                    "count": keys.length,
+                    "type": accessorType.SCALAR,
+                    "min": [timeMin],
+                    "max": [timeMax],
+                });
+                var translationViewIndex = this_2.addBufferView({
+                    "name": name_3 + " anim #" + animIndex + " data view",
+                    "buffer": bufferIndex,
+                    "byteLength": bufferDataTransSize * 4,
+                    "byteOffset": bufferTimeSize * 4,
+                });
+                var quaternionViewIndex = this_2.addBufferView({
+                    "name": name_3 + " anim #" + animIndex + " rotations",
+                    "buffer": bufferIndex,
+                    "byteLength": bufferDataQuatSize * 4,
+                    "byteOffset": bufferTimeSize * 4 + bufferDataTransSize * 4,
+                });
+                var animation = {
+                    "name": "Animation #" + animIndex + " for object " + name_3,
+                    "channels": [],
+                    "samplers": []
+                };
+                var firstNodeSkin = this_2._skins[this_2._mapNameToSkin[name_3]].joints[0];
+                var samplerIndex = 0;
+                var key = keys[0];
+                var data = key.data;
+                for (var d = 0; d < data.length; ++d) {
+                    animation.channels.push({
+                        "sampler": samplerIndex++,
+                        "target": {
+                            "node": firstNodeSkin + d,
+                            "path": channelTargetPath.translation,
+                        }
+                    });
+                    animation.channels.push({
+                        "sampler": samplerIndex++,
+                        "target": {
+                            "node": firstNodeSkin + d,
+                            "path": channelTargetPath.rotation,
+                        }
+                    });
+                    var accessorTranslationIndex = this_2.addAccessor({
+                        "name": name_3 + " anim #" + animIndex + " node #" + d + " translation",
+                        "bufferView": translationViewIndex,
+                        "byteOffset": 3 * keys.length * 4 * d,
+                        "componentType": accessorElementSize.FLOAT,
+                        "count": keys.length,
+                        "type": accessorType.VEC3,
+                    });
+                    var accessorQuaternionIndex = this_2.addAccessor({
+                        "name": name_3 + " anim #" + animIndex + " node #" + d + " quaternion",
+                        "bufferView": quaternionViewIndex,
+                        "byteOffset": 4 * keys.length * 4 * d,
+                        "componentType": accessorElementSize.FLOAT,
+                        "count": keys.length,
+                        "type": accessorType.VEC4,
+                    });
+                    animation.samplers.push({
+                        "input": accessorTimeIndex,
+                        "interpolation": samplerInterpolation.LINEAR,
+                        "output": accessorTranslationIndex,
+                    });
+                    animation.samplers.push({
+                        "input": accessorTimeIndex,
+                        "interpolation": samplerInterpolation.LINEAR,
+                        "output": accessorQuaternionIndex,
+                    });
+                }
+                this_2.addAnimation(animation);
+            };
+            var this_2 = this;
+            for (var name_3 in this.__objects) {
+                _loop_2(name_3);
+            }
+        }; // function outputAnimations
         return GLTFConverter;
-    }());
+    }()); // class GLTFConverter
     TRNUtil.GLTFConverter = GLTFConverter;
-})(TRNUtil || (TRNUtil = {}));
+})(TRNUtil || (TRNUtil = {})); // TRN namespace
 //# sourceMappingURL=GLTFConverter.js.map
