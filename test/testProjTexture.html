@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title></title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script
+    type="text/javascript"
+    src="//cdnjs.cloudflare.com/ajax/libs/three.js/105/three.js"
+  ></script>
+
+  <script type="text/javascript">//<![CDATA[
+    
+	//
+	// Using Projective texturing to modulate spot lights by Popov
+	//
+	// brick textures from here: http://www.graphictivitis.com/index.php/25-amazing-brick-textures/ 
+	// vendetta logo from here: http://www.seeklogo.com/v-for-vendetta-logo-146928.html
+window.setTimeout(function() {
+	var camera, scene, renderer, light;
+	var uniforms, mesh;
+
+	var moveLightTarget = true, rotateCube = true;
+
+	init();
+	animate();
+
+	function init() {
+
+		camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+		camera.position.z = 1000;
+
+		scene = new THREE.Scene();
+
+		light = new THREE.SpotLight( 0xffffff, 3.0, 0.0, Math.PI/10 );
+		light.position.set( 200, 0, 1000 );
+		light.target.position.set(200, 250, 0);
+		scene.add( light );
+
+		light2 = new THREE.SpotLight( 0xffffff, 3.0, 0.0, Math.PI/10 );
+		light2.position.set( -300, 300, 1000 );
+		light2.target.position.set(-300, -100, 0);
+		scene.add( light2 );
+
+        scene.updateMatrixWorld();
+        
+        light.target.updateMatrixWorld();
+        light2.target.updateMatrixWorld();
+
+        var loader = new THREE.TextureLoader();
+    
+        loader.setCrossOrigin('anonymous');
+    
+        var texture = loader.load( 'textures/brick.jpg' );
+		var textureProj = loader.load( "textures/vendetta-logo.png" );
+
+		var shader = THREE.ShaderLib[ "phong" ];
+
+		uniforms = THREE.UniformsUtils.clone( shader.uniforms);
+		uniforms[ "map" ].value = texture;
+		uniforms[ "specular" ].value = new THREE.Color(0x808080);
+		uniforms[ "shininess" ].value = 2000;
+		uniforms[ "mapProj"] = {
+			"value": textureProj
+		};
+		uniforms[ "textureMatrixProj"] = {
+			"type": "m4v", "value": [makeProjectiveMatrixForLight(light), makeProjectiveMatrixForLight(light2)]
+		};
+
+		var vertexShader = document.getElementById( 'vertexShader' ).textContent;
+		var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+
+		var parameters = {
+			fragmentShader: fragmentShader,
+			vertexShader: vertexShader,
+			uniforms: uniforms,
+			lights: true
+		};
+
+		mesh = new THREE.Mesh( new THREE.CubeGeometry( 1000,600,600, 1, 1, 1 ), new THREE.ShaderMaterial( parameters ) );
+
+		scene.add( mesh );
+
+		renderer = new THREE.WebGLRenderer();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+		document.body.appendChild( renderer.domElement );
+
+		animate.angle = 0.0;
+	}
+
+	function makeProjectiveMatrixForLight(l) {
+		var lightCamera = new THREE.PerspectiveCamera( 2*l.angle*180/Math.PI, 1.0, 1, 1000 );
+		var lightMatrix = new THREE.Matrix4();
+		var targetPosition = new THREE.Vector3();
+
+		lightCamera.position.setFromMatrixPosition( l.matrixWorld );
+		targetPosition.setFromMatrixPosition( l.target.matrixWorld );
+		lightCamera.lookAt( targetPosition );
+		lightCamera.updateMatrixWorld();
+
+		lightCamera.matrixWorldInverse.getInverse( lightCamera.matrixWorld );
+
+		lightMatrix.set( 0.5, 0.0, 0.0, 0.5,
+						  0.0, 0.5, 0.0, 0.5,
+						  0.0, 0.0, 0.5, 0.5,
+						  0.0, 0.0, 0.0, 1.0 );
+
+		lightMatrix.multiply( lightCamera.projectionMatrix );
+		lightMatrix.multiply( lightCamera.matrixWorldInverse );
+
+		return lightMatrix;
+	}
+
+	function animate() {
+
+		requestAnimationFrame( animate );
+
+		if (moveLightTarget) {
+			animate.angle += 0.01;
+			light.target.position.x = 250*Math.cos(animate.angle);
+			light.target.position.y = 100*Math.sin(animate.angle);
+
+			light2.target.position.x = -300*Math.cos(animate.angle);
+			light2.target.position.y = 100*Math.sin(animate.angle);
+            
+            light.target.updateMatrixWorld();
+            light2.target.updateMatrixWorld();
+
+			uniforms.textureMatrixProj.value[0] = makeProjectiveMatrixForLight(light);
+            uniforms.textureMatrixProj.value[1] = makeProjectiveMatrixForLight(light2);
+            
+            uniforms.needsUpdate = true;
+		}
+
+		if (rotateCube) {
+			mesh.rotation.y += 0.003;
+			mesh.rotation.x += 0.004;
+		}
+
+		renderer.render( scene, camera );
+
+	}
+}, 1000);
+
+
+  //]]></script>
+
+</head>
+<body>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+	varying vec3 vViewPosition;
+	varying vec3 vNormal;
+	varying vec2 vUv;
+	uniform vec4 offsetRepeat;
+	varying vec3 vWorldPosition;
+
+    #define NUM_SPOT 2
+    
+	uniform mat4 textureMatrixProj[NUM_SPOT]; // for projective texturing
+	varying vec4 texCoordProj[NUM_SPOT]; // for projective texturing
+
+	void main() {
+		vUv = uv;// * offsetRepeat.zw + offsetRepeat.xy;
+
+		vec3 transformedNormal = normalMatrix * normal;
+		vNormal = normalize( transformedNormal );
+
+		vec4 mvPosition;
+		mvPosition = modelViewMatrix * vec4( position, 1.0 );
+		gl_Position = projectionMatrix * mvPosition;
+
+		vViewPosition = mvPosition.xyz;
+
+		vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+		vWorldPosition = worldPosition.xyz;
+
+        for (int i = 0; i < NUM_SPOT; ++i) {
+    		texCoordProj[i] = textureMatrixProj[i] * modelMatrix * vec4(position, 1.0);  // for projective texturing
+        }
+    } 
+</script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+	uniform vec3 diffuse;
+	uniform float opacity;
+	const vec3 ambient = vec3(1.0, 1.0, 1.0);
+	uniform vec3 emissive;
+	uniform vec3 specular;
+	uniform float shininess;
+	varying vec2 vUv;
+	uniform sampler2D map;
+	const vec3 ambientLightColor = vec3(0.25, 0.25, 0.25);
+
+    #define NUM_SPOT 2
+    
+    uniform struct {
+        vec3 color;
+        float coneCos;
+        float decay;
+        vec3 direction;
+        float distance;
+        float penumbraCos;
+        vec3 position;
+    } spotLights[ NUM_SPOT ];
+
+	varying vec3 vWorldPosition;
+	varying vec3 vViewPosition;
+	varying vec3 vNormal;
+
+	uniform sampler2D mapProj;  // for projective texturing
+	varying vec4 texCoordProj[NUM_SPOT]; // for projective texturing
+
+	void main() {
+		gl_FragColor = vec4( vec3 ( 1.0 ), opacity );
+
+		vec4 texelColor = texture2D( map, vUv );
+
+		gl_FragColor = gl_FragColor * texelColor;
+		
+		float specularStrength = 1.0;
+
+		vec3 totalDiffuse = vec3( 0.0 );
+        vec3 totalSpecular = vec3( 0.0 );
+        
+        vec3 normal = normalize( vNormal );
+        vec3 viewPosition = normalize( vViewPosition );
+        
+		vec3 spotDiffuse  = vec3( 0.0 );
+		vec3 spotSpecular = vec3( 0.0 );
+		for ( int i = 0; i < NUM_SPOT; i ++ ) {
+            vec4 texColorProj = texCoordProj[i].q < 0.0 ? vec4(0.0, 0.0, 0.0, 0.0) : texture2DProj( mapProj, texCoordProj[i]); // for projective texturing
+            float projectorAttenuation = texColorProj.a; // for projective texturing
+
+            vec4 lPosition = vec4( spotLights[ i ].position, 1.0 );
+            vec3 lVector = lPosition.xyz - vViewPosition.xyz;
+            float lDistance = 1.0;
+            if ( spotLights[ i ].distance > 0.0 )
+                lDistance = 1.0 - min( ( length( lVector ) / spotLights[ i ].distance ), 1.0 );
+            lVector = normalize( lVector );
+
+            float spotEffect = dot( spotLights[i].direction, lVector );
+			if ( spotEffect > spotLights[ i ].coneCos ) {
+                spotEffect = max( pow( spotEffect, 100.0 ), 0.0 );
+                
+				float dotProduct = dot( normal, lVector );
+				float spotDiffuseWeight = max( dotProduct, 0.0 );
+				spotDiffuse += diffuse * spotLights[ i ].color * spotDiffuseWeight * lDistance * spotEffect * projectorAttenuation; // corrected by the projector attenuation
+                
+                /*vec3 spotHalfVector = normalize( lVector - viewPosition );
+				float spotDotNormalHalf = max( dot( normal, spotHalfVector ), 0.0 );
+				float spotSpecularWeight = specularStrength * max( pow( spotDotNormalHalf, shininess ), 0.0 );
+                spotSpecular += specular * spotLights[ i ].color * spotSpecularWeight * spotDiffuseWeight * lDistance * spotEffect * projectorAttenuation; // corrected by the projector attenuation*/
+			}
+		}
+		totalDiffuse += spotDiffuse;
+        totalSpecular += spotSpecular;
+		gl_FragColor.xyz = gl_FragColor.xyz * ( emissive + totalDiffuse + ambientLightColor * ambient ) + totalSpecular;
+    }
+</script>
+
+
+  
+</body>
+</html>
