@@ -256,7 +256,6 @@ TRN.extend(TRN.SceneConverter.prototype, {
         var vertices = oface.vertices, texture = oface.texture & 0x7FFF, isQuad = vertices.length == 4, tile = tex.tile & 0x7FFF, origTile = tex.origTile;
         
         if (origTile == undefined) {
-            console.log('!! origTile undefined', obj, tex);
             origTile = tile;
         }
 
