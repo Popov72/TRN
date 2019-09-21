@@ -185,7 +185,8 @@ TRN.SceneConverter.prototype = {
 		var objectTextures = [
 			{
 				attributes: 0,
-				tile: sprite.tile,
+                tile: sprite.tile,
+                origTile: sprite.tile,
 				vertices: [
 					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y + row * 256 },
 					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y+height-1 + row * 256 },

@@ -58,6 +58,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 							"uniforms": {
 								"map": { type: "t", value: "" },
 								"mapBump": { type: "t", value: "" },
+								"offsetBump": { type: "f4", value: [0.0, 0.0, 0.0, 0.0] },
 								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
 								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
 								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
@@ -97,6 +98,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				}				
 				break;
 			case 'moveable':
+                params.numLights = null;
                 matName = 'TR_moveable' + (params.numLights ? '_l' + params.numLights.directional + '_' + params.numLights.point + '_' + params.numLights.spot : '');
 				if (!this.sc.materials[matName]) {
 					var vertexShader;
@@ -251,7 +253,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 	},
 
 	makeFace : function (obj, oface, tiles2material, tex, ofstvert, mapObjTexture2AnimTexture, fidx) {
-		var vertices = oface.vertices, texture = oface.texture & 0x7FFF, isQuad = vertices.length == 4, tile = tex.tile & 0x7FFF;
+        var vertices = oface.vertices, texture = oface.texture & 0x7FFF, isQuad = vertices.length == 4, tile = tex.tile & 0x7FFF, origTile = tex.origTile;
+        
+        if (origTile == undefined) {
+            console.log('!! origTile undefined', obj, tex);
+            origTile = tile;
+        }
 
 		obj.faces.push(isQuad ? 139 : 138); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
 
@@ -278,7 +285,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			imat = tiles2material[matName];
 			if (typeof(imat) == 'undefined') {
 				imat = TRN.Helper.objSize(tiles2material);
-				tiles2material[matName] = { imat:imat, tile:tile, minU:minU, minV:minV };
+				tiles2material[matName] = { imat:imat, tile:tile, minU:minU, minV:minV, origTile:origTile };
             } else {
                 if (imat.minU != minU || imat.minV != minV) console.log(imat, tile, minU, minV)
                 imat = imat.imat;
@@ -288,14 +295,26 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			imat = tiles2material['alpha' + tile];
 			if (typeof(imat) == 'undefined') {
 				imat = TRN.Helper.objSize(tiles2material);
-				tiles2material['alpha' + tile] = imat;
-			}
-		} else {
+				tiles2material['alpha' + tile] = { imat:imat, tile:tile, minU:minU, minV:minV, origTile:origTile };
+			} else {
+                imat = imat.imat;
+            }
+		} else if (origTile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {
+			imat = tiles2material['bump' + tile];
+			if (typeof(imat) == 'undefined') {
+				imat = TRN.Helper.objSize(tiles2material);
+				tiles2material['bump' + tile] = { imat:imat, tile:tile, minU:minU, minV:minV, origTile:origTile };
+			} else {
+                imat = imat.imat;
+            }
+        } else {
 			imat = tiles2material[tile];
 			if (typeof(imat) == 'undefined') {
 				imat = TRN.Helper.objSize(tiles2material);
-				tiles2material[tile] = imat;
-			}
+				tiles2material[tile] = { imat:imat, tile:tile, minU:minU, minV:minV, origTile:origTile };
+			} else {
+                imat = imat.imat;
+            }
 		}
 		obj.faces.push(imat); // index of material
 
@@ -363,10 +382,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		if (!matname) matname = 'room';
 		var lstMat = [];
 		for (var tile in tiles2material) {
-			var oimat = tiles2material[tile], imat = typeof(oimat) == 'object' ? oimat.imat : oimat;
+			var oimat = tiles2material[tile], imat = oimat.imat, origTile = oimat.origTile;
 			var isAnimText = tile.substr(0, 7) == 'anmtext';
-			var isAlphaText = tile.substr(0, 5) == 'alpha';
-			if (isAlphaText) tile = tile.substr(5);
+            var isAlphaText = tile.substr(0, 5) == 'alpha';
+            var isBump = tile.substr(0, 4) == 'bump';
+            if (isAlphaText) tile = tile.substr(5);
+            if (isBump) tile = tile.substr(4);
 			lstMat[imat] = {
 				"material": this.getMaterial(matname, matparams),
 				"uniforms": {},
@@ -384,10 +405,16 @@ TRN.extend(TRN.SceneConverter.prototype, {
                 };
 			} else {
 				lstMat[imat].uniforms.map = { type: "t", value: "" + tile };
-				if (matname == 'room' && tile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {
-					lstMat[imat].material = this.getMaterial('roombump', matparams);
-					lstMat[imat].uniforms.mapBump = { type: "t", value: "" + (parseInt(tile) + this.trlevel.numBumpTextiles/2) };
-					//console.log(lstMat[imat].uniforms.map.value, lstMat[imat].uniforms.mapBump.value)
+				if (isBump) {
+                    lstMat[imat].material = this.getMaterial('roombump', matparams);
+                    if (this.trlevel.atlas.make) {
+                        var row0 = Math.floor(origTile / this.trlevel.atlas.numColPerRow), col0 = origTile - row0 * this.trlevel.atlas.numColPerRow;
+                        var row = Math.floor((origTile + this.trlevel.numBumpTextiles/2) / this.trlevel.atlas.numColPerRow), col = (origTile + this.trlevel.numBumpTextiles/2) - row * this.trlevel.atlas.numColPerRow;
+                        lstMat[imat].uniforms.mapBump = { type: "t", value: "" + tile };
+                        lstMat[imat].uniforms.offsetBump = { type: "f4", value: [(col-col0)*256.0/this.trlevel.atlas.width, (row-row0)*256.0/this.trlevel.atlas.height,0,0] };
+                    } else {
+                        lstMat[imat].uniforms.mapBump = { type: "t", value: "" + (parseInt(origTile) + this.trlevel.numBumpTextiles/2) };
+                    }
 				}
 			}
 			lstMat[imat].hasAlpha = isAlphaText;

@@ -217,7 +217,7 @@ TRN.Loader = {
 		out.atlas = {
 			width : 256,
 			height : 256,
-			make : false, // do not change, else bump mapping in TR4 won't work!
+			make : true,
 			imageData : null,
 			numColPerRow : 4,
 			curRow : 0,
@@ -389,7 +389,8 @@ TRN.Loader = {
 
 				var row = Math.floor(tile / out.atlas.numColPerRow), col = tile - row * out.atlas.numColPerRow;
 
-				objText.tile = 0 + b16;
+                objText.tile = 0 + b16;
+                objText.origTile = tile;
 
 				for (var j = 0; j < objText.vertices.length; ++j) {
 					var vert = objText.vertices[j];
