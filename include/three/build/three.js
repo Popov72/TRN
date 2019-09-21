@@ -23413,8 +23413,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 			skinning: material.skinning,
 			maxBones: maxBones,
 			useVertexTexture: _supportsBoneTextures && object && object.useVertexTexture,
-			boneTextureWidth: object && object.boneTextureWidth,
-            boneTextureHeight: object && object.boneTextureHeight,
+			/*boneTextureWidth: object && object.boneTextureWidth, //! Popov
+            boneTextureHeight: object && object.boneTextureHeight,*/
 
 			morphTargets: material.morphTargets,
 			morphNormals: material.morphNormals,
@@ -25004,8 +25004,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 		_programs.push( { program: program, code: code, usedTimes: 1 } );
 
-		_this.info.memory.programs = _programs.length;
-
+        _this.info.memory.programs = _programs.length;
+        
 		return program;
 
 	};
