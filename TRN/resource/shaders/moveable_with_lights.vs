@@ -27,6 +27,9 @@ const vec3 vec3Unit = vec3(1.0, 1.0, 1.0);
 
 #ifdef BONE_TEXTURE
 
+    uniform mat4 bindMatrix;
+    uniform mat4 bindMatrixInverse;
+
     uniform highp sampler2D boneTexture;
     uniform int boneTextureSize;
 
