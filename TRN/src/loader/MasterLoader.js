@@ -386,8 +386,8 @@ TRN.MasterLoader = {
 
 			var material = new THREE.MeshFaceMaterial();
 
-			obj.geometry.computeFaceNormals();
-			obj.geometry.computeVertexNormals();
+			//obj.geometry.computeFaceNormals();
+			//obj.geometry.computeVertexNormals(true);
 
 			var attributes = sceneJSON.embeds[sceneJSON.geometries[objJSON.geometry].id].attributes;
 

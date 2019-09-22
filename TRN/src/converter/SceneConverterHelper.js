@@ -12,7 +12,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			"normals": [],
 			"colors": [],
 			"uvs": [[]],
-			"faces": []
+            "faces": [],
+            "normals": []
 		};
 	},
 
@@ -98,7 +99,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				}				
 				break;
 			case 'moveable':
-                params.numLights = null;
+                //params.numLights = null;
                 matName = 'TR_moveable' + (params.numLights ? '_l' + params.numLights.directional + '_' + params.numLights.point + '_' + params.numLights.spot : '');
 				if (!this.sc.materials[matName]) {
 					var vertexShader;
@@ -259,7 +260,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
             origTile = tile;
         }
 
-		obj.faces.push(isQuad ? 139 : 138); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
+		obj.faces.push(isQuad ? 1+2+8+32+128 : 2+8+32+128); // 1=quad / 2=has material / 8=has vertex uv / 32=has vertex normal / 128=has vertex color
 
 		// vertex indices
 		for (var v = 0; v < vertices.length; ++v) {
@@ -277,7 +278,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
         }
 
 		// material
-		var imat, anmTexture = false, alpha = (tex.attributes & 2 || oface.effects & 1) ? 'alpha' : '';
+        var imat, anmTexture = false, alpha = (tex.attributes & 2 || oface.effects & 1) ? 'alpha' : '';
 		if (mapObjTexture2AnimTexture && mapObjTexture2AnimTexture[texture]) {
 			var animTexture = mapObjTexture2AnimTexture[texture];
 			var matName = 'anmtext' + alpha + '_' + animTexture.idxAnimatedTexture + '_' + animTexture.pos;
@@ -299,10 +300,10 @@ TRN.extend(TRN.SceneConverter.prototype, {
                 imat = imat.imat;
             }
 		} else if (origTile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {
-			imat = tiles2material['bump' + tile];
+			imat = tiles2material['bump' + origTile];
 			if (typeof(imat) == 'undefined') {
-				imat = TRN.Helper.objSize(tiles2material);
-				tiles2material['bump' + tile] = { imat:imat, tile:tile, minU:minU, minV:minV, origTile:origTile };
+                imat = TRN.Helper.objSize(tiles2material);
+				tiles2material['bump' + origTile] = { imat:imat, tile:tile, minU:minU, minV:minV, origTile:origTile };
 			} else {
                 imat = imat.imat;
             }
@@ -332,6 +333,11 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			} else {
 				obj.uvs[0].push(u, minV + (maxV - minV) / 2);
 			}
+		}
+
+        // vertex normals
+		for (var v = 0; v < vertices.length; ++v) {
+			obj.faces.push(vertices[fidx(v)] + ofstvert);
 		}
 
 		// vertex colors
@@ -386,7 +392,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
             var isAlphaText = tile.substr(0, 5) == 'alpha';
             var isBump = tile.substr(0, 4) == 'bump';
             if (isAlphaText) tile = tile.substr(5);
-            if (isBump) tile = tile.substr(4);
+            if (isBump) tile = oimat.tile;
 			lstMat[imat] = {
 				"material": this.getMaterial(matname, matparams),
 				"uniforms": {},

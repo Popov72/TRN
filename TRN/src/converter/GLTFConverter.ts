@@ -182,6 +182,7 @@ namespace TRNUtil {
         "accessorTexcoordIndex": number,
         "accessorColorIndex": number,
         "accessorFlagIndex": number,
+        "accessorNormalIndex": number,
         "accessorSkinIndexIndex": number,
         "accessorSkinWeightIndex": number,
         "accessorIndicesIndex": Array<number>,
@@ -368,7 +369,7 @@ namespace TRNUtil {
             this._gltf.samplers = [
                 {
                     "magFilter":    samplerMagFilter.LINEAR,
-                    "minFilter":    samplerMinFilter.LINEAR_MIPMAP_LINEAR,
+                    "minFilter":    samplerMinFilter.LINEAR,
                     "wrapS":        samplerWrap.CLAMP_TO_EDGE,
                     "wrapT":        samplerWrap.CLAMP_TO_EDGE,
                 },
@@ -502,7 +503,7 @@ namespace TRNUtil {
             let oembed = this.__embeds[embedId] as JsonMap;
 
             let vertices = oembed.vertices as [], uvs = (oembed.uvs as [[]])[0], colors = oembed.colors as [], flags = ((oembed.attributes as JsonMap)._flags as JsonMap).value as [];
-            let skinIndices = oembed.skinIndices as [], skinWeights = oembed.skinWeights as [];
+            let skinIndices = oembed.skinIndices as [], skinWeights = oembed.skinWeights as [], normals = oembed.normals as [];
             let hasSkin = skinIndices != null && skinWeights != null;
             let faces = oembed.faces as [], numFaces3 = 0, numFaces4 = 0;
 
@@ -514,7 +515,7 @@ namespace TRNUtil {
             // count number of tri / quad
             let f = 0, lstMatNumbers: Array<number> = [];
             while (f < faces.length) {
-                let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 11 : 14;
+                let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 14 : 18;
                 let faceMat: number = faces[f+(isTri ? 4 : 5)];
                 if (!isTri) {
                     numFaces4++;
@@ -528,10 +529,10 @@ namespace TRNUtil {
             // allocate the data buffer
             let numVertices = numFaces3*3 + numFaces4*4, numTriangles = numFaces3 + numFaces4*2;
             let verticesSize = numVertices*3*4, textcoordsSize = numVertices*2*4, colorsSize = numVertices*3*4, flagsSize = numVertices*4*4;
-            let skinIndicesSize = hasSkin ? numVertices*1*4 : 0, skinWeightsSize = hasSkin ? numVertices*4*4 : 0;
+            let skinIndicesSize = hasSkin ? numVertices*1*4 : 0, skinWeightsSize = hasSkin ? numVertices*4*4 : 0, normalsSize = numVertices*3*4;
             let indicesSize = numTriangles*3*2;
 
-            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize + indicesSize);
+            let bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + normalsSize + skinIndicesSize + skinWeightsSize + indicesSize);
 
             // Get the skeleton to offset the vertex data (for skinned mesh)
             let posStack: Array<Array<number>> = [];
@@ -555,13 +556,13 @@ namespace TRNUtil {
             }
 
             // fill the buffer with the attributes
-            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4+(hasSkin ? 1+4 : 0)));
-            let attributesSkinIndicesView = new Uint8Array(bufferData, 0, 4*numVertices*(3+2+3+4+(hasSkin ? 1+4 : 0)));
+            let attributesView = new Float32Array(bufferData, 0, numVertices*(3+2+3+4+3+(hasSkin ? 1+4 : 0)));
+            let attributesSkinIndicesView = new Uint8Array(bufferData, 0, 4*numVertices*(3+2+3+4+3+(hasSkin ? 1+4 : 0)));
             let min = [1e20, 1e20, 1e20], max = [-1e20, -1e20, -1e20 ];
             let ofst = 0;
             f = 0;
             while (f < faces.length) {
-                let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 11 : 14;
+                let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 14 : 18;
                 for (let v = 0; v < numVert; ++v) {
                     let [x , y, z] = [vertices[faces[f+v+1]*3 + 0] as number, vertices[faces[f+v+1]*3 + 1] as number, vertices[faces[f+v+1]*3 + 2] as number];
                     
@@ -588,20 +589,23 @@ namespace TRNUtil {
                     // flags
                     attributesView.set(flags[faces[f+v+1]], ofst + 8);
 
+                    // normals
+                    attributesView.set([ normals[faces[f+v+1]*3 + 0], normals[faces[f+v+1]*3 + 1], normals[faces[f+v+1]*3 + 2] ], ofst + 12);
+
                     // skin data
                     if (hasSkin) {
-                        attributesSkinIndicesView.set([skinIndices[faces[f+v+1]*2+0], skinIndices[faces[f+v+1]*2+1], 0, 0], (ofst + 12)*4);
-                        attributesView.set([skinWeights[faces[f+v+1]*2+0], skinWeights[faces[f+v+1]*2+1], 0, 0], ofst + 13);
+                        attributesSkinIndicesView.set([skinIndices[faces[f+v+1]*2+0], skinIndices[faces[f+v+1]*2+1], 0, 0], (ofst + 15)*4);
+                        attributesView.set([skinWeights[faces[f+v+1]*2+0], skinWeights[faces[f+v+1]*2+1], 0, 0], ofst + 16);
                         ofst += 5;
                     }
 
-                    ofst += 12;
+                    ofst += 15;
                 }
                 f += faceSize;
             }
 
             // fill the buffer with the indices
-            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize, numTriangles*3);
+            let indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + normalsSize + skinIndicesSize + skinWeightsSize, numTriangles*3);
             let accessorOffsets: number[] = [], accessorCounts: number[] = [];
 
             for (let mat = 0, ofst = 0; mat < lstMatNumbers.length; ++mat) {
@@ -609,7 +613,7 @@ namespace TRNUtil {
                 let fIndex = 0;
                 f = 0;
                 while  (f < faces.length) {
-                    let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 11 : 14;
+                    let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 14 : 18;
                     let faceMat: number = faces[f+(isTri ? 4 : 5)];
                     if (faceMat == mat) {
                         if (!isTri) {
@@ -633,16 +637,16 @@ namespace TRNUtil {
             let bufferViewAttributesIndex = this.addBufferView({
                 "name": `${embedId}_vertices_attributes`,
                 "buffer": bufferDataIndex,
-                "byteLength": numVertices*(3+2+3+4+(hasSkin ? 1+4:0))*4,
+                "byteLength": numVertices*(3+2+3+4+3+(hasSkin ? 1+4:0))*4,
                 "byteOffset": 0,
-                "byteStride": (3+2+3+4+(hasSkin ? 1+4:0))*4,
+                "byteStride": (3+2+3+4+3+(hasSkin ? 1+4:0))*4,
                 "target": bufferViewTarget.ARRAY_BUFFER,
             });
             let bufferViewIndicesIndex = this.addBufferView({
                 "name": `${embedId}_indices`,
                 "buffer": bufferDataIndex,
                 "byteLength": numTriangles*3*2,
-                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize,
+                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize + normalsSize + skinIndicesSize + skinWeightsSize,
                 "target": bufferViewTarget.ELEMENT_ARRAY_BUFFER,
             });
 
@@ -680,10 +684,18 @@ namespace TRNUtil {
                 "count": numVertices,
                 "type": accessorType.VEC4,
             });
+            let accessorNormalIndex = this.addAccessor({
+                "name": `${embedId}_normal`,
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3+2+3+4)*4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC3,
+            });
             let accessorSkinIndexIndex = !hasSkin ? -1 : this.addAccessor({
                 "name": `${embedId}_skinindex`,
                 "bufferView": bufferViewAttributesIndex,
-                "byteOffset": (3+2+3+4)*4,
+                "byteOffset": (3+2+3+4+3)*4,
                 "componentType": accessorElementSize.UNSIGNED_BYTE,
                 "count": numVertices,
                 "type": accessorType.VEC4,
@@ -691,7 +703,7 @@ namespace TRNUtil {
             let accessorSkinWeightIndex = !hasSkin ? -1 : this.addAccessor({
                 "name": `${embedId}_skinweight`,
                 "bufferView": bufferViewAttributesIndex,
-                "byteOffset": (3+2+3+4+1)*4,
+                "byteOffset": (3+2+3+4+3+1)*4,
                 "componentType": accessorElementSize.FLOAT,
                 "count": numVertices,
                 "type": accessorType.VEC4,
@@ -715,6 +727,7 @@ namespace TRNUtil {
                 accessorTexcoordIndex,
                 accessorColorIndex,
                 accessorFlagIndex,
+                accessorNormalIndex,
                 accessorSkinIndexIndex,
                 accessorSkinWeightIndex,
                 accessorIndicesIndex,
@@ -921,6 +934,7 @@ namespace TRNUtil {
                         "POSITION": geomData.accessorPositionIndex,
                         "TEXCOORD_0": geomData.accessorTexcoordIndex,
                         "COLOR_0": geomData.accessorColorIndex,
+                        "NORMAL": geomData.accessorNormalIndex,
                         "_flags": geomData.accessorFlagIndex,
                     },
                     "indices": accessorIndicesIndex,
@@ -959,7 +973,7 @@ namespace TRNUtil {
                 let obj = this.__objects[name] as JsonMap;
 
                 let hasAnim = obj.has_anims !== undefined ? obj.has_anims as boolean : false;
-                let animStartIndex = obj._animationStartIndex !== undefined ? obj._animationStartIndex as number : -1;
+                let animStartIndex = obj.animationStartIndex !== undefined ? obj.animationStartIndex as number : -1;
                 let numAnimations = obj.numAnimations !== undefined ? obj.numAnimations as number : -1;
 
                 //console.log(name, hasAnim, animStartIndex, numAnimations, obj);

@@ -201,7 +201,7 @@ var TRNUtil;
             this._gltf.samplers = [
                 {
                     "magFilter": samplerMagFilter.LINEAR,
-                    "minFilter": samplerMinFilter.LINEAR_MIPMAP_LINEAR,
+                    "minFilter": samplerMinFilter.LINEAR,
                     "wrapS": samplerWrap.CLAMP_TO_EDGE,
                     "wrapT": samplerWrap.CLAMP_TO_EDGE,
                 },
@@ -314,7 +314,7 @@ var TRNUtil;
             var embedId = this.__geometries[geometryId].id;
             var oembed = this.__embeds[embedId];
             var vertices = oembed.vertices, uvs = oembed.uvs[0], colors = oembed.colors, flags = oembed.attributes._flags.value;
-            var skinIndices = oembed.skinIndices, skinWeights = oembed.skinWeights;
+            var skinIndices = oembed.skinIndices, skinWeights = oembed.skinWeights, normals = oembed.normals;
             var hasSkin = skinIndices != null && skinWeights != null;
             var faces = oembed.faces, numFaces3 = 0, numFaces4 = 0;
             if (faces.length == 0) {
@@ -324,7 +324,7 @@ var TRNUtil;
             // count number of tri / quad
             var f = 0, lstMatNumbers = [];
             while (f < faces.length) {
-                var isTri = (faces[f] & 1) == 0, faceSize = isTri ? 11 : 14;
+                var isTri = (faces[f] & 1) == 0, faceSize = isTri ? 14 : 18;
                 var faceMat = faces[f + (isTri ? 4 : 5)];
                 if (!isTri) {
                     numFaces4++;
@@ -338,9 +338,9 @@ var TRNUtil;
             // allocate the data buffer
             var numVertices = numFaces3 * 3 + numFaces4 * 4, numTriangles = numFaces3 + numFaces4 * 2;
             var verticesSize = numVertices * 3 * 4, textcoordsSize = numVertices * 2 * 4, colorsSize = numVertices * 3 * 4, flagsSize = numVertices * 4 * 4;
-            var skinIndicesSize = hasSkin ? numVertices * 1 * 4 : 0, skinWeightsSize = hasSkin ? numVertices * 4 * 4 : 0;
+            var skinIndicesSize = hasSkin ? numVertices * 1 * 4 : 0, skinWeightsSize = hasSkin ? numVertices * 4 * 4 : 0, normalsSize = numVertices * 3 * 4;
             var indicesSize = numTriangles * 3 * 2;
-            var bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize + indicesSize);
+            var bufferData = new ArrayBuffer(verticesSize + textcoordsSize + colorsSize + flagsSize + normalsSize + skinIndicesSize + skinWeightsSize + indicesSize);
             // Get the skeleton to offset the vertex data (for skinned mesh)
             var posStack = [];
             if (hasSkin) {
@@ -360,13 +360,13 @@ var TRNUtil;
                 }
             }
             // fill the buffer with the attributes
-            var attributesView = new Float32Array(bufferData, 0, numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)));
-            var attributesSkinIndicesView = new Uint8Array(bufferData, 0, 4 * numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)));
+            var attributesView = new Float32Array(bufferData, 0, numVertices * (3 + 2 + 3 + 4 + 3 + (hasSkin ? 1 + 4 : 0)));
+            var attributesSkinIndicesView = new Uint8Array(bufferData, 0, 4 * numVertices * (3 + 2 + 3 + 4 + 3 + (hasSkin ? 1 + 4 : 0)));
             var min = [1e20, 1e20, 1e20], max = [-1e20, -1e20, -1e20];
             var ofst = 0;
             f = 0;
             while (f < faces.length) {
-                var isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 11 : 14;
+                var isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 14 : 18;
                 for (var v = 0; v < numVert; ++v) {
                     var _a = [vertices[faces[f + v + 1] * 3 + 0], vertices[faces[f + v + 1] * 3 + 1], vertices[faces[f + v + 1] * 3 + 2]], x = _a[0], y = _a[1], z = _a[2];
                     if (hasSkin) {
@@ -390,25 +390,27 @@ var TRNUtil;
                     attributesView.set([cr / 255.0, cg / 255.0, cb / 255.0], ofst + 5);
                     // flags
                     attributesView.set(flags[faces[f + v + 1]], ofst + 8);
+                    // normals
+                    attributesView.set([normals[faces[f + v + 1] * 3 + 0], normals[faces[f + v + 1] * 3 + 1], normals[faces[f + v + 1] * 3 + 2]], ofst + 12);
                     // skin data
                     if (hasSkin) {
-                        attributesSkinIndicesView.set([skinIndices[faces[f + v + 1] * 2 + 0], skinIndices[faces[f + v + 1] * 2 + 1], 0, 0], (ofst + 12) * 4);
-                        attributesView.set([skinWeights[faces[f + v + 1] * 2 + 0], skinWeights[faces[f + v + 1] * 2 + 1], 0, 0], ofst + 13);
+                        attributesSkinIndicesView.set([skinIndices[faces[f + v + 1] * 2 + 0], skinIndices[faces[f + v + 1] * 2 + 1], 0, 0], (ofst + 15) * 4);
+                        attributesView.set([skinWeights[faces[f + v + 1] * 2 + 0], skinWeights[faces[f + v + 1] * 2 + 1], 0, 0], ofst + 16);
                         ofst += 5;
                     }
-                    ofst += 12;
+                    ofst += 15;
                 }
                 f += faceSize;
             }
             // fill the buffer with the indices
-            var indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize, numTriangles * 3);
+            var indicesView = new Uint16Array(bufferData, verticesSize + textcoordsSize + colorsSize + flagsSize + normalsSize + skinIndicesSize + skinWeightsSize, numTriangles * 3);
             var accessorOffsets = [], accessorCounts = [];
             for (var mat = 0, ofst_1 = 0; mat < lstMatNumbers.length; ++mat) {
                 accessorOffsets.push(ofst_1 * 2);
                 var fIndex = 0;
                 f = 0;
                 while (f < faces.length) {
-                    var isTri = (faces[f] & 1) == 0, faceSize = isTri ? 11 : 14;
+                    var isTri = (faces[f] & 1) == 0, faceSize = isTri ? 14 : 18;
                     var faceMat = faces[f + (isTri ? 4 : 5)];
                     if (faceMat == mat) {
                         if (!isTri) {
@@ -432,16 +434,16 @@ var TRNUtil;
             var bufferViewAttributesIndex = this.addBufferView({
                 "name": embedId + "_vertices_attributes",
                 "buffer": bufferDataIndex,
-                "byteLength": numVertices * (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)) * 4,
+                "byteLength": numVertices * (3 + 2 + 3 + 4 + 3 + (hasSkin ? 1 + 4 : 0)) * 4,
                 "byteOffset": 0,
-                "byteStride": (3 + 2 + 3 + 4 + (hasSkin ? 1 + 4 : 0)) * 4,
+                "byteStride": (3 + 2 + 3 + 4 + 3 + (hasSkin ? 1 + 4 : 0)) * 4,
                 "target": bufferViewTarget.ARRAY_BUFFER,
             });
             var bufferViewIndicesIndex = this.addBufferView({
                 "name": embedId + "_indices",
                 "buffer": bufferDataIndex,
                 "byteLength": numTriangles * 3 * 2,
-                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize + skinIndicesSize + skinWeightsSize,
+                "byteOffset": verticesSize + textcoordsSize + colorsSize + flagsSize + normalsSize + skinIndicesSize + skinWeightsSize,
                 "target": bufferViewTarget.ELEMENT_ARRAY_BUFFER,
             });
             var accessorPositionIndex = this.addAccessor({
@@ -478,10 +480,18 @@ var TRNUtil;
                 "count": numVertices,
                 "type": accessorType.VEC4,
             });
+            var accessorNormalIndex = this.addAccessor({
+                "name": embedId + "_normal",
+                "bufferView": bufferViewAttributesIndex,
+                "byteOffset": (3 + 2 + 3 + 4) * 4,
+                "componentType": accessorElementSize.FLOAT,
+                "count": numVertices,
+                "type": accessorType.VEC3,
+            });
             var accessorSkinIndexIndex = !hasSkin ? -1 : this.addAccessor({
                 "name": embedId + "_skinindex",
                 "bufferView": bufferViewAttributesIndex,
-                "byteOffset": (3 + 2 + 3 + 4) * 4,
+                "byteOffset": (3 + 2 + 3 + 4 + 3) * 4,
                 "componentType": accessorElementSize.UNSIGNED_BYTE,
                 "count": numVertices,
                 "type": accessorType.VEC4,
@@ -489,7 +499,7 @@ var TRNUtil;
             var accessorSkinWeightIndex = !hasSkin ? -1 : this.addAccessor({
                 "name": embedId + "_skinweight",
                 "bufferView": bufferViewAttributesIndex,
-                "byteOffset": (3 + 2 + 3 + 4 + 1) * 4,
+                "byteOffset": (3 + 2 + 3 + 4 + 3 + 1) * 4,
                 "componentType": accessorElementSize.FLOAT,
                 "count": numVertices,
                 "type": accessorType.VEC4,
@@ -512,6 +522,7 @@ var TRNUtil;
                 accessorTexcoordIndex: accessorTexcoordIndex,
                 accessorColorIndex: accessorColorIndex,
                 accessorFlagIndex: accessorFlagIndex,
+                accessorNormalIndex: accessorNormalIndex,
                 accessorSkinIndexIndex: accessorSkinIndexIndex,
                 accessorSkinWeightIndex: accessorSkinWeightIndex,
                 accessorIndicesIndex: accessorIndicesIndex,
@@ -695,12 +706,15 @@ var TRNUtil;
                         "POSITION": geomData.accessorPositionIndex,
                         "TEXCOORD_0": geomData.accessorTexcoordIndex,
                         "COLOR_0": geomData.accessorColorIndex,
+                        /*"NORMAL": geomData.accessorNormalIndex,*/
                         "_flags": geomData.accessorFlagIndex,
                     },
                     "indices": accessorIndicesIndex,
                     "mode": primitiveMode.TRIANGLES,
                     "material": this_1.addMaterial(gmaterial),
                 };
+                if (objName != "skydome")
+                    primitive.attributes["NORMAL"] = geomData.accessorNormalIndex;
                 if (geomData.accessorSkinIndexIndex >= 0) {
                     primitive.attributes["JOINTS_0"] = geomData.accessorSkinIndexIndex;
                     primitive.attributes["WEIGHTS_0"] = geomData.accessorSkinWeightIndex;
@@ -726,7 +740,7 @@ var TRNUtil;
             var _loop_2 = function (name_3) {
                 var obj = this_2.__objects[name_3];
                 var hasAnim = obj.has_anims !== undefined ? obj.has_anims : false;
-                var animStartIndex = obj._animationStartIndex !== undefined ? obj._animationStartIndex : -1;
+                var animStartIndex = obj.animationStartIndex !== undefined ? obj.animationStartIndex : -1;
                 var numAnimations = obj.numAnimations !== undefined ? obj.numAnimations : -1;
                 //console.log(name, hasAnim, animStartIndex, numAnimations, obj);
                 if (!hasAnim || !obj.visible || animStartIndex < 0 || numAnimations <= 0)

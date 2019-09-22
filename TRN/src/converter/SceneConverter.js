@@ -1033,7 +1033,7 @@ TRN.SceneConverter.prototype = {
 
 			var faces = meshData.faces, numFaces = faces.length / 3;
 			for (var f = 0; f < numFaces; ++f) {
-				meshJSON.faces.push(138); // 1=quad / 2=has material / 8=has vertex uv / 128=has vertex color
+				meshJSON.faces.push(170); // 1=quad / 2=has material / 8=has vertex uv / 32=has vertex normal / 128=has vertex color
 
 				// vertex indices
 				for (var v = 0; v < 3; ++v) {
@@ -1043,6 +1043,11 @@ TRN.SceneConverter.prototype = {
 				meshJSON.faces.push(0); // material index
 
 				// texture indices
+				for (var v = 0; v < 3; ++v) {
+					meshJSON.faces.push(faces[f*3+v]);
+                }
+                
+				// normal indices
 				for (var v = 0; v < 3; ++v) {
 					meshJSON.faces.push(faces[f*3+v]);
                 }
@@ -1110,6 +1115,98 @@ TRN.SceneConverter.prototype = {
 
     },
 
+    createVertexNormals : function() {
+
+        var vA, vB, vC, vD;
+        var cb, ab, db, dc, bc, cross;
+
+        for (var id in this.sc.embeds) {
+            var embed = this.sc.embeds[id];
+            var vertices = embed.vertices, faces = embed.faces;
+
+            var normals = embed.normals;
+            
+            if (normals.length > 0) {
+                console.log('!!!', id, embed);
+            }
+
+            for (var v = 0; v < vertices.length; ++v) normals.push(0);
+
+            var f = 0;
+            while (f < faces.length) {
+                let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 14 : 18;
+
+                if ( isTri ) {
+
+                    vA = [ vertices[ faces[ f + 1 ] * 3 + 0 ], vertices[ faces[ f + 1 ] * 3 + 1 ], vertices[ faces[ f + 1 ] * 3 + 2 ] ];
+                    vB = [ vertices[ faces[ f + 2 ] * 3 + 0 ], vertices[ faces[ f + 2 ] * 3 + 1 ], vertices[ faces[ f + 2 ] * 3 + 2 ] ];
+                    vC = [ vertices[ faces[ f + 3 ] * 3 + 0 ], vertices[ faces[ f + 3 ] * 3 + 1 ], vertices[ faces[ f + 3 ] * 3 + 2 ] ];
+
+                    cb = [ vC[0] - vB[0], vC[1] - vB[1], vC[2] - vB[2] ];
+                    ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
+                    cross = [ 
+                        cb[1] * ab[2] - cb[2] * ab[1],
+                        cb[2] * ab[0] - cb[0] * ab[2],
+                        cb[0] * ab[1] - cb[1] * ab[0]
+                    ];
+
+                    normals[ faces[ f + 1 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 1 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 1 ] * 3 + 2 ] += cross[2];
+                    normals[ faces[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 2 ] * 3 + 2 ] += cross[2];
+                    normals[ faces[ f + 3 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 3 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 3 ] * 3 + 2 ] += cross[2];
+
+                } else {
+
+                    vA = [ vertices[ faces[ f + 1 ] * 3 + 0 ], vertices[ faces[ f + 1 ] * 3 + 1 ], vertices[ faces[ f + 1 ] * 3 + 2 ] ];
+                    vB = [ vertices[ faces[ f + 2 ] * 3 + 0 ], vertices[ faces[ f + 2 ] * 3 + 1 ], vertices[ faces[ f + 2 ] * 3 + 2 ] ];
+                    vC = [ vertices[ faces[ f + 3 ] * 3 + 0 ], vertices[ faces[ f + 3 ] * 3 + 1 ], vertices[ faces[ f + 3 ] * 3 + 2 ] ];
+                    vD = [ vertices[ faces[ f + 4 ] * 3 + 0 ], vertices[ faces[ f + 4 ] * 3 + 1 ], vertices[ faces[ f + 4 ] * 3 + 2 ] ];
+
+                    // abd
+
+                    db = [ vD[0] - vB[0], vD[1] - vB[1], vD[2] - vB[2] ];
+                    ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
+                    cross = [ 
+                        db[1] * ab[2] - db[2] * ab[1],
+                        db[2] * ab[0] - db[0] * ab[2],
+                        db[0] * ab[1] - db[1] * ab[0]
+                    ];
+
+                    normals[ faces[ f + 1 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 1 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 1 ] * 3 + 2 ] += cross[2];
+                    normals[ faces[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 2 ] * 3 + 2 ] += cross[2];
+                    normals[ faces[ f + 4 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 4 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 4 ] * 3 + 2 ] += cross[2];
+
+                    // bcd
+
+                    dc = [ vD[0] - vC[0], vD[1] - vC[1], vD[2] - vC[2] ];
+                    bc = [ vB[0] - vC[0], vB[1] - vC[1], vB[2] - vC[2] ];
+                    cross = [ 
+                        dc[1] * bc[2] - dc[2] * bc[1],
+                        dc[2] * bc[0] - dc[0] * bc[2],
+                        dc[0] * bc[1] - dc[1] * bc[0]
+                    ];
+
+                    normals[ faces[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 2 ] * 3 + 2 ] += cross[2];
+                    normals[ faces[ f + 3 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 3 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 3 ] * 3 + 2 ] += cross[2];
+                    normals[ faces[ f + 4 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 4 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 4 ] * 3 + 2 ] += cross[2];
+
+                }
+    
+                f += faceSize;
+            }
+
+            for (var n = 0; n < normals.length/3; ++n) {
+                var x = normals[n * 3 + 0], y = normals[n * 3 + 1], z = normals[n * 3 + 2];
+                var nrm = Math.sqrt(x*x + y*y + z*z);
+                if (x == 0 && y == 0 && z == 0) { x = 1; y = z = 0; nrm = 1; } // it's possible some vertices are not used in the object, so normal==0 at this point - put a (fake) valid normal
+                normals[n * 3 + 0] = x / nrm;
+                normals[n * 3 + 1] = y / nrm;
+                normals[n * 3 + 2] = z / nrm;
+                
+            }
+
+        }
+    },
+    
 	convert : function (trlevel, callback_created) {
 		glMatrix.glMatrix.setMatrixArrayType(Array);
 
@@ -1242,6 +1339,8 @@ TRN.SceneConverter.prototype = {
         this.createItems();
         
         this.optimizeAnimations();
+
+        this.createVertexNormals();
 
 		if (this.sc.cutScene.frames) {
 			// update position/quaternion for some specific items if we play a cut scene
