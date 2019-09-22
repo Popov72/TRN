@@ -52,6 +52,7 @@ You can also use PHP in much the same way than Python to start a simple HTTP ser
 * [ ] Use behaviours
 * [ ] TR4 cutscenes replay
 * [ ] Add particle effects for fires (torches, fire camps, ...)
+* [ ] Use physic engine for Lara's ponytail
 
 ## Screenshots
 Click on the picture to view the corresponding level.<br>
