@@ -43,16 +43,17 @@ You can also use PHP in much the same way than Python to start a simple HTTP ser
 ## Roadmap
 * [x] Use the [**BabylonJS engine**](https://www.babylonjs.com/)
 * [x] Convert TR level to GLTF2 format and use this format in **ThreeJS** / **BabylonJS**:
-  * [ ] Animations
+  * [x] Animations
   * [ ] Cutscenes / sounds
   * [ ] Shaders
     * [x] Done in ThreeJS
   * [ ] Mesh swap
-  * [ ] Calculate and export normals
+  * [x] Calculate and export normals
 * [ ] Use behaviours
 * [ ] TR4 cutscenes replay
 * [ ] Add particle effects for fires (torches, fire camps, ...)
 * [ ] Use physic engine for Lara's ponytail
+* [ ] Add joints in TR4 Lara's model
 
 ## Screenshots
 Click on the picture to view the corresponding level.<br>
