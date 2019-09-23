@@ -1125,10 +1125,11 @@ TRN.SceneConverter.prototype = {
             var vertices = embed.vertices, faces = embed.faces;
 
             var normals = embed.normals;
-            
-            if (normals.length > 0) {
-                console.log('!!!', id, embed);
-            }
+
+            delete embed._materials; // delete some properties that are not needed anymore
+            delete embed.objHasScrollAnim;
+            delete embed.moveableIndex;
+            delete embed.moveableIsInternallyLit;
 
             for (var v = 0; v < vertices.length; ++v) normals.push(0);
 

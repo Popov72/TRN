@@ -3,10 +3,9 @@ TRN.extend(TRN.SceneConverter.prototype, {
 	createNewJSONEmbed : function () {
 		return {
 			"metadata" : {
-				"formatVersion" : 3
+                "formatVersion" : 3
 			},
 			"scale" : 1.0,
-			"materials": [],
 			"vertices": [],
 			"morphTargets": [],
 			"normals": [],
