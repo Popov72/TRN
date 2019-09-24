@@ -724,11 +724,15 @@ TRN.SceneConverter.prototype = {
 
 				var mesh = this.trlevel.meshes[meshIndex];
 
-				var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
-				
-				moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
+                if (idx == 0 && this.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints) {
+                    // hack to remove bad data from joint #0 of Lara joints in TR4
+                } else {
+                    var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
+                    
+                    moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
 
-				ofsvert = parseInt(meshJSON.vertices.length/3);
+                    ofsvert = parseInt(meshJSON.vertices.length/3);
+                }
 
 				bones.push({
 					"parent": parent,
@@ -772,31 +776,9 @@ TRN.SceneConverter.prototype = {
 
 		var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
 
-		var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
-		var materials = null;
-		if (hasGeometry) {
-			var moveableIsInternallyLit = this.sc.embeds['moveable' + objIDForVisu].moveableIsInternallyLit;
-			materials = [];
-			for (var mat = 0; mat < this.sc.embeds['moveable' + objIDForVisu]._materials.length; ++mat) {
-				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objIDForVisu]._materials[mat]);
-				if (lighting != -1 || moveableIsInternallyLit) {
-					// item is internally lit
-					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
-					if (lighting == -1) lighting = 0;
-					material.uniforms.lighting.value = this.convertIntensity(lighting);
-				} else {
-					// change material to a material that handles lights
-					material.material = this.getMaterial('moveable', { numLights:this.countLightTypes(room.lights) });
-					material.uniforms.lighting.value = 1.0;
-                    this.setMaterialLightsUniform(room, material);
-                }
-                material.uniforms.ambientColor = { type:"f3", value: room.ambientColor };
-                if (!room.flickering) material.uniforms.flickerColor = { type: "f3", value: [1, 1, 1] };
-                if (room.filledWithWater)  material.uniforms.tintColor = { type: "f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
-
-				materials.push(material);
-			}
-		}
+        var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
+        
+		var materials = this.makeMaterialForMoveableInstance(objIDForVisu, roomIndex, lighting);
 
 		this.sc.objects[jsonid] = {
 			"geometry" 				: hasGeometry ? "moveable" + objIDForVisu : null,
@@ -889,6 +871,8 @@ TRN.SceneConverter.prototype = {
 				numMoveableInstances++;
 			}
 		}
+
+        this.laraMoveable = laraMoveable;
 
 		if (laraMoveable != null) {
 			var laraRoomIndex = laraMoveable.roomIndex;
@@ -1126,11 +1110,6 @@ TRN.SceneConverter.prototype = {
 
             var normals = embed.normals;
 
-            delete embed._materials; // delete some properties that are not needed anymore
-            delete embed.objHasScrollAnim;
-            delete embed.moveableIndex;
-            delete embed.moveableIsInternallyLit;
-
             for (var v = 0; v < vertices.length; ++v) normals.push(0);
 
             var f = 0;
@@ -1208,6 +1187,90 @@ TRN.SceneConverter.prototype = {
         }
     },
     
+    makeSkinnedLara : function() {
+        var laraMoveable = this.laraMoveable;
+        var joints = this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints];
+        var jointsVertices = joints.vertices;
+        var main = this.sc.embeds[this.sc.geometries[laraMoveable.geometry].id];
+        var mainVertices = main.vertices;
+
+        var bones = main.bones;
+        var numJoints = bones.length;
+        var posStack = [];
+
+        for (var j = 0; j < numJoints; ++j) {
+            var bone = bones[j], pos = bone.pos_init.slice(0);
+            if (bone.parent >= 0) {
+                pos[0] += posStack[bone.parent][0];
+                pos[1] += posStack[bone.parent][1];
+                pos[2] += posStack[bone.parent][2];
+            }
+            posStack.push(pos);
+        }
+
+        function findVertex(x, y, z, b1, b2) {
+            for (var v = 0; v < mainVertices.length/3; ++v) {
+                var bidx = main.skinIndices[v*2+0];
+                if (bidx != b1 && bidx != b2) continue;
+                var boneTrans = posStack[bidx];
+                var dx = mainVertices[v*3+0]+boneTrans[0]-x, dy = mainVertices[v*3+1]+boneTrans[1]-y, dz = mainVertices[v*3+2]+boneTrans[2]-z;
+                var dist = dx*dx+dy*dy+dz*dz;
+                if (dist < 4*TRN.Consts.worldScale*TRN.Consts.worldScale) {
+                    return v;
+                }
+            }
+            return -1;
+        }
+
+        for (var i = 0; i < jointsVertices.length/3; ++i) {
+            var boneIdx = joints.skinIndices[i*2+0];
+            var boneParentIdx = boneIdx > 0 ? bones[boneIdx].parent : boneIdx;
+            var jointTrans = posStack[boneIdx];
+            var x = jointsVertices[i*3+0]+jointTrans[0], y = jointsVertices[i*3+1]+jointTrans[1], z = jointsVertices[i*3+2]+jointTrans[2];
+            var idx = findVertex(x, y, z, boneIdx, boneParentIdx);
+            if (idx >= 0) {
+                jointsVertices[i*3+0] = mainVertices[idx*3+0];
+                jointsVertices[i*3+1] = mainVertices[idx*3+1];
+                jointsVertices[i*3+2] = mainVertices[idx*3+2];
+                joints.normals[i*3+0] = main.normals[idx*3+0];
+                joints.normals[i*3+1] = main.normals[idx*3+1];
+                joints.normals[i*3+2] = main.normals[idx*3+2];
+                joints.skinIndices[i*2+0] = main.skinIndices[idx*2+0];
+                joints.skinIndices[i*2+1] = main.skinIndices[idx*2+1];
+            }
+        }
+
+        var f = 0, faces = joints.faces;
+        while (f < faces.length) {
+            let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 14 : 18;
+            faces[f+1+numVert] += this.trlevel.atlas.make ? 0 : laraMoveable.material.length;
+            for (let v = 0; v < numVert; ++v) {
+                faces[f+1+v] += mainVertices.length/3; // position
+                faces[f+2+numVert+v] += main.uvs[0].length/2; // uvs
+                faces[f+2+numVert*2+v] += main.normals.length/3; // normals
+                faces[f+2+numVert*3+v] += main.colors.length; // vertex colors
+            }
+            f += faceSize;
+        }
+
+        main.attributes._flags.value = main.attributes._flags.value.concat(joints.attributes._flags.value);
+        main.colors = main.colors.concat(joints.colors);
+        main.faces = main.faces.concat(joints.faces);
+        main.normals = main.normals.concat(joints.normals);
+        main.skinIndices = main.skinIndices.concat(joints.skinIndices);
+        main.skinWeights = main.skinWeights.concat(joints.skinWeights);
+        main.uvs[0] = main.uvs[0].concat(joints.uvs[0]);
+        main.vertices = main.vertices.concat(joints.vertices);
+
+        if (!this.trlevel.atlas.make) {
+            var materials = this.makeMaterialForMoveableInstance(TRN.ObjectID.LaraJoints, laraMoveable.roomIndex, -1);
+            laraMoveable.material = laraMoveable.material.concat(materials);
+        }
+
+        delete this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints];
+        delete this.sc.geometries['moveable' + TRN.ObjectID.LaraJoints];
+    },
+
 	convert : function (trlevel, callback_created) {
 		glMatrix.glMatrix.setMatrixArrayType(Array);
 
@@ -1342,6 +1405,20 @@ TRN.SceneConverter.prototype = {
         this.optimizeAnimations();
 
         this.createVertexNormals();
+
+        if (this.trlevel.rversion == 'TR4') {
+            this.makeSkinnedLara();
+        }
+        
+        // delete some properties that are not needed anymore on embeds
+        for (var id in this.sc.embeds) {
+            var embed = this.sc.embeds[id];
+
+            delete embed._materials;
+            delete embed.objHasScrollAnim;
+            delete embed.moveableIndex;
+            delete embed.moveableIsInternallyLit;
+        }
 
 		if (this.sc.cutScene.frames) {
 			// update position/quaternion for some specific items if we play a cut scene

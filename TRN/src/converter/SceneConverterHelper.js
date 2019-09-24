@@ -470,6 +470,38 @@ TRN.extend(TRN.SceneConverter.prototype, {
         }
     },
 
+    makeMaterialForMoveableInstance : function(objID, roomIndex, lighting) {
+		var room = this.sc.objects['room' + roomIndex];
+
+		var hasGeometry = this.sc.embeds['moveable' + objID];
+		var materials = null;
+		if (hasGeometry) {
+			var moveableIsInternallyLit = this.sc.embeds['moveable' + objID].moveableIsInternallyLit;
+			materials = [];
+			for (var mat = 0; mat < this.sc.embeds['moveable' + objID]._materials.length; ++mat) {
+				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objID]._materials[mat]);
+				if (lighting != -1 || moveableIsInternallyLit) {
+					// item is internally lit
+					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
+					if (lighting == -1) lighting = 0;
+					material.uniforms.lighting.value = this.convertIntensity(lighting);
+				} else {
+					// change material to a material that handles lights
+					material.material = this.getMaterial('moveable', { numLights:this.countLightTypes(room.lights) });
+					material.uniforms.lighting.value = 1.0;
+                    this.setMaterialLightsUniform(room, material);
+                }
+                material.uniforms.ambientColor = { type:"f3", value: room.ambientColor };
+                if (!room.flickering) material.uniforms.flickerColor = { type: "f3", value: [1, 1, 1] };
+                if (room.filledWithWater)  material.uniforms.tintColor = { type: "f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
+
+				materials.push(material);
+			}
+        }
+        
+        return materials;
+    },
+
 	findStatichMeshByID : function (objectID) {
 		for (var sg = 0; sg < this.trlevel.staticMeshes.length; ++sg) {
 			if (this.trlevel.staticMeshes[sg].objectID == objectID) {

@@ -2,11 +2,12 @@ var TRN = {};
 
 TRN.ObjectID = {
 	"Lara" : 0,
-	"Ponytail" : 2,
+    "Ponytail" : 2,
+    "LaraJoints" : 9
 };
 
 TRN.Consts = {
-    "worldScale" : 1.0/512,
+    "worldScale" : 1.0/*/512*/ ,
 	"objNameForPistolAnim" : "pistolanim",
 	"leftThighIndex" : 0,
 	"rightThighIndex" : 0,
