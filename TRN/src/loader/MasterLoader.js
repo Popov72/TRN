@@ -88,7 +88,7 @@ TRN.MasterLoader = {
 
 		var this_ = this;
 
-        {
+        if (false) {
             var gltf = new TRNUtil.GLTFConverter(trlevel, sceneJSON);
             gltf.convert();
             TRN.saveData = function() {
