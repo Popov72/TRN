@@ -225,25 +225,16 @@ TRN.Loader = {
 		}
 
 		if (out.atlas.make) {
-
 			out.atlas.width = out.atlas.numColPerRow * 256;
 			out.atlas.height = (Math.floor((numTotTextiles+1) / out.atlas.numColPerRow) + (((numTotTextiles+1) % out.atlas.numColPerRow) == 0 ? 0 : 1)) * 256;
-
-			jQuery('body').append('<canvas id="TRN_alltextiles" width="' + out.atlas.width + '" height="' + out.atlas.height + '" style="border: 1px solid black;display:block"></canvas>');
-			var canvas = jQuery('#TRN_alltextiles');
-			var context = canvas[0].getContext('2d');
-			
-			out.atlas.imageData = context.createImageData(canvas[0].width, canvas[0].height);
+			out.atlas.imageData = new ImageData(out.atlas.width, out.atlas.height);
 		}
 
 		// Handle 8-bit textures
 		var numTextiles = 0;
 		if (out.textile8 && !out.textile16) {
 			for (var t = 0; t < out.textile8.length; ++t, ++numTextiles) {
-				jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
-				var canvas = jQuery('#TRN_textile' + numTextiles);
-				var context = canvas[0].getContext('2d');
-				var imageData = context.createImageData(canvas[0].width, canvas[0].height);
+				var imageData = new ImageData(256, 256);
 				for (var j = 0; j < 256; ++j) {
 					for (var i = 0; i < 256; ++i) {
 						var pix = out.textile8[t][j*256+i];
@@ -260,9 +251,7 @@ TRN.Loader = {
 						}
 					}
 				}
-				context.putImageData(imageData, 0, 0);
-				out.textile[numTextiles] = canvas[0].toDataURL('image/png');
-				canvas.remove();
+				out.textile[numTextiles] = this.convertToPng(imageData);
 				if (showTiles) {
 					jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
 						'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
@@ -284,10 +273,7 @@ TRN.Loader = {
 		if (newtile != undefined) out.textile16.push(newtile);
 
 		for (var t = 0; t < out.textile16.length; ++t, ++numTextiles) {
-			jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
-			var canvas = jQuery('#TRN_textile' + numTextiles);
-			var context = canvas[0].getContext('2d');
-			var imageData = context.createImageData(canvas[0].width, canvas[0].height);
+            var imageData = new ImageData(256, 256);
 			for (var j = 0; j < 256; ++j) {
 				for (var i = 0; i < 256; ++i) {
 					var pix = out.textile16[t][j*256+i];
@@ -305,9 +291,7 @@ TRN.Loader = {
 					}
 				}
 			}
-			context.putImageData(imageData, 0, 0);
-			out.textile[numTextiles] = canvas[0].toDataURL('image/png');
-			canvas.remove();
+			out.textile[numTextiles] = this.convertToPng(imageData);
 			if (showTiles) {
 				jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
 					'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
@@ -326,10 +310,7 @@ TRN.Loader = {
 		if (!out.textile32) out.textile32 = [];
 
 		for (var t = 0; t < out.textile32.length; ++t, ++numTextiles) {
-			jQuery('body').append('<canvas id="TRN_textile' + numTextiles + '" width="256" height="256" style="border: 1px solid black;display:block"></canvas>');
-			var canvas = jQuery('#TRN_textile' + numTextiles);
-			var context = canvas[0].getContext('2d');
-			var imageData = context.createImageData(canvas[0].width, canvas[0].height);
+            var imageData = new ImageData(256, 256);
 			for (var j = 0; j < 256; ++j) {
 				for (var i = 0; i < 256; ++i) {
 					var pix = out.textile32[t][j*256+i];
@@ -346,9 +327,7 @@ TRN.Loader = {
 					}
 				}
 			}
-			context.putImageData(imageData, 0, 0);
-			out.textile[numTextiles] = canvas[0].toDataURL('image/png');
-			canvas.remove();
+			out.textile[numTextiles] = this.convertToPng(imageData);
 			if (showTiles) {
 				jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_tile' + numTextiles + '\',\'' + out.textile[numTextiles] + '\')">' +
 					'<img alt="' + out.shortfilename + '_tile' + numTextiles + '.png" style="border:1px solid red" src="' + out.textile[numTextiles] + 
@@ -364,23 +343,17 @@ TRN.Loader = {
 		}
 
 		if (out.atlas.make) {
-			var canvas = jQuery('#TRN_alltextiles');
-			var context = canvas[0].getContext('2d');
-
 			var dataSky = out.textile[out.textile.length-1];
 
-			context.putImageData(out.atlas.imageData, 0, 0);
-			var data = canvas[0].toDataURL('image/png');
-			out.textile = [data];
-			canvas.remove();
+			out.textile = [this.convertToPng(out.atlas.imageData)];
 
 			if (rversion == 'TR4') out.textile.push(dataSky); // the sky textile must always be the last of the out.textile array
 
 			if (showTiles) {
 				jQuery(document.body).css('overflow', 'auto');
 
-				jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_atlas\',\'' + data + '\')">' +
-					'<img title="' + canvas[0].width + 'x' + canvas[0].height + '" alt="' + out.shortfilename + '_atlas.png" style="border:1px solid red" src="' + data + '"/></span>');
+				jQuery('body').append('<span onclick="TRN.Loader.saveData(\'' + out.shortfilename + '_atlas\',\'' + out.textile[0] + '\')">' +
+					'<img title="' + out.atlas.width + 'x' + out.atlas.height + '" alt="' + out.shortfilename + '_atlas.png" style="border:1px solid red" src="' + out.textile[0] + '"/></span>');
 			}
 
 			for (var i = 0; i < out.objectTextures.length; ++i) {
@@ -429,10 +402,27 @@ TRN.Loader = {
 		return { ok:(ds.position==ds.byteLength), json:out };
 	},
 
-	saveData : function(filename, data) {
-	  var a = document.createElement('a');
-	  a.setAttribute('href', data);
-	  a.setAttribute('download', filename);
-	  a.click();
+    convertToPng : function(imgData) {
+        var canvas = document.createElement("canvas");
+
+        canvas.width = imgData.width;
+        canvas.height = imgData.height;
+
+        var context = canvas.getContext('2d');
+
+        context.putImageData(imgData, 0, 0);
+        
+        return canvas.toDataURL('image/png');
+    },
+
+	saveData : async function(filename, data) {
+        var blob = await (await fetch(data)).blob();
+        var url = URL.createObjectURL(blob)
+        var a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.download = filename + '.png';
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(url) }, 4E4) // 40s
 	}
 }
