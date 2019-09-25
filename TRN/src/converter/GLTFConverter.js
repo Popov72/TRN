@@ -706,15 +706,13 @@ var TRNUtil;
                         "POSITION": geomData.accessorPositionIndex,
                         "TEXCOORD_0": geomData.accessorTexcoordIndex,
                         "COLOR_0": geomData.accessorColorIndex,
-                        /*"NORMAL": geomData.accessorNormalIndex,*/
+                        "NORMAL": geomData.accessorNormalIndex,
                         "_flags": geomData.accessorFlagIndex,
                     },
                     "indices": accessorIndicesIndex,
                     "mode": primitiveMode.TRIANGLES,
                     "material": this_1.addMaterial(gmaterial),
                 };
-                if (objName != "skydome")
-                    primitive.attributes["NORMAL"] = geomData.accessorNormalIndex;
                 if (geomData.accessorSkinIndexIndex >= 0) {
                     primitive.attributes["JOINTS_0"] = geomData.accessorSkinIndexIndex;
                     primitive.attributes["WEIGHTS_0"] = geomData.accessorSkinWeightIndex;
