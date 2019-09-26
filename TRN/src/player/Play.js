@@ -107,7 +107,7 @@ TRN.Play.prototype = {
 
         this.onWindowResize();
 
-		if (this.sceneJSON.cutScene.frames != null) {
+		if (this.sceneJSON.cutScene.sound != null) {
 			TRN.Helper.startSound(this.sceneJSON.cutScene.sound);
 		}
 	},
@@ -224,8 +224,8 @@ TRN.Play.prototype = {
 
 		this.sceneJSON.cutScene.curFrame += TRN.baseFrameRate * delta;
 
-		var t = this.sceneJSON.cutScene.curFrame - parseInt(this.sceneJSON.cutScene.curFrame);
-		var cfrmA = Math.min(parseInt(this.sceneJSON.cutScene.curFrame), this.sceneJSON.cutScene.frames.length-3);
+		var t = this.sceneJSON.cutScene.curFrame - Math.floor(this.sceneJSON.cutScene.curFrame);
+		var cfrmA = Math.min(Math.floor(this.sceneJSON.cutScene.curFrame), this.sceneJSON.cutScene.frames.length-3);
 		var cfrmB = Math.min(cfrmA+1, this.sceneJSON.cutScene.frames.length-3);
 
 		if (cfrmA < this.sceneJSON.cutScene.frames.length-3) {
