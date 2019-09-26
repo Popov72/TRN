@@ -240,7 +240,7 @@ TRN.MasterLoader = {
 				var obj = scene.objects[objID];
 				var objJSON = sceneJSON.objects[objID];
 
-				if (!objJSON.has_anims) continue;
+				if (!objJSON.has_anims || !objJSON.visible) continue;
 
 				if (sceneJSON.cutScene.frames) {
 
@@ -304,7 +304,7 @@ TRN.MasterLoader = {
 			var objJSON = sceneJSON.objects[objID];
 
 			obj.initPos = new THREE.Vector3();
-			obj.initPos.copy(obj.position);
+            obj.initPos.copy(obj.position);
 
 			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID.indexOf('sky') < 0) {
 
