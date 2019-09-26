@@ -869,7 +869,11 @@ TRN.SceneConverter.prototype = {
 					laraMoveable = mvb;
 				}
 				numMoveableInstances++;
+                var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveable[id="' + item.objectID + '"] > startanim', true, -1);
+                if (startAnim >= 0) {
+                    mvb.animationStartIndex = mvb._animationStartIndex + startAnim;
 			}
+		}
 		}
 
         this.laraMoveable = laraMoveable;
