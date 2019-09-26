@@ -320,11 +320,11 @@ TRN.Play.prototype = {
 
 			}
 
-			if (singleRoomMode) {
+			/*if (singleRoomMode) {
 				obj.visible = objJSON.roomIndex == this.sceneJSON.curRoom && !objJSON.isAlternateRoom;
 			} else {
 				obj.visible = !objJSON.isAlternateRoom;
-			}
+			}*/
 
 			if (obj.boxHelper) obj.boxHelper.visible = obj.visible;
 
