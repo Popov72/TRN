@@ -615,6 +615,9 @@
 				<sky>
 					<color><r>255</r><g>190</g><b>255</b></color>
 				</sky>
+                <moveable id="34">
+                    <startanim>7</startanim>
+                </moveable>
 			</level>
 			<level id="jeepchs2.tr4"		type="normal"	name="KV5">
 				<sky>
