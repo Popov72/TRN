@@ -714,8 +714,8 @@ TRN.SceneConverter.prototype = {
 					py = this.trlevel.meshTrees[meshTree++].coord*TRN.Consts.worldScale;
 					pz = this.trlevel.meshTrees[meshTree++].coord*TRN.Consts.worldScale;
 					if (sflag & 1) {
-						if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
-						parent = stack[--stackIdx];
+                        if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
+                        parent = stack[--stackIdx];
 					}
 					if (sflag & 2) {
 						stack[stackIdx++] = parent;
@@ -872,8 +872,8 @@ TRN.SceneConverter.prototype = {
                 var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveable[id="' + item.objectID + '"] > startanim', true, -1);
                 if (startAnim >= 0) {
                     mvb.animationStartIndex = mvb._animationStartIndex + startAnim;
-			}
-		}
+                }
+            }
 		}
 
         this.laraMoveable = laraMoveable;
@@ -1275,6 +1275,48 @@ TRN.SceneConverter.prototype = {
         delete this.sc.geometries['moveable' + TRN.ObjectID.LaraJoints];
     },
 
+    makeTR4Cutscene : function(cutscene) {
+
+        var ocs = this.sc.cutScene;
+
+        console.log(cutscene);
+
+        ocs.origin.x = cutscene.originX;
+        ocs.origin.y = -cutscene.originY;
+        ocs.origin.z = -cutscene.originZ;
+        ocs.origin.rotY = 0;
+
+        var frames = [], ocam = cutscene.camera, CST = 2;
+        var prev = {
+            posX:       ocam.cameraHeader.startPosX*CST,    posY:       ocam.cameraHeader.startPosY*CST,    posZ:       ocam.cameraHeader.startPosZ*CST,
+            targetX:    ocam.targetHeader.startPosX*CST,    targetY:    ocam.targetHeader.startPosY*CST,    targetZ:    ocam.targetHeader.startPosZ*CST
+        }
+
+        for (var d = 0; d < cutscene.numFrames; ++d) {
+            if (ocam.cameraPositionData.dx.length <= d) {
+                break;
+            }
+            //var cur = prev;
+            //if (false)
+            var cur = {
+                    fov: 13000,
+                    roll: 0,
+                    
+                    posX: ocam.cameraPositionData.dx[d]*CST + prev.posX,
+                    posY: ocam.cameraPositionData.dy[d]*CST + prev.posY,
+                    posZ: ocam.cameraPositionData.dz[d]*CST + prev.posZ,
+
+                    targetX: ocam.targetPositionData.dx[d]*CST + prev.targetX,
+                    targetY: ocam.targetPositionData.dy[d]*CST + prev.targetY,
+                    targetZ: ocam.targetPositionData.dz[d]*CST + prev.targetZ
+            };
+            frames.push(cur);
+            prev = cur;
+        }
+
+        ocs.frames = frames;
+    },
+
 	convert : function (trlevel, callback_created) {
 		glMatrix.glMatrix.setMatrixArrayType(Array);
 
@@ -1424,7 +1466,43 @@ TRN.SceneConverter.prototype = {
             delete embed.moveableIsInternallyLit;
         }
 
-		if (this.sc.cutScene.frames) {
+        if(TRN.Browser.QueryString.cutscene != undefined && this.trlevel.rversion == 'TR4') {
+            var icutscene = TRN.Browser.QueryString.cutscene, cutscene;
+            jQuery.ajax({
+                type: "GET",
+                url: 'TRN/level/tr4/TR4_cutscenes/cut' + icutscene + '.json',
+                dataType: "json",
+                cache: false,
+                async: false
+            }).done(function(data) { cutscene = data; });
+
+            this.makeTR4Cutscene(cutscene);
+
+            // get the sound for this cut scene
+            if (cutscene.audio !== "") {
+                var this_ = this;
+                var binaryBuffer = new TRN.BinaryBuffer(
+                    [
+                    this_.sc.soundPath + cutscene.info.audio + '.aac'
+                    ],
+                    function finishedLoading(bufferList, err) {
+                        if (bufferList != null && bufferList.length > 0) {
+                            this_.sc.cutScene.soundData = TRN.Base64Binary.encode(bufferList[0]);
+                        } else {
+                            console.log('Error when loading file. ', err);
+                        }
+                        callback_created(this_.sc);
+                    }
+                );
+                binaryBuffer.load();
+            } else {
+                callback_created(this.sc);
+            }
+
+            return;
+        }
+
+        if (this.sc.cutScene.frames) {
 			// update position/quaternion for some specific items if we play a cut scene
 			var min = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animminid', true, 0);
 			var max = this.confMgr.levelNumber(this.sc.levelShortFileName, 'cutscene > animmaxid', true, 0);
