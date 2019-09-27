@@ -73,6 +73,16 @@ TRN.Play.prototype = {
 		var confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
 		var tintColor = confMgr.levelColor(this.sceneJSON.levelShortFileName, 'globaltintcolor', true, null);
 
+        this.roomList = [];
+
+        for (var objID in this.scene.objects) {
+            var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
+
+            if (objJSON.type == 'room' && !objJSON.isAlternateRoom) {
+                this.roomList[objJSON.roomIndex] = obj;
+            }
+        }
+
 		if (tintColor != null) {
 			this.globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
 		}
@@ -106,8 +116,6 @@ TRN.Play.prototype = {
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
-		this.startTime = this.quantumTime = (new Date()).getTime();
-
         this.sceneBackground = new THREE.Scene();
 
         if (this.scene.scene.getObjectByName("skydome")) {
@@ -124,6 +132,8 @@ TRN.Play.prototype = {
 		this.renderer.initWebGLObjects(this.scene.scene);
         this.renderer.initWebGLObjects(this.sceneBackground);
 
+        this.startTime = this.quantumTime = (new Date()).getTime();
+        
 		this.animate();
 
         this.onWindowResize();
@@ -305,6 +315,16 @@ TRN.Play.prototype = {
 
 	},
 
+    findRoom : function(pos) {
+        for (var r = 0; r < this.roomList.length; ++r) {
+            var obj = this.roomList[r];
+            if (obj && obj.geometry.boundingBox.containsPoint(pos)) {
+                return r;
+            }
+        }
+        return -1;
+    },
+
 	updateObjects : function (curTime) {
 
 		if (this.sceneBackground.sky) {
@@ -324,6 +344,27 @@ TRN.Play.prototype = {
 
 		this.sceneJSON.curRoom = -1;
 
+        if (this.sceneJSON.cutScene.frames != null) {
+            for (var objID in this.scene.objects) {
+                var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
+
+                if (obj.dummy || !(obj instanceof THREE.SkinnedMesh)) continue;
+
+                var roomObj = this.findRoom(obj.position);
+
+                if (roomObj >= 0 && roomObj != objJSON.roomIndex) {
+                    objJSON.roomIndex = roomObj;
+
+                    var materials = obj.material.materials;
+                    for (var i = 0; i < materials.length; ++i) {
+                        if (materials[i].uniforms.numPointLight !== undefined) {
+                            TRN.Helper.setMaterialLightsUniform(this.sceneJSON.objects['room' + roomObj], materials[i]);
+                        }
+                    }
+                }
+            }
+        }
+
 		for (var objID in this.scene.objects) {
 
 			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
@@ -338,17 +379,17 @@ TRN.Play.prototype = {
 
 			}
 
-			/*if (singleRoomMode) {
+			if (singleRoomMode) {
 				obj.visible = objJSON.roomIndex == this.sceneJSON.curRoom && !objJSON.isAlternateRoom;
 			} else {
-				obj.visible = !objJSON.isAlternateRoom;
-			}*/
+				obj.visible = objJSON.visible;
+			}
 
 			if (obj.boxHelper) obj.boxHelper.visible = obj.visible;
 
 			if (!(obj instanceof THREE.Mesh)) continue;
 
-			if (objJSON.isSprite) {
+			if (objJSON.type == 'sprite') {
 
 				// make sure the object is always facing the camera
 				obj.quaternion.set(this.camera.quaternion.x, this.camera.quaternion.y, this.camera.quaternion.z, this.camera.quaternion.w);
@@ -386,9 +427,6 @@ TRN.Play.prototype = {
                         material.uniforms.offsetRepeat.value[1] = coords.minV - userData.animatedTexture.minV;
 					} else {
 						var coords = animTexture.animcoords[0];
-						/*if (!material.uniforms.map.value) {
-							material.uniforms.map.value = this.scene.textures[coords.texture];
-						}*/
 						var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.uvRotateTileHeight/2.0)/material.uniforms.map.value.image.height;
 						pgr = pgr - h * Math.floor(pgr / h);
 						material.uniforms.offsetRepeat.value[0] = coords.minU - userData.animatedTexture.minU;
