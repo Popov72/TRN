@@ -62,7 +62,8 @@ TRN.Panel.prototype = {
 			var scene = this_.parent.scene;
 			for (var objID in scene.objects) {
 				var obj = scene.objects[objID];
-				if (!(obj instanceof THREE.Mesh)) continue;
+
+                if (!(obj instanceof THREE.Mesh)) continue;
 
 				var materials = obj.material.materials;
 				if (!materials || !materials.length) continue;
@@ -75,47 +76,42 @@ TRN.Panel.prototype = {
 		});
 
 		this.elem.find('#usefog').on('click', function() {
-			var shaderMgr = new TRN.ShaderMgr();
 			var scene = this_.parent.scene;
-			var shader = shaderMgr.getFragmentShader(this.checked ? 'standard_fog' : 'standard');
 			for (var objID in scene.objects) {
 				var obj = scene.objects[objID];
-				if (!(obj instanceof THREE.Mesh) || objID.indexOf('sky') >= 0) continue;
 
-				var materials = obj.material.materials;
+                if (!(obj instanceof THREE.Mesh)) continue;
+                
+				var materials = obj.material ? obj.material.materials : null;
 				if (!materials || !materials.length) continue;
 
 				for (var i = 0; i < materials.length; ++i) {
-					var material = materials[i];
-					material.fragmentShader = shader;
-					material.needsUpdate = true;
+                    var material = materials[i];
+                    if (material.uniforms && material.uniforms.useFog) material.uniforms.useFog.value = this.checked ? 1 : 0;
 				}
 			}
 		});
 
 		this.elem.find('#nolights').on('click', function() {
-			var shaderMgr = new TRN.ShaderMgr();
-			var scene = this_.parent.scene;
-			var shader = shaderMgr.getVertexShader('moveable');
+            var scene = this_.parent.scene;
+            var white = [1, 1, 1];
 			for (var objID in scene.objects) {
 				var obj = scene.objects[objID];
-				if (!(obj instanceof THREE.Mesh)) continue;
 
-				var materials = obj.material.materials;
+                if (!(obj instanceof THREE.Mesh)) continue;
+
+				var materials = obj.material ? obj.material.materials : null;
 				if (!materials || !materials.length) continue;
 
 				for (var i = 0; i < materials.length; ++i) {
-					var material = materials[i], origMatName = material.origMatName, origVertexShader = material.origVertexShader;
-					if (!origMatName) {
-						origMatName = material.origMatName = material.name;
-					}
-					if (!origVertexShader) {
-						material.origVertexShader = material.vertexShader;
-					}
-					if (origMatName.indexOf('_l') < 0) continue;
-
-					material.vertexShader = this.checked ? shader : material.origVertexShader;
-					material.needsUpdate = true;
+                    var material = materials[i];
+                    if (!material.uniforms || material.uniforms.numPointLight === undefined) continue;
+                    if (material.__savenum === undefined) {
+                        material.__savenum = material.uniforms.numPointLight.value;
+                        material.__saveambient = material.uniforms.ambientColor.value;
+                    }
+                    material.uniforms.numPointLight.value = this.checked ? 0 : material.__savenum;
+                    material.uniforms.ambientColor.value = this.checked ? white : material.__saveambient;
 				}
 			}
 		});
@@ -179,12 +175,13 @@ TRN.Panel.prototype = {
 			}
 		});
 
-		this.elem.find('#nomoveabletexture').on('click', function() {
+		this.elem.find('#noobjecttexture').on('click', function() {
 			var shaderMgr = new TRN.ShaderMgr();
 			var scene = this_.parent.scene;
 			var shader = shaderMgr.getFragmentShader('uniformcolor');
 			for (var objID in scene.objects) {
-				var obj = scene.objects[objID];
+                var obj = scene.objects[objID];
+                
 				if (!(obj instanceof THREE.Mesh)) continue;
 				if (obj.name.match(/moveable|sprite|staticmesh/) == null) continue;
 
@@ -192,10 +189,7 @@ TRN.Panel.prototype = {
 				if (!materials || !materials.length) continue;
 
 				for (var i = 0; i < materials.length; ++i) {
-					var material = materials[i], origMatName = material.origMatName, origFragmentShader = material.origFragmentShader;
-					if (!origMatName) {
-						material.origMatName = material.name;
-					}
+					var material = materials[i], origFragmentShader = material.origFragmentShader;
 					if (!origFragmentShader) {
 						material.origFragmentShader = material.fragmentShader;
 					}
@@ -207,11 +201,10 @@ TRN.Panel.prototype = {
 		});
 
 		this.elem.find('#nobumpmapping').on('click', function() {
-			var shaderMgr = new TRN.ShaderMgr();
 			var scene = this_.parent.scene;
-			var shader = shaderMgr.getFragmentShader(this.checked ? 'standard' : 'room_bump');
 			for (var objID in scene.objects) {
-				var obj = scene.objects[objID];
+                var obj = scene.objects[objID];
+                
 				if (!(obj instanceof THREE.Mesh) || objID.indexOf('sky') >= 0 || this_.parent.sceneJSON.objects[objID].type != "room") continue;
 
 				var materials = obj.material.materials;
@@ -219,9 +212,9 @@ TRN.Panel.prototype = {
  
 				for (var i = 0; i < materials.length; ++i) {
 					var material = materials[i];
-					if (!material.uniforms.mapBump) continue;
-					material.fragmentShader = shader;
-					material.needsUpdate = true;
+                    var s = material.uniforms.offsetBump.value[2];
+                    material.uniforms.offsetBump.value[2] = material.uniforms.offsetBump.value[3];
+                    material.uniforms.offsetBump.value[3] = s;
 				}
 			}
 		});
