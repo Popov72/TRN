@@ -76,6 +76,79 @@ TRN.Helper = {
     	if (t <= 0.0) return a;
     	if (t >= 1.0) return b;
     	return a + (b - a) * t;
-	}
+	},
+
+    setMaterialLightsUniform : function(room, material) {
+
+        var u = material.uniforms;
+
+        u.numDirectionalLight.value = 0;
+        u.numPointLight.value       = 0;
+        u.numSpotLight.value        = 0;
+
+        if (room.lights.length == 0) {
+            return;
+        }
+
+        for (var l = 0; l < room.lights.length; ++l) {
+            var light = room.lights[l];
+
+            switch(light.type) {
+                case 'directional':
+                    u.numDirectionalLight.value++;
+                    break;
+                case 'point':
+                    u.numPointLight.value++;
+                    break;
+                case 'spot':
+                    u.numSpotLight.value++;
+                    break;
+            }
+        }
+
+        if (u.numDirectionalLight.value > 0) {
+            u.directionalLight_direction.value = [];
+            u.directionalLight_color.value = [];
+        }
+
+        if (u.numPointLight.value > 0) {
+            u.pointLight_position.value = [];
+            u.pointLight_color.value = [];
+            u.pointLight_distance.value = [];
+        }
+
+        if (u.numSpotLight.value > 0) {
+            u.spotLight_position.value = [];
+            u.spotLight_color.value = [];
+            u.spotLight_distance.value = [];
+            u.spotLight_direction.value = [];
+            u.spotLight_coneCos.value = [];
+            u.spotLight_penumbraCos.value = [];
+        }
+
+        for (var l = 0; l < room.lights.length; ++l) {
+            var light = room.lights[l];
+
+            switch(light.type) {
+                case 'directional':
+                    u.directionalLight_direction.value  = u.directionalLight_direction.value.concat([light.dx, light.dy, light.dz]);
+                    u.directionalLight_color.value      = u.directionalLight_color.value.concat(light.color);
+                    break;
+                case 'point':
+                    u.pointLight_position.value = u.pointLight_position.value.concat([light.x, light.y, light.z]);
+                    u.pointLight_color.value    = u.pointLight_color.value.concat(light.color);
+                    u.pointLight_distance.value.push(light.fadeOut);
+                    break;
+                case 'spot':
+                    u.spotLight_position.value  = u.spotLight_position.value.concat([light.x, light.y, light.z]);
+                    u.spotLight_color.value     = u.spotLight_color.value.concat(light.color);
+                    u.spotLight_direction.value = u.spotLight_direction.value.concat([light.dx, light.dy, light.dz]);
+                    u.spotLight_distance.value.push(light.fadeOut);
+                    u.spotLight_coneCos.value.push(light.coneCos);
+                    u.spotLight_penumbraCos.value.push(light.penumbraCos);
+                    break;
+            }
+        }
+   }
 
 }
