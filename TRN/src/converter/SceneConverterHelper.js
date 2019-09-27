@@ -16,163 +16,52 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		};
 	},
 
-	getMaterial : function (objType, params) {
-		var matName = '', doReplace = false;
-		params = params || {};
+	getMaterial : function (objType) {
+        var matName = 'TR_' + objType;
+        var mat = this.sc.materials[matName];
 
-		switch(objType) {
-			case 'room':
-				params.room_effects = params.room_effects || false;
-				matName = 'TR_room';
-				if (params.room_effects) matName += "_with_effects";
-				if (!this.sc.materials[matName]) {
-					var vshader = this.shaderMgr.getVertexShader('room').replace(/##room_effects##/g, params.room_effects);
-					doReplace = true;
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
-								"curTime": { type: "f", value: 0.0 },
-								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
-							},
-							"vertexShader": vshader,
-							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-							"vertexColors" : true
-						}
-					};
-				}
-				break;
-			case 'roombump':
-				matName = 'TR_roombump';
-				if (!this.sc.materials[matName]) {
-					var vshader = this.shaderMgr.getVertexShader('room').replace(/ROOM_EFFECTS/g, true);
-					doReplace = true;
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"mapBump": { type: "t", value: "" },
-								"offsetBump": { type: "f4", value: [0.0, 0.0, 0.0, 0.0] },
-								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
-								"curTime": { type: "f", value: 0.0 },
-								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
-							},
-							"vertexShader": vshader,
-							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('room_bump'),
-							"vertexColors" : true
-						}
-					};
-				}
-				break;
-			case 'mesh':
-				matName = 'TR_mesh';
-				if (!this.sc.materials[matName]) {
-					doReplace = true;
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
-								"curTime": { type: "f", value: 0.0 },
-								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
-								"lighting": { type: "f", value: 0.0 }
-							},
-							"vertexShader": this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4' ? this.shaderMgr.getVertexShader('mesh2') : this.shaderMgr.getVertexShader('mesh'),
-							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-							"vertexColors" : true
-						}
-					};
-				}				
-				break;
-			case 'moveable':
-                //params.numLights = null;
-                matName = 'TR_moveable' + (params.numLights ? '_l' + params.numLights.directional + '_' + params.numLights.point + '_' + params.numLights.spot : '');
-				if (!this.sc.materials[matName]) {
-					var vertexShader;
-					doReplace = true;
-					if (params.numLights) {
-						vertexShader = this.shaderMgr.getVertexShader('moveable_with_lights');
-						vertexShader = vertexShader.replace(/##num_point_lights##/g, params.numLights.point).replace(/##num_dir_lights##/g, params.numLights.directional).replace(/##num_spot_lights##/g, params.numLights.spot);
-					} else {
-						vertexShader = this.shaderMgr.getVertexShader('moveable');
-					}
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"ambientColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
-								"curTime": { type: "f", value: 0.0 },
-								"rnd": { type: "f", value: 0.0 },
-								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
-                                "lighting": { type: "f", value: 0.0 },
-                                "bindMatrix": { type: "m4", value: [
-                                    1,0,0,0,
-                                    0,1,0,0,
-                                    0,0,1,0,
-                                    0,0,0,1
-                                ] },
-                                "bindMatrixInverse": { type: "m4", value: [
-                                    1,0,0,0,
-                                    0,1,0,0,
-                                    0,0,1,0,
-                                    0,0,0,1
-                                ] },
-							},
-							"vertexShader": vertexShader,
-							"fragmentShader": this.sc.defaults.fog ? this.shaderMgr.getFragmentShader('standard_fog') : this.shaderMgr.getFragmentShader('standard'),
-							"vertexColors" : true,
-							"skinning": true
-						}
-					};
-				}
-				break;
-			case 'skydome':
-				matName = 'TR_SkyDome';
-				if (!this.sc.materials[matName]) {
-					doReplace = true;
-					this.sc.materials[matName] = {
-						"type": "ShaderMaterial",
-						"parameters": {
-							"uniforms": {
-								"map": { type: "t", value: "" },
-								"tintColor": { type: "f3", value: [1.0, 1.0, 1.0] },
-								"offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] }
-							},
-							"vertexShader": this.shaderMgr.getVertexShader('skydome'),
-							"fragmentShader": this.shaderMgr.getFragmentShader('skydome'),
-							"vertexColors" : true
-						}
-					};
-				}				
-				break;
-		}
-
-		if (doReplace) {
-			this.sc.materials[matName].parameters.vertexShader = this.sc.materials[matName].parameters.vertexShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2)).replace(/##world_scale##/g, "" + TRN.Consts.worldScale.toFixed(10));
-			this.sc.materials[matName].parameters.fragmentShader = this.sc.materials[matName].parameters.fragmentShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2)).replace(/##world_scale##/g, "" + TRN.Consts.worldScale.toFixed(10));
-		}
+        if (!mat) {
+            var vshaderName = objType;
+            if (objType == 'moveable') vshaderName += '_with_lights';
+            mat = this.sc.materials[matName] = {
+                "type": "ShaderMaterial",
+                "parameters": {
+                    "uniforms": {
+                        "map":          { type: "t",  value: "" },
+                        "mapBump":      { type: "t",  value: "" },
+                        "offsetBump":   { type: "f4", value: [0.0, 0.0, 0.0, 0.0] },
+                        "ambientColor": { type: "f3", value: [0.0, 0.0, 0.0] },
+                        "tintColor":    { type: "f3", value: [1.0, 1.0, 1.0] },
+                        "flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
+                        "curTime":      { type: "f",  value: 0.0 },
+                        "rnd":          { type: "f",  value: 0.0 },
+                        "offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
+                        "useFog":       { type: "i",  value: 0 },
+                        "lighting":     { type: "f3", value: [0, 0, 0] }
+                    },
+                    "vertexShader": this.shaderMgr.getVertexShader(vshaderName),
+                    "fragmentShader": this.shaderMgr.getFragmentShader('standard'),
+                    "vertexColors" : true
+                }
+            };
+            switch(objType) {
+                case 'moveable':
+                    mat.parameters.skinning = true;
+                    break;
+                case 'sky':
+                    mat.parameters.skinning = true;
+                    mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('sky');
+                    break;
+            }
+			mat.parameters.vertexShader   = mat.parameters.vertexShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
+			mat.parameters.fragmentShader = mat.parameters.fragmentShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
+        }
 
 		return matName;
 	},
 
 	convertIntensity : function(intensity) {
-		var l = intensity/8192.0;
+		var l = [intensity/8192.0, intensity/8192.0, intensity/8192.0];
 
 		if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
 			var b = ((intensity & 0x7C00) >> 10) << 3, g = ((intensity & 0x03E0) >> 5) << 3, r = (intensity & 0x001F) << 3;
@@ -187,22 +76,14 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		var xmax = ymax = zmax = -1e20;
 		for (var i = 0; i < vertices.length; ++i) {
 			var vertex = vertices[i].vertex;
-			if (xmin > vertex.x*TRN.Consts.worldScale) xmin = vertex.x*TRN.Consts.worldScale;
-			if (xmax < vertex.x*TRN.Consts.worldScale) xmax = vertex.x*TRN.Consts.worldScale;
-			if (ymin > vertex.y*TRN.Consts.worldScale) ymin = vertex.y*TRN.Consts.worldScale;
-			if (ymax < vertex.y*TRN.Consts.worldScale) ymax = vertex.y*TRN.Consts.worldScale;
-			if (zmin > vertex.z*TRN.Consts.worldScale) zmin = vertex.z*TRN.Consts.worldScale;
-			if (zmax < vertex.z*TRN.Consts.worldScale) zmax = vertex.z*TRN.Consts.worldScale;
+			if (xmin > vertex.x) xmin = vertex.x;
+			if (xmax < vertex.x) xmax = vertex.x;
+			if (ymin > vertex.y) ymin = vertex.y;
+			if (ymax < vertex.y) ymax = vertex.y;
+			if (zmin > vertex.z) zmin = vertex.z;
+			if (zmax < vertex.z) zmax = vertex.z;
 		}
 		return [xmin,xmax,ymin,ymax,zmin,zmax];
-	},
-
-	countLightTypes : function(lights) {
-		var res = { directional:0, point:0, spot: 0 };
-		for (var i = 0; i < lights.length; ++i) {
-			res[lights[i].type]++;
-		}
-		return res;
 	},
 
 	processRoomVertex : function(rvertex, isFilledWithWater) {
@@ -246,7 +127,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		if (isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
 
 		return {
-			x: vertex.x*TRN.Consts.worldScale, y: -vertex.y*TRN.Consts.worldScale, z: -vertex.z*TRN.Consts.worldScale,
+			x: vertex.x, y: -vertex.y, z: -vertex.z,
 			flag: [moveLight, 0, moveVertex, -strengthEffect],
 			color: lighting
 		};
@@ -368,7 +249,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
 			var vcolor = parseInt(lighting*255);
 
-			meshJSON.vertices.push(vertex.x*TRN.Consts.worldScale, -vertex.y*TRN.Consts.worldScale, -vertex.z*TRN.Consts.worldScale);
+			meshJSON.vertices.push(vertex.x, -vertex.y, -vertex.z);
 			meshJSON.colors.push(vcolor + (vcolor << 8) + (vcolor << 16)); 	// not used => a specific calculation is done in the vertex shader 
 																			// with the constant lighting for the mesh + the lighting at each vertex (passed to the shader via flags.w)
 
@@ -382,7 +263,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return internallyLit;
 	},
 
-	makeMaterialList : function (tiles2material, matname, matparams) {
+	makeMaterialList : function (tiles2material, matname) {
 		if (!matname) matname = 'room';
 		var lstMat = [];
 		for (var tile in tiles2material) {
@@ -393,14 +274,17 @@ TRN.extend(TRN.SceneConverter.prototype, {
             if (isAlphaText) tile = tile.substr(5);
             if (isBump) tile = oimat.tile;
 			lstMat[imat] = {
-				"material": this.getMaterial(matname, matparams),
+				"material": this.getMaterial(matname),
 				"uniforms": {},
 				"userData": {}
-			};
+            };
+            lstMat[imat].uniforms = jQuery.extend(true, {}, this.sc.materials[lstMat[imat].material].parameters.uniforms);
+            
 			if (isAnimText) {
                 var idxAnimText = parseInt(tile.split('_')[1]), pos = parseInt(tile.split('_')[2]);
 				isAlphaText = tile.substr(7, 5) == 'alpha';
-                lstMat[imat].uniforms.map = { type: "t", value: "" + oimat.tile };
+                lstMat[imat].uniforms.map.value = "" + oimat.tile;
+				lstMat[imat].uniforms.mapBump.value = "" + oimat.tile;
 				lstMat[imat].userData.animatedTexture = {
 					"idxAnimatedTexture": idxAnimText,
                     "pos": pos,
@@ -408,16 +292,16 @@ TRN.extend(TRN.SceneConverter.prototype, {
                     "minV": oimat.minV
                 };
 			} else {
-				lstMat[imat].uniforms.map = { type: "t", value: "" + tile };
+				lstMat[imat].uniforms.map.value = "" + tile;
+				lstMat[imat].uniforms.mapBump.value = "" + tile;
 				if (isBump) {
-                    lstMat[imat].material = this.getMaterial('roombump', matparams);
                     if (this.trlevel.atlas.make) {
                         var row0 = Math.floor(origTile / this.trlevel.atlas.numColPerRow), col0 = origTile - row0 * this.trlevel.atlas.numColPerRow;
                         var row = Math.floor((origTile + this.trlevel.numBumpTextiles/2) / this.trlevel.atlas.numColPerRow), col = (origTile + this.trlevel.numBumpTextiles/2) - row * this.trlevel.atlas.numColPerRow;
-                        lstMat[imat].uniforms.mapBump = { type: "t", value: "" + tile };
-                        lstMat[imat].uniforms.offsetBump = { type: "f4", value: [(col-col0)*256.0/this.trlevel.atlas.width, (row-row0)*256.0/this.trlevel.atlas.height,0,0] };
+                        lstMat[imat].uniforms.mapBump.value = "" + tile;
+                        lstMat[imat].uniforms.offsetBump.value = [(col-col0)*256.0/this.trlevel.atlas.width, (row-row0)*256.0/this.trlevel.atlas.height,0,1];
                     } else {
-                        lstMat[imat].uniforms.mapBump = { type: "t", value: "" + (parseInt(origTile) + this.trlevel.numBumpTextiles/2) };
+                        lstMat[imat].uniforms.mapBump.value = "" + (Math.floor(origTile) + this.trlevel.numBumpTextiles/2);
                     }
 				}
 			}
@@ -427,48 +311,101 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return lstMat;
 	},
 
+    createLightsUniforms : function(material) {
+
+        var u = material.uniforms;
+
+        u.numDirectionalLight           = { type: "i",   value: 0 };
+        u.directionalLight_direction    = { type: "fv",  /*value: []*/ };
+        u.directionalLight_color        = { type: "fv",  /*value: []*/ };
+
+        u.numPointLight                 = { type: "i",   value: -1 };
+        u.pointLight_position           = { type: "fv",  /*value: []*/ };
+        u.pointLight_color              = { type: "fv",  /*value: []*/ };
+        u.pointLight_distance           = { type: "fv1", /*value: []*/ };
+
+        u.numSpotLight                  = { type: "i",   value: 0 };
+        u.spotLight_position            = { type: "fv",  /*value: []*/ };
+        u.spotLight_color               = { type: "fv",  /*value: []*/ };
+        u.spotLight_distance            = { type: "fv1", /*value: []*/ };
+        u.spotLight_direction           = { type: "fv",  /*value: []*/ };
+        u.spotLight_coneCos             = { type: "fv1", /*value: []*/ };
+        u.spotLight_penumbraCos         = { type: "fv1", /*value: []*/ };
+
+    },
+
     setMaterialLightsUniform : function(room, material) {
-        if (!room || room.lights.length == 0) return;
 
-        material.uniforms.directionalLight_direction = { type: "fv", value: [] };
-        material.uniforms.directionalLight_color = { type: "fv", value: [] };
+        var u = material.uniforms;
 
-        material.uniforms.pointLight_position = { type: "fv", value: [] };
-        material.uniforms.pointLight_color = { type: "fv", value: [] };
-        material.uniforms.pointLight_distance = { type: "fv1", value: [] };
+        u.numDirectionalLight.value = 0;
+        u.numPointLight.value       = 0;
+        u.numSpotLight.value        = 0;
 
-        material.uniforms.spotLight_position = { type: "fv", value: [] };
-        material.uniforms.spotLight_color = { type: "fv", value: [] };
-        material.uniforms.spotLight_distance = { type: "fv1", value: [] };
-        material.uniforms.spotLight_direction = { type: "fv", value: [] };
-        material.uniforms.spotLight_coneCos = { type: "fv1", value: [] };
-        material.uniforms.spotLight_penumbraCos = { type: "fv1", value: [] };
+        if (room.lights.length == 0) {
+            return;
+        }
 
         for (var l = 0; l < room.lights.length; ++l) {
-
             var light = room.lights[l];
 
             switch(light.type) {
                 case 'directional':
-                    material.uniforms.directionalLight_direction.value = material.uniforms.directionalLight_direction.value.concat([light.dx, light.dy, light.dz]);
-                    material.uniforms.directionalLight_color.value = material.uniforms.directionalLight_color.value.concat(light.color);
+                    u.numDirectionalLight.value++;
                     break;
                 case 'point':
-                    material.uniforms.pointLight_position.value = material.uniforms.pointLight_position.value.concat([light.x, light.y, light.z]);
-                    material.uniforms.pointLight_color.value = material.uniforms.pointLight_color.value.concat(light.color);
-                    material.uniforms.pointLight_distance.value.push(light.fadeOut);
+                    u.numPointLight.value++;
                     break;
                 case 'spot':
-                    material.uniforms.spotLight_position.value = material.uniforms.spotLight_position.value.concat([light.x, light.y, light.z]);
-                    material.uniforms.spotLight_color.value = material.uniforms.spotLight_color.value.concat(light.color);
-                    material.uniforms.spotLight_distance.value.push(light.fadeOut);
-                    material.uniforms.spotLight_direction.value = material.uniforms.spotLight_direction.value.concat([light.dx, light.dy, light.dz]);
-                    material.uniforms.spotLight_coneCos.value.push(light.coneCos);
-                    material.uniforms.spotLight_penumbraCos.value.push(light.penumbraCos);
+                    u.numSpotLight.value++;
                     break;
             }
         }
-    },
+
+        if (u.numDirectionalLight.value > 0) {
+            u.directionalLight_direction.value = [];
+            u.directionalLight_color.value = [];
+        }
+
+        if (u.numPointLight.value > 0) {
+            u.pointLight_position.value = [];
+            u.pointLight_color.value = [];
+            u.pointLight_distance.value = [];
+        }
+
+        if (u.numSpotLight.value > 0) {
+            u.spotLight_position.value = [];
+            u.spotLight_color.value = [];
+            u.spotLight_distance.value = [];
+            u.spotLight_direction.value = [];
+            u.spotLight_coneCos.value = [];
+            u.spotLight_penumbraCos.value = [];
+        }
+
+        for (var l = 0; l < room.lights.length; ++l) {
+            var light = room.lights[l];
+
+            switch(light.type) {
+                case 'directional':
+                    u.directionalLight_direction.value  = u.directionalLight_direction.value.concat([light.dx, light.dy, light.dz]);
+                    u.directionalLight_color.value      = u.directionalLight_color.value.concat(light.color);
+                    break;
+                case 'point':
+                    u.pointLight_position.value = u.pointLight_position.value.concat([light.x, light.y, light.z]);
+                    u.pointLight_color.value    = u.pointLight_color.value.concat(light.color);
+                    u.pointLight_distance.value.push(light.fadeOut);
+                    break;
+                case 'spot':
+                    u.spotLight_position.value  = u.spotLight_position.value.concat([light.x, light.y, light.z]);
+                    u.spotLight_color.value     = u.spotLight_color.value.concat(light.color);
+                    u.spotLight_direction.value = u.spotLight_direction.value.concat([light.dx, light.dy, light.dz]);
+                    u.spotLight_distance.value.push(light.fadeOut);
+                    u.spotLight_coneCos.value.push(light.coneCos);
+                    u.spotLight_penumbraCos.value.push(light.penumbraCos);
+                    break;
+            }
+        }
+   },
 
     makeMaterialForMoveableInstance : function(objID, roomIndex, lighting) {
 		var room = this.sc.objects['room' + roomIndex];
@@ -479,21 +416,22 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			var moveableIsInternallyLit = this.sc.embeds['moveable' + objID].moveableIsInternallyLit;
 			materials = [];
 			for (var mat = 0; mat < this.sc.embeds['moveable' + objID]._materials.length; ++mat) {
-				var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objID]._materials[mat]);
+                var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objID]._materials[mat]);
+                
+                this.createLightsUniforms(material);
 				if (lighting != -1 || moveableIsInternallyLit) {
 					// item is internally lit
 					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
 					if (lighting == -1) lighting = 0;
-					material.uniforms.lighting.value = this.convertIntensity(lighting);
+                    //material.uniforms.lighting.value = this.convertIntensity(lighting);
+                    material.uniforms.ambientColor.value = this.convertIntensity(lighting);
 				} else {
-					// change material to a material that handles lights
-					material.material = this.getMaterial('moveable', { numLights:this.countLightTypes(room.lights) });
-					material.uniforms.lighting.value = 1.0;
+                    material.uniforms.ambientColor.value = room.ambientColor;
                     this.setMaterialLightsUniform(room, material);
                 }
-                material.uniforms.ambientColor = { type:"f3", value: room.ambientColor };
-                if (!room.flickering) material.uniforms.flickerColor = { type: "f3", value: [1, 1, 1] };
-                if (room.filledWithWater)  material.uniforms.tintColor = { type: "f3", value: [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b] };
+
+                if (!room.flickering)       material.uniforms.flickerColor.value = [1, 1, 1];
+                if (room.filledWithWater)   material.uniforms.tintColor.value    = [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b];
 
 				materials.push(material);
 			}

@@ -398,14 +398,9 @@ TRN.MasterLoader = {
 			for (var mt_ = 0; mt_ < obj.material.length; ++mt_) {
 
 				var elem = obj.material[mt_];
-				material.materials[mt_] = scene.materials[elem.material].clone();
-				if (elem.uniforms) {
-					material.materials[mt_].uniforms = THREE.UniformsUtils.merge([material.materials[mt_].uniforms, elem.uniforms]);
-				}
-
-				if (attributes) {
-					material.materials[mt_].attributes = attributes;
-				}
+                material.materials[mt_] = scene.materials[elem.material].clone();
+                material.materials[mt_].uniforms = elem.uniforms;
+                material.materials[mt_].attributes = attributes;
 
 				for (var mkey in elem) {
 
