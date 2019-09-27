@@ -104,9 +104,9 @@ TRN.Play.prototype = {
                     var materials = obj.material.materials;
                     for (var m = 0; m < materials.length; ++m) {
                         var material = materials[m];
-                        obj.material.materials[0].polygonOffset = true;
-                        obj.material.materials[0].polygonOffsetFactor = factor;
-                        obj.material.materials[0].polygonOffsetUnits = unit;
+                        material.polygonOffset = true;
+                        material.polygonOffsetFactor = factor;
+                        material.polygonOffsetUnits = unit;
                     }
                 }
             }
