@@ -32,7 +32,7 @@ var BasicControls = function ( object, domElement ) {
 	this.states[this.KEYS.MOUSEY] =  {state:this.STATES.ROTNX,   on:false}; // mouse move +Y
 	
 	this.factor = 1.0;
-	this.moveFactor = 6000*TRN.Consts.worldScale;
+	this.moveFactor = 6000;
 	this.rotFactor = 100;
     this.mouseRotFactor = 10;
 	

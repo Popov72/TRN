@@ -254,9 +254,6 @@ TRN.Play.prototype = {
 				var q = new THREE.Quaternion();
 				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sceneJSON.cutScene.origin.rotY) );
 
-                eyePos.multiplyScalar(TRN.Consts.worldScale);
-                lkat.multiplyScalar(TRN.Consts.worldScale);
-
 				lkat.applyQuaternion(q);
 
 				this.camera.fov = fov;
