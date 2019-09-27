@@ -21,8 +21,6 @@ TRN.extend(TRN.SceneConverter.prototype, {
         var mat = this.sc.materials[matName];
 
         if (!mat) {
-            var vshaderName = objType;
-            if (objType == 'moveable') vshaderName += '_with_lights';
             mat = this.sc.materials[matName] = {
                 "type": "ShaderMaterial",
                 "parameters": {
@@ -39,7 +37,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
                         "useFog":       { type: "i",  value: 0 },
                         "lighting":     { type: "f3", value: [0, 0, 0] }
                     },
-                    "vertexShader": this.shaderMgr.getVertexShader(vshaderName),
+                    "vertexShader": this.shaderMgr.getVertexShader(objType),
                     "fragmentShader": this.shaderMgr.getFragmentShader('standard'),
                     "vertexColors" : true
                 }
