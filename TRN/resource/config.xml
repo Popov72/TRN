@@ -66,7 +66,11 @@
 			<level id="gym.phd"			type="normal"	name="Lara's Home"/>
 			<level id="level1.phd"		type="normal"	name="Caves"/>
 			<level id="level2.phd"		type="normal"	name="City of Vilcabamba"/>
-			<level id="level3a.phd"		type="normal"	name="The Lost Valley"/>
+			<level id="level3a.phd"		type="normal"	name="The Lost Valley">
+                <zbias>
+                    <moveable id="68" factor="-40" unit="-40"/>
+                </zbias>
+            </level>
 			<level id="level3b.phd"		type="normal"	name="Tomb of Qualopec"/>
 			<level id="level4.phd"		type="normal"	name="St Francis' Folly"/>
 			<level id="level5.phd"		type="normal"	name="Colosseum"/>
@@ -755,6 +759,9 @@
 						</behaviour>
 					</moveable>
 				</moveables>
+                <zbias>
+                    <staticmesh id="12" factor="-1" unit="1"/>
+                </zbias>
 			</level>
 			<level id="joby3b.tr4"			type="normal"	name="Inside Menkaure's Pyramid">
 				<sky>

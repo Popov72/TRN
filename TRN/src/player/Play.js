@@ -81,6 +81,27 @@ TRN.Play.prototype = {
 			jQuery('#nobumpmapping').prop('disabled', 'disabled');
 		}
 
+        var confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
+        
+        var zbias = jQuery(confMgr.levelParam(this.sceneJSON.levelShortFileName, 'zbias', false, true)).find('[factor][unit]');
+        for (var i = 0; i < zbias.size(); ++i) {
+            var node = zbias[i];
+            var factor = node.getAttribute('factor'), unit = node.getAttribute('unit'), name = node.nodeName;
+            for (var objID in this.scene.objects) {
+                var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
+    
+                if (objJSON.type == name) {
+                    var materials = obj.material.materials;
+                    for (var m = 0; m < materials.length; ++m) {
+                        var material = materials[m];
+                        obj.material.materials[0].polygonOffset = true;
+                        obj.material.materials[0].polygonOffsetFactor = factor;
+                        obj.material.materials[0].polygonOffsetUnits = unit;
+                    }
+                }
+            }
+        }
+
 		this.panel.show();
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
