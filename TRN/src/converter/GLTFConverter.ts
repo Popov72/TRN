@@ -826,7 +826,7 @@ namespace TRNUtil {
                 },
             };
 
-            if (obj.isSprite) {
+            if (obj.type == "sprite") {
                 mesh.extras.TRN_behaviours.push({
                     "type": "sprite",
                 });

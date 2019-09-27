@@ -450,7 +450,8 @@ TRN.SceneConverter.prototype = {
 					"visible"  		: !room.isAlternate,
 					"type"			: 'staticmesh',
 					"roomIndex"		: m,
-					"objectid"		: objectID+50000
+                    "objectid"		: objectID+50000,
+                    "objectid_orig" : objectID
 				};
 
 			}
@@ -758,7 +759,8 @@ TRN.SceneConverter.prototype = {
 			"quaternion" 			: rotation,
 			"scale"	   				: [ 1, 1, 1 ],
 			"visible"  				: room.visible && visible,
-			"objectid" 				: moveable.objectID,
+            "objectid" 				: moveable.objectID,
+            "objectid_orig"         : moveable.objectID,
 			"type"   				: 'moveable',
             "has_anims"				: true,
             "numAnimations"         : hasGeometry ? this.numAnimationsForMoveable(this.sc.embeds["moveable" + objIDForVisu].moveableIndex) : 0,
@@ -810,15 +812,16 @@ TRN.SceneConverter.prototype = {
 			}
 			
 			this.sc.objects[spriteid + '_' + itemIndex] = {
-				"geometry" 	: spriteid,
-				"material" 	: materials,
-				"position" 	: [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
-				"quaternion": [ 0, 0, 0, 1 ],
-				"scale"	   	: [ 1, 1, 1 ],
-				"visible"  	: room.visible,
-				"objectid" 	: spriteSeq.objectID,
-				"isSprite" 	: 'sprite',
-				"roomIndex"	: roomIndex
+				"geometry" 	    : spriteid,
+				"material" 	    : materials,
+				"position" 	    : [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
+				"quaternion"    : [ 0, 0, 0, 1 ],
+				"scale"	   	    : [ 1, 1, 1 ],
+				"visible"  	    : room.visible,
+				"objectid" 	    : spriteSeq.objectID,
+                "objectid_orig" : spriteSeq.objectID,
+				"type" 	        : 'sprite',
+				"roomIndex"	    : roomIndex
 			};
 		}
 	},
@@ -1484,7 +1487,6 @@ TRN.SceneConverter.prototype = {
 			}
 		};
 
-        this.sc.trlevel = trlevel;
 		this.sc.levelFileName = this.trlevel.filename;
 		this.sc.levelShortFileName = this.sc.levelFileName;
 		this.sc.levelShortFileNameNoExt = this.sc.levelShortFileName.substring(0, this.sc.levelShortFileName.indexOf('.'));

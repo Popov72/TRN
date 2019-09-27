@@ -606,7 +606,7 @@ var TRNUtil;
                     "TRN_behaviours": [],
                 },
             };
-            if (obj.isSprite) {
+            if (obj.type == "sprite") {
                 mesh.extras.TRN_behaviours.push({
                     "type": "sprite",
                 });
