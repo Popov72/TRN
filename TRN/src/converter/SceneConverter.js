@@ -933,6 +933,7 @@ TRN.SceneConverter.prototype = {
 				"scale"	   				: [1, 1, 1],
 				"visible"  				: true,
 				"objectid" 				: moveable.objectID,
+                "objectid_orig"         : moveable.objectID,
 				"type"     				: 'moveable',
 				"animationStartIndex"	: moveable.animation,
 				"has_anims"				: !skyNoAnim,
@@ -971,7 +972,8 @@ TRN.SceneConverter.prototype = {
 				"type"					: 'skydome',
 				"skin"					: false,
 				"use_vertex_texture" 	: true,
-				"dummy"					: true
+                "dummy"					: true,
+                "objectid_orig"         : 0
 			};
 			
 			var meshJSON = this.createNewJSONEmbed();
@@ -1617,7 +1619,8 @@ TRN.SceneConverter.prototype = {
 			"near"  : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > neardist', true, 50),
 			"far"   : this.confMgr.levelFloat(this.sc.levelShortFileName, 'camera > fardist', true, 10000),
 			"position": [ camPos.x, camPos.y, camPos.z ],
-			"quaternion": q
+            "quaternion": q,
+            "objectid_orig": 0
 		}
 
 		this.createTextures();
