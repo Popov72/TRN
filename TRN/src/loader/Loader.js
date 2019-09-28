@@ -368,8 +368,10 @@ TRN.Loader = {
 				for (var j = 0; j < objText.vertices.length; ++j) {
 					var vert = objText.vertices[j];
 
-					vert.Xpixel = parseInt(vert.Xpixel) + col * 256;
-					vert.Ypixel = parseInt(vert.Ypixel) + row * 256;
+                    if (!(vert.Xpixel == 0 && vert.Ypixel == 0 && vert.Xcoordinate == 0 && vert.Ycoordinate == 0)) {
+                        vert.Xpixel = parseInt(vert.Xpixel) + col * 256;
+                        vert.Ypixel = parseInt(vert.Ypixel) + row * 256;
+                    }
 				}
 			}
 		}
