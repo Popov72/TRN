@@ -48,15 +48,20 @@ TRN.Panel.prototype = {
 		this.elem.find('#memoryinfo').html(renderer.info.memory.geometries + ' / ' + renderer.info.memory.programs + ' / ' + renderer.info.memory.textures);
 	},
 
-	singleRoomMode : function() {
+    updateFromParent : function() {
 
-		return this.elem.find('#singleroommode').prop('checked');
+        this.elem.find('#singleroommode').prop('checked', this.parent.singleRoomMode);
+        this.elem.find('#useaddlights').prop('checked', this.parent.useAdditionalLights);
 
 	},
 
 	bindEvents : function() {
 
 		var this_ = this;
+
+		this.elem.find('#singleroommode').on('click', function() {
+            this_.parent.singleRoomMode = this.checked;
+		});
 
 		this.elem.find('#wireframemode').on('click', function() {
 			var scene = this_.parent.scene;

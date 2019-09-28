@@ -8,6 +8,7 @@ TRN.Play = function (container) {
 	this.controls = null;
 	this.startTime = -1;
 	this.gcounter = 0;
+    this.singleRoomMode = false;
     this.useAdditionalLights = false;
 
 	this.panel = new TRN.Panel(this.container, this);
@@ -103,7 +104,7 @@ TRN.Play.prototype = {
             TRN.Helper.setLightsOnMoveables(this.scene.objects, this.sceneJSON, true);
         }
 
-		this.panel.show();
+        this.panel.updateFromParent();
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
@@ -370,7 +371,7 @@ TRN.Play.prototype = {
 
 			}
 
-			if (singleRoomMode) {
+			if (this.singleRoomMode) {
 				obj.visible = objJSON.roomIndex == this.sceneJSON.curRoom && !objJSON.isAlternateRoom;
 			} else {
 				obj.visible = objJSON.visible;
