@@ -7,7 +7,7 @@ TRN.Play = function (container) {
 	this.sceneJSON = null;
 	this.controls = null;
 	this.startTime = -1;
-	this.gcounter = 0;
+    this.gcounter = 0;
     this.singleRoomMode = false;
     this.useAdditionalLights = false;
 
@@ -63,6 +63,49 @@ TRN.Play.prototype = {
 
 	},
 
+    buildLists : function() {
+        this.objectList = {};
+
+        for (var objID in this.scene.objects) {
+            var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID], type = objJSON.type;
+
+            var id = objJSON.objectid_orig;
+            if (objJSON.type == 'room') {
+                id = objJSON.roomIndex;
+            }
+
+            if (id == undefined) {
+                console.log('buildLists: not found objectid_orig property', objJSON);
+                continue;
+            }
+
+            if (type == undefined) {
+                console.log('buildLists: not found type property', objJSON);
+                continue;
+            }
+
+            var objs = this.objectList[type];
+            if (!objs) {
+                objs = {};
+                this.objectList[type] = objs;
+            }
+            if (objs[id] && type == 'room') {
+                console.log('Already found room with id ' + id + ':', type, objs[id], objJSON)
+            }
+
+            if (type == 'room') {
+                objs[id] = obj;
+            } else {
+                var objsForId = objs[id];
+                if (!objsForId) {
+                    objsForId = [];
+                    objs[id] = objsForId;
+                }
+                objsForId.push(obj);
+            }
+        }
+    },
+
 	start : function (oscene) {
 
 		this.oscene = oscene;
@@ -72,18 +115,9 @@ TRN.Play.prototype = {
 
 		this.controls = new BasicControls( this.camera, document.body );
 
-		var confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
-		var tintColor = confMgr.levelColor(this.sceneJSON.levelShortFileName, 'globaltintcolor', true, null);
-
-        this.roomList = [];
-
-        for (var objID in this.scene.objects) {
-            var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
-
-            if (objJSON.type == 'room' && !objJSON.isAlternateRoom) {
-                this.roomList[objJSON.roomIndex] = obj;
-            }
-        }
+        this.confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
+        
+		var tintColor = this.confMgr.levelColor(this.sceneJSON.levelShortFileName, 'globaltintcolor', true, null);
 
 		if (tintColor != null) {
 			this.globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
@@ -93,10 +127,10 @@ TRN.Play.prototype = {
 			jQuery('#nobumpmapping').prop('disabled', 'disabled');
 		}
 
-        var confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
-        
+        this.buildLists();
+
         TRN.Behaviours.applyBehaviours(this.objectList, this.sceneJSON, this.confMgr, this);
-    
+
 		this.panel.show();
 
         if (this.sceneJSON.cutScene.frames) {
@@ -308,8 +342,10 @@ TRN.Play.prototype = {
 	},
 
     findRoom : function(pos) {
-        for (var r = 0; r < this.roomList.length; ++r) {
-            var obj = this.roomList[r];
+        var roomList = this.objectList['room'];
+        for (var r in roomList) {
+            var obj = roomList[r], objJSON = this.sceneJSON.objects[obj.name];
+            if (objJSON.isAlternateRoom) continue;
             if (obj && obj.geometry.boundingBox.containsPoint(pos)) {
                 return r;
             }
@@ -331,8 +367,6 @@ TRN.Play.prototype = {
 				material.uniforms.offsetRepeat.value[0] = pgr;
 			}
 		}
-
-		var singleRoomMode = this.panel.singleRoomMode();
 
 		this.sceneJSON.curRoom = -1;
 
