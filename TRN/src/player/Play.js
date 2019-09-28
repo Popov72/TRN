@@ -93,12 +93,7 @@ TRN.Play.prototype = {
 
         var confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
         
-        var zbias = jQuery(confMgr.levelParam(this.sceneJSON.levelShortFileName, 'zbias', false, true)).find('[factor][unit]');
-        for (var i = 0; i < zbias.size(); ++i) {
-            var node = zbias[i];
-            var factor = node.getAttribute('factor'), unit = node.getAttribute('unit'), name = node.nodeName;
-            for (var objID in this.scene.objects) {
-                var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
+        TRN.Behaviours.applyBehaviours(this.objectList, this.sceneJSON, this.confMgr, this);
     
                 if (objJSON.type == name) {
                     var materials = obj.material.materials;

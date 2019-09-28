@@ -67,9 +67,9 @@
 			<level id="level1.phd"		type="normal"	name="Caves"/>
 			<level id="level2.phd"		type="normal"	name="City of Vilcabamba"/>
 			<level id="level3a.phd"		type="normal"	name="The Lost Valley">
-                <zbias>
-                    <moveable id="68" factor="-40" unit="-40"/>
-                </zbias>
+                <behaviour name="Zbias" objectid="68" objecttype="moveable">
+                    <polygoneoffset factor="-40" unit="-40"/>
+                </behaviour>
             </level>
 			<level id="level3b.phd"		type="normal"	name="Tomb of Qualopec"/>
 			<level id="level4.phd"		type="normal"	name="St Francis' Folly"/>
@@ -571,7 +571,6 @@
 					</behaviour>
 				</moveable>
 				<moveable id="144">
-					<behaviour name="RemoveObject"/>
 					<behaviour name="ParticleSystem">
 						<particlesys_name>TRPlayer/Torch</particlesys_name>
 						<particlesys_offset><x>0</x><y>0</y><z>250</z></particlesys_offset>
@@ -582,6 +581,7 @@
 						<blink>yes</blink>
 						<objects_only>no</objects_only>
 					</behaviour>
+					<behaviour name="RemoveObject"/>
 				</moveable>
 				<moveable id="423">
 					<behaviour name="StaticObject"/>
@@ -608,6 +608,7 @@
 				<behaviour name="Lara">
 					<startanim>70</startanim>
 				</behaviour>
+                <behaviour name="RemoveObject" objectid="431" cutsceneonly="yes"/>
             </level>
 			<level id="settomb1.tr4"		type="normal"	name="The Tomb Of Seth"/>
 			<level id="settomb2.tr4"		type="normal"	name="Burial Chambers">
@@ -631,7 +632,12 @@
 					<startanim>70</startanim>
 				</behaviour>
 			</level>
-			<level id="karnak1.tr4"			type="normal"	name="Temple Of Karnak"/>
+			<level id="karnak1.tr4"			type="normal"	name="Temple Of Karnak">
+                <behaviour name="RemoveObject" objectid="41" cutsceneonly="yes"/>
+                <behaviour name="RemoveObject" objectid="145" cutsceneonly="yes"/>
+                <behaviour name="RemoveObject" objectid="408" cutsceneonly="yes"/>
+                <behaviour name="RemoveObject" objectid="31" objecttype="staticmesh" cutsceneonly="yes"/>
+            </level>
 			<level id="hall.tr4"			type="normal"	name="The Great Hypostyle Hall">
 				<behaviour name="Lara">
 					<startanim>70</startanim>
@@ -645,12 +651,16 @@
 			<level id="semer.tr4"			type="normal"	name="The Tomb of Semerkhet"/>
 			<level id="semer2.tr4"			type="normal"	name="Guardian Of Semerket"/>
 			<level id="train.tr4"			type="normal"	name="Desert Railroad"/>
-			<level id="alexhub.tr4"			type="normal"	name="Alexandria"/>
+			<level id="alexhub.tr4"			type="normal"	name="Alexandria">
+				<behaviour name="RemoveObject" objectid="422" cutsceneonly="yes"/>
+            </level>
 			<level id="alexhub2.tr4"		type="normal"	name="Coastal Ruins"/>
 			<level id="csplit1.tr4"			type="normal"	name="Catacombs"/>
 			<level id="csplit2.tr4"			type="normal"	name="Temple Of Poseidon"/>
 			<level id="library.tr4"			type="normal"	name="The Lost Library"/>
-			<level id="libend.tr4"			type="normal"	name="Hall Of Demetrius"/>
+			<level id="libend.tr4"			type="normal"	name="Hall Of Demetrius">
+                <behaviour name="RemoveObject" objectid="41" cutsceneonly="yes"/>
+            </level>
 			<level id="palaces.tr4"			type="normal"	name="Pharos,Temple Of Isis">
 				<behaviour name="Lara">
 					<startanim>86</startanim>
@@ -695,6 +705,8 @@
 						</behaviour>
 					</moveable>
 				</moveables>
+                <behaviour name="RemoveObject" objectid="408" cutsceneonly="yes"/>
+                <behaviour name="RemoveObject" objectid="435" cutsceneonly="yes"/>
 			</level>
 			<level id="nutrench.tr4"		type="normal"	name="Trenches">
 				<sky>
@@ -722,6 +734,7 @@
 						</behaviour>
 					</moveable>
 				</moveables>
+				<behaviour name="RemoveObject" objectid="201" cutsceneonly="yes"/>
 			</level>
 			<level id="citnew.tr4"			type="normal"	name="Citadel">
 				<sky>
@@ -734,6 +747,8 @@
 						</behaviour>
 					</moveable>
 				</moveables>
+				<behaviour name="RemoveObject" objectid="394" cutsceneonly="yes"/>
+				<behaviour name="RemoveObject" objectid="422" cutsceneonly="yes"/>
 			</level>
 			<level id="joby1a.tr4"			type="normal"	name="The Sphinx Complex">
 				<sky>
@@ -746,6 +761,7 @@
 						</behaviour>
 					</moveable>
 				</moveables>
+                <behaviour name="RemoveObject" objectid="422" cutsceneonly="yes"/>
 			</level>
 			<level id="joby2.tr4"			type="normal"	name="Underneath The Sphinx"/>
 			<level id="joby3a.tr4"			type="normal"	name="Menkaure's Pyramid">
@@ -759,9 +775,11 @@
 						</behaviour>
 					</moveable>
 				</moveables>
-                <zbias>
-                    <staticmesh id="12" factor="-1" unit="1"/>
-                </zbias>
+                <behaviour name="Zbias" objectid="12" objecttype="staticmesh">
+                    <polygoneoffset><factor>-1</factor><unit>1</unit></polygoneoffset>
+                </behaviour>
+                <behaviour name="RemoveObject" objectid="408" cutsceneonly="yes"/>
+                <behaviour name="RemoveObject" objectid="443" cutsceneonly="yes"/>
 			</level>
 			<level id="joby3b.tr4"			type="normal"	name="Inside Menkaure's Pyramid">
 				<sky>
@@ -816,8 +834,16 @@
 					<startanim>70</startanim>
 				</behaviour>
             </level>
-			<level id="joby5b.tr4"			type="normal"	name="Temple Of Horus"/>
-			<level id="joby5c.tr4"			type="normal"	name="Temple Of Horus"/>
+			<level id="joby5b.tr4"			type="normal"	name="Temple Of Horus">
+				<behaviour name="RemoveObject" objectid="394" cutsceneonly="yes"/>
+				<behaviour name="RemoveObject" objectid="408" cutsceneonly="yes"/>
+            </level>
+
+			<level id="joby5c.tr4"			type="normal"	name="Temple Of Horus">
+				<behaviour name="RemoveObject" objectid="394" cutsceneonly="yes"/>
+				<behaviour name="RemoveObject" objectid="422" cutsceneonly="yes"/>
+				<behaviour name="RemoveObject" objectid="433" cutsceneonly="yes"/>
+            </level>
 			<level id="joby1b.tr4"			type="normal"	name="The Valley Temple">
 				<sky>
 					<color><r>100</r><g>30</g><b>0</b></color>
@@ -829,6 +855,8 @@
 						</behaviour>
 					</moveable>
 				</moveables>
+			<level id="joby5b.tr4"			type="normal"	name="Temple Of Horus">
+            </level>
 			</level>
 			<!--level id="title2"		type="normal"	name="">
 				<sky>

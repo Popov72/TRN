@@ -111,44 +111,58 @@ TRN.Helper = {
             u.directionalLight_color.value = [];
         }
 
-        if (u.numPointLight.value > 0) {
-            u.pointLight_position.value = [];
-            u.pointLight_color.value = [];
-            u.pointLight_distance.value = [];
+    domNodeToJSon : function (node) {
+
+        var children = {};
+
+        var attrs = node.attributes;
+        if (attrs && attrs.length > 0) {
+            var attr = {};
+            children.__attributes = attr;
+            for (var i = 0; i < attrs.length; i++) {
+                var at = attrs[i];
+                attr[at.nodeName] = at.nodeValue;
+            }
         }
 
-        if (u.numSpotLight.value > 0) {
-            u.spotLight_position.value = [];
-            u.spotLight_color.value = [];
-            u.spotLight_distance.value = [];
-            u.spotLight_direction.value = [];
-            u.spotLight_coneCos.value = [];
-            u.spotLight_penumbraCos.value = [];
+        var childNodes = node.childNodes;
+        if (childNodes) {
+            var textVal = '', hasRealChild = false;
+            for (var i = 0; i < childNodes.length; i++) {
+                var child = childNodes[i];
+                var cname = child.nodeName;
+                switch(child.nodeType) {
+                    case 1:
+                        hasRealChild = true;
+                        if (children[cname]) {
+                            if (!Array.isArray(children[cname])) {
+                                children[cname] = [children[cname]];
+                            }
+                            children[cname].push(this.domNodeToJSon(child));
+                        } else {
+                            children[cname] = this.domNodeToJSon(child);
         }
-
-        for (var l = 0; l < room.lights.length; ++l) {
-            var light = room.lights[l];
-
-            switch(light.type) {
-                case 'directional':
-                    u.directionalLight_direction.value  = u.directionalLight_direction.value.concat([light.dx, light.dy, light.dz]);
-                    u.directionalLight_color.value      = u.directionalLight_color.value.concat(light.color);
                     break;
-                case 'point':
-                    u.pointLight_position.value = u.pointLight_position.value.concat([light.x, light.y, light.z]);
-                    u.pointLight_color.value    = u.pointLight_color.value.concat(light.color);
-                    u.pointLight_distance.value.push(light.fadeOut);
-                    break;
-                case 'spot':
-                    u.spotLight_position.value  = u.spotLight_position.value.concat([light.x, light.y, light.z]);
-                    u.spotLight_color.value     = u.spotLight_color.value.concat(light.color);
-                    u.spotLight_direction.value = u.spotLight_direction.value.concat([light.dx, light.dy, light.dz]);
-                    u.spotLight_distance.value.push(light.fadeOut);
-                    u.spotLight_coneCos.value.push(light.coneCos);
-                    u.spotLight_penumbraCos.value.push(light.penumbraCos);
+                    case 3:
+                        if (child.nodeValue) {
+                            textVal += child.nodeValue;
+                        }
                     break;
             }
         }
+            textVal = textVal.replace(/[ \r\n\t]/g, '').replace(' ', '');
+            if (textVal !== '') {
+                if (children.__attributes == undefined && !hasRealChild) {
+                    children = textVal;
+                } else {
+                    children.__value = textVal;
+                }
+            } else if (children.__attributes == undefined && !hasRealChild) {
+                children = null;
+            }
+        }
+
+        return children;
    }
 
 }
