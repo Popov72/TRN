@@ -8,6 +8,7 @@ TRN.Play = function (container) {
 	this.controls = null;
 	this.startTime = -1;
 	this.gcounter = 0;
+    this.useAdditionalLights = false;
 
 	this.panel = new TRN.Panel(this.container, this);
 
@@ -95,16 +96,11 @@ TRN.Play.prototype = {
         
         TRN.Behaviours.applyBehaviours(this.objectList, this.sceneJSON, this.confMgr, this);
     
-                if (objJSON.type == name) {
-                    var materials = obj.material.materials;
-                    for (var m = 0; m < materials.length; ++m) {
-                        var material = materials[m];
-                        material.polygonOffset = true;
-                        material.polygonOffsetFactor = factor;
-                        material.polygonOffsetUnits = unit;
-                    }
-                }
-            }
+		this.panel.show();
+
+        if (this.sceneJSON.cutScene.frames) {
+            this.useAdditionalLights = true;
+            TRN.Helper.setLightsOnMoveables(this.scene.objects, this.sceneJSON, true);
         }
 
 		this.panel.show();
@@ -353,7 +349,7 @@ TRN.Play.prototype = {
                     var materials = obj.material.materials;
                     for (var i = 0; i < materials.length; ++i) {
                         if (materials[i].uniforms.numPointLight !== undefined) {
-                            TRN.Helper.setMaterialLightsUniform(this.sceneJSON.objects['room' + roomObj], materials[i]);
+                            TRN.Helper.setMaterialLightsUniform(this.sceneJSON.objects['room' + roomObj], materials[i], false, this.useAdditionalLights);
                         }
                     }
                 }

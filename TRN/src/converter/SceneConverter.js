@@ -1449,6 +1449,58 @@ TRN.SceneConverter.prototype = {
         ocs.frames = frames;
     },
 
+    collectLightsExt : function() {
+
+        var addedLights = 0;
+
+        for(var objID in this.sc.objects) {
+            var obj = this.sc.objects[objID];
+
+            if (obj.type != 'room') {
+                continue;
+            }
+
+            var portals = obj.portals;
+
+            var lights = obj.lights.slice(0);
+            for (var p = 0; p < portals.length; ++p) {
+                var portal = portals[p], r = portal.adjoiningRoom, adjRoom = this.sc.objects['room' + r];
+                if (!adjRoom) continue;
+
+                var portalCenter = {
+                    x: (portal.vertices[0].x + portal.vertices[1].x + portal.vertices[2].x + portal.vertices[3].x) / 4.0,
+                    y: (portal.vertices[0].y + portal.vertices[1].y + portal.vertices[2].y + portal.vertices[3].y) / 4.0,
+                    z: (portal.vertices[0].z + portal.vertices[1].z + portal.vertices[2].z + portal.vertices[3].z) / 4.0
+                };
+
+                var rlights = adjRoom.lights;
+                for(var l = 0; l < rlights.length; ++l) {
+                    var rlight = rlights[l];
+
+                    switch(rlight.type) {
+                        case 'directional':
+                            continue;
+                            break;
+                    }
+
+                    var distToPortalSq = 
+                        (portalCenter.x - rlight.x)*(portalCenter.x - rlight.x) + 
+                        (portalCenter.y - rlight.y)*(portalCenter.y - rlight.y) + 
+                        (portalCenter.z - rlight.z)*(portalCenter.z - rlight.z);
+
+                    if (distToPortalSq > rlight.fadeOut*rlight.fadeOut) continue;
+
+                    lights.push(rlight);
+                    addedLights++;
+                }
+            }
+
+            obj.lightsExt = lights;
+        }
+
+        console.log('Number of additional lights added: ' + addedLights);
+    },
+
 	convert : function (trlevel, callback_created) {
 		glMatrix.glMatrix.setMatrixArrayType(Array);
 
@@ -1573,6 +1625,8 @@ TRN.SceneConverter.prototype = {
 		this.createAnimatedTextures();
 
 		this.createRooms();
+
+        this.collectLightsExt();
 
 		this.createMoveables();
 

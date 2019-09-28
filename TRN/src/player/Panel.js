@@ -41,7 +41,7 @@ TRN.Panel.prototype = {
 		var numObj = this.parent.scene.scene.__objects.length;
 
 		this.elem.find('#currentroom').html(sceneJSON.curRoom);
-		this.elem.find('#numlights').html(sceneJSON.curRoom != -1 ? sceneJSON.objects['room'+sceneJSON.curRoom].lights.length : '');
+		this.elem.find('#numlights').html(sceneJSON.curRoom != -1 ? (this.parent.useAdditionalLights ? sceneJSON.objects['room'+sceneJSON.curRoom].lightsExt.length : sceneJSON.objects['room'+sceneJSON.curRoom].lights.length) : '');
 		this.elem.find('#camerapos').html(camera.position.x.toFixed(5)+','+camera.position.y.toFixed(5)+','+camera.position.z.toFixed(5));
 		this.elem.find('#camerarot').html(camera.quaternion.x.toFixed(5)+','+camera.quaternion.y.toFixed(5)+','+camera.quaternion.z.toFixed(5)+','+camera.quaternion.w.toFixed(5));
 		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces + ' / ' + numObj);
@@ -217,6 +217,12 @@ TRN.Panel.prototype = {
                     material.uniforms.offsetBump.value[3] = s;
 				}
 			}
+		});
+
+		this.elem.find('#useaddlights').on('click', function() {
+            var scene = this_.parent.scene, sceneJSON = this_.parent.sceneJSON;
+            this_.parent.useAdditionalLights = this.checked;
+            TRN.Helper.setLightsOnMoveables(scene.objects, sceneJSON, this.checked);
 		});
 
 	    var prefix = ['', 'webkit', 'moz'];
