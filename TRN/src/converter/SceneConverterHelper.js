@@ -313,22 +313,22 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
         var u = material.uniforms;
 
-        u.numDirectionalLight           = { type: "i",   value: 0 };
-        u.directionalLight_direction    = { type: "fv",  /*value: []*/ };
-        u.directionalLight_color        = { type: "fv",  /*value: []*/ };
+        u.numDirectionalLight           = { type: "i", value: 0 };
+        u.directionalLight_direction    = { type: "fv"  };
+        u.directionalLight_color        = { type: "fv"  };
 
-        u.numPointLight                 = { type: "i",   value: -1 };
-        u.pointLight_position           = { type: "fv",  /*value: []*/ };
-        u.pointLight_color              = { type: "fv",  /*value: []*/ };
-        u.pointLight_distance           = { type: "fv1", /*value: []*/ };
+        u.numPointLight                 = { type: "i", value: -1 }; // -1 here means the object is internally lit
+        u.pointLight_position           = { type: "fv"  };
+        u.pointLight_color              = { type: "fv"  };
+        u.pointLight_distance           = { type: "fv1" };
 
-        u.numSpotLight                  = { type: "i",   value: 0 };
-        u.spotLight_position            = { type: "fv",  /*value: []*/ };
-        u.spotLight_color               = { type: "fv",  /*value: []*/ };
-        u.spotLight_distance            = { type: "fv1", /*value: []*/ };
-        u.spotLight_direction           = { type: "fv",  /*value: []*/ };
-        u.spotLight_coneCos             = { type: "fv1", /*value: []*/ };
-        u.spotLight_penumbraCos         = { type: "fv1", /*value: []*/ };
+        u.numSpotLight                  = { type: "i", value: 0 };
+        u.spotLight_position            = { type: "fv"  };
+        u.spotLight_color               = { type: "fv"  };
+        u.spotLight_distance            = { type: "fv1" };
+        u.spotLight_direction           = { type: "fv"  };
+        u.spotLight_coneCos             = { type: "fv1" };
+        u.spotLight_penumbraCos         = { type: "fv1" };
 
     },
 
@@ -348,11 +348,10 @@ TRN.extend(TRN.SceneConverter.prototype, {
 					// item is internally lit
 					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
 					if (lighting == -1) lighting = 0;
-                    //material.uniforms.lighting.value = this.convertIntensity(lighting);
                     material.uniforms.ambientColor.value = this.convertIntensity(lighting);
 				} else {
                     material.uniforms.ambientColor.value = room.ambientColor;
-                    TRN.Helper.setMaterialLightsUniform(room, material);
+                    TRN.Helper.setMaterialLightsUniform(room, material, false, false);
                 }
 
                 if (!room.flickering)       material.uniforms.flickerColor.value = [1, 1, 1];
