@@ -699,7 +699,7 @@ TRN.SceneConverter.prototype = {
 
 				var mesh = this.trlevel.meshes[meshIndex];
 
-                if (idx == 0 && this.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints) {
+                if (/*mesh.dummy ||*/ (idx == 0 && this.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints)) {
                     // hack to remove bad data from joint #0 of Lara joints in TR4
                 } else {
                     var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
@@ -938,7 +938,7 @@ TRN.SceneConverter.prototype = {
 				"animationStartIndex"	: moveable.animation,
 				"has_anims"				: !skyNoAnim,
 				"skin"					: true,
-				"use_vertex_texture" 	: true
+                "use_vertex_texture" 	: true
 			};
 			numMoveableInstances++;	
 		}
@@ -1300,7 +1300,7 @@ TRN.SceneConverter.prototype = {
         }
 
         // create moveable instances used in cutscene
-        var actorMoveables = [];
+        var actorMoveables = [], mshswap = null;
         for (var ac = 0; ac < cutscene.actors.length; ++ac) {
             var id = cutscene.actors[ac].slotNumber;
             var mvb;
@@ -1309,6 +1309,11 @@ TRN.SceneConverter.prototype = {
                 mvb = this.createMoveableInstance(ac, this.laraMoveable.roomIndex, this.laraMoveable.position[0], this.laraMoveable.position[1], this.laraMoveable.position[2], -1, [0, 0, 0, -1], this.trlevel.moveables[m]);
             } else {
                 mvb = this.laraMoveable;
+                if (cutscene.index == 1 || cutscene.index == 21) {
+                    mshswap = this.createMoveableInstance(ac+1, this.laraMoveable.roomIndex, this.laraMoveable.position[0], this.laraMoveable.position[1], this.laraMoveable.position[2], -1, [0, 0, 0, -1], this.trlevel.moveables[this.movObjID2Index[417]]);
+                    mshswap.position = [ocs.origin.x, ocs.origin.y, ocs.origin.z];
+                    mshswap.quaternion = [0, 0, 0, 1];
+                }
             }
             actorMoveables.push(mvb);
             mvb.position = [ocs.origin.x, ocs.origin.y, ocs.origin.z];
@@ -1334,6 +1339,10 @@ TRN.SceneConverter.prototype = {
             animation.commands.frameStart = 0;
             
             actorMoveables[ac].animationStartIndex = this.sc.animTracks.length;
+
+            if (mshswap && ac == 0) {
+                mshswap.animationStartIndex = this.sc.animTracks.length;
+            }
 
             this.sc.animTracks.push(animation);
 
@@ -1627,8 +1636,8 @@ TRN.SceneConverter.prototype = {
 
 		this.createAnimatedTextures();
 
-		this.createRooms();
-
+        this.createRooms();
+        
         this.collectLightsExt();
 
 		this.createMoveables();
@@ -1653,6 +1662,7 @@ TRN.SceneConverter.prototype = {
                     async: false
                 }).done(function(data) { cutscene = data; });
     
+                cutscene.index = TRN.Browser.QueryString.cutscene;
                 this.makeTR4Cutscene(cutscene);
             }
         }
