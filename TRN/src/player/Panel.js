@@ -53,7 +53,7 @@ TRN.Panel.prototype = {
         this.elem.find('#singleroommode').prop('checked', this.parent.singleRoomMode);
         this.elem.find('#useaddlights').prop('checked', this.parent.useAdditionalLights);
 
-	},
+    },
 
 	bindEvents : function() {
 
@@ -128,7 +128,6 @@ TRN.Panel.prototype = {
 				var objJSON = sceneJSON.objects[objID];
 
 				if (!(obj instanceof THREE.Mesh)) continue;
-				//if (!objJSON.has_anims) continue;
 
 				if (this.checked) {
 					obj.boxHelper = new THREE.BoxHelper();
