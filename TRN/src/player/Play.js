@@ -342,7 +342,12 @@ TRN.Play.prototype = {
 
                 if (obj.dummy || !(obj instanceof THREE.SkinnedMesh)) continue;
 
-                var roomObj = this.findRoom(obj.position);
+                var pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
+                pos.x += obj.bones[0].position.x;
+                pos.y += obj.bones[0].position.y;
+                pos.z += obj.bones[0].position.z;
+
+                var roomObj = this.findRoom(pos);
 
                 if (roomObj >= 0 && roomObj != objJSON.roomIndex) {
                     objJSON.roomIndex = roomObj;
