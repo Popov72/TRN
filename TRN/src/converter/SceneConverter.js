@@ -1040,7 +1040,7 @@ TRN.SceneConverter.prototype = {
 
             var track = this.sc.animTracks[objJSON.animationStartIndex];
 
-            if (track.nextTrack != objJSON.animationStartIndex) { // the moveables has more than one anim
+            if (!track || track.nextTrack != objJSON.animationStartIndex) { // the moveables has more than one anim
                 continue;
             }
 
