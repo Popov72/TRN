@@ -736,7 +736,7 @@ TRN.SceneConverter.prototype = {
 
 		var room = this.sc.objects['room' + roomIndex];
 
-		var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
+		var objIDForVisu = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
 
         var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
         
@@ -762,7 +762,7 @@ TRN.SceneConverter.prototype = {
 			"hasScrollAnim"			: hasGeometry ? hasGeometry.objHasScrollAnim : false
 		};
 
-		var spriteSeqObjID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
+		var spriteSeqObjID = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
 
 		if (spriteSeqObjID >= 0) {
 			var spriteSeq = this.findSpriteSequenceByID(spriteSeqObjID);
@@ -881,13 +881,6 @@ TRN.SceneConverter.prototype = {
 				}
 			}
 
-			// if not a cut scene, we set a specific start anim for Lara
-			if (this.sc.cutScene.frames == null) {
-				var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Lara"] > startanim', true, 0);
-				
-				laraMoveable.animationStartIndex = startAnim;
-			}
-
 			// translate starting position of Lara
 			var startTrans = this.confMgr.levelVector3(this.sc.levelShortFileName, 'behaviour[name="Lara"] > starttrans', true, null);
 			if (startTrans != null) {
@@ -899,9 +892,8 @@ TRN.SceneConverter.prototype = {
 		}
 
 		// specific handling of the sky
-		var skyId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > objectid', true, 0);
-		var noSky = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveables > moveable[id=0] > behaviour[name=Sky] > id', false, 0) == -1;
-		if (skyId && this.movObjID2Index[skyId] && !noSky) {
+		var skyId = this.confMgr.levelNumber(this.sc.levelShortFileName, 'behaviour[name="Sky"] > id', true, 0);
+		if (skyId > 0 && this.movObjID2Index[skyId]) {
 			moveable = this.trlevel.moveables[this.movObjID2Index[skyId]];
 			var materials = [];
 			for (var mat = 0; mat < this.sc.embeds['moveable' + moveable.objectID]._materials.length; ++mat) {
@@ -914,7 +906,7 @@ TRN.SceneConverter.prototype = {
 				materials.push(material);
 			}
 
-			var skyNoAnim = this.confMgr.levelBoolean(this.sc.levelShortFileName, 'sky > noanim', true, false);
+			var skyNoAnim = this.confMgr.levelBoolean(this.sc.levelShortFileName, 'behaviour[name="Sky"] > noanim', true, false);
 			this.sc.objects['sky'] = {
 				"geometry" 				: "moveable" + moveable.objectID,
 				"material" 				: materials,
@@ -935,18 +927,13 @@ TRN.SceneConverter.prototype = {
 
 		// specific handling of the skydome (TR4 only)
 		if (this.trlevel.rversion == 'TR4') {
-			var skyColor = [
-					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > r', true, 255)/255.0,
-					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > g', true, 255)/255.0,
-					this.confMgr.levelNumber(this.sc.levelShortFileName, 'sky > color > b', true, 255)/255.0
-				];
 			var materials = [
 				{
 					"material": this.getMaterial("skydome"),
 					"uniforms": {
 						"map" :             { type: "t",    value: "" + (this.trlevel.textile.length-1) },
 						"offsetRepeat" :    { type: "f4",   value: [0, 0, 1, 1] },
-						"tintColor" :       { type: "f3",   value: skyColor }
+						"tintColor" :       { type: "f3",   value: null }
 					},
                     "depthWrite": false,
 					"userData": {}
