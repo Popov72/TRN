@@ -342,7 +342,22 @@ TRN.Loader = {
 			}
 		}
 
-		if (out.atlas.make) {
+        if (out.rversion != 'TR4') {
+            for (var i = 0; i < out.objectTextures.length; ++i) {
+                var tex = out.objectTextures[i];
+                var tile = tex.tile & 0x7FFF;
+
+                var isTri = 
+                    (tex.vertices[3].Xpixel == 0)  &&
+                    (tex.vertices[3].Ypixel == 0)  &&
+                    (tex.vertices[3].Xcoordinate == 0)  &&
+                    (tex.vertices[3].Ycoordinate == 0);
+                
+                tex.tile = tile + (isTri ? 0x8000 : 0);
+            }
+        }
+
+        if (out.atlas.make) {
 			var dataSky = out.textile[out.textile.length-1];
 
 			out.textile = [this.convertToPng(out.atlas.imageData)];
@@ -368,10 +383,8 @@ TRN.Loader = {
 				for (var j = 0; j < objText.vertices.length; ++j) {
 					var vert = objText.vertices[j];
 
-                    if (!(vert.Xpixel == 0 && vert.Ypixel == 0 && vert.Xcoordinate == 0 && vert.Ycoordinate == 0) || out.rversion == 'TR4') {
-                        vert.Xpixel = parseInt(vert.Xpixel) + col * 256;
-                        vert.Ypixel = parseInt(vert.Ypixel) + row * 256;
-                    }
+                    vert.Xpixel = parseInt(vert.Xpixel) + col * 256;
+                    vert.Ypixel = parseInt(vert.Ypixel) + row * 256;
 				}
 			}
 		}

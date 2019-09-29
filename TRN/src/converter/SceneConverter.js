@@ -35,17 +35,7 @@ TRN.SceneConverter.prototype = {
 			var anmcoords = [];
 			while (numTextures-- > 0) {
 				var texture = adata[i++], tex = this.trlevel.objectTextures[texture], tile = tex.tile & 0x7FFF;
-				var isTri;
-
-			    if (this.trlevel.rversion != 'TR4') {
-					isTri = 
-						(tex.vertices[3].Xpixel == 0)  &&
-						(tex.vertices[3].Ypixel == 0)  &&
-						(tex.vertices[3].Xcoordinate == 0)  &&
-						(tex.vertices[3].Ycoordinate == 0);
-			    } else {
-			    	isTri = (tex.tile & 0x8000) != 0;
-			    }
+				var isTri = (tex.tile & 0x8000) != 0;
 
 			    var minU = 0x7FFF, minV = 0x7FFF, numVertices = isTri ? 3 : 4;
 
