@@ -838,7 +838,7 @@ TRN.SceneConverter.prototype = {
 				}
 				numMoveableInstances++;
                 var startAnim = this.confMgr.levelNumber(this.sc.levelShortFileName, 'moveable[id="' + item.objectID + '"] > startanim', true, -1);
-                if (startAnim >= 0) {
+                if (this.sc.cutScene.frames == null && startAnim >= 0) {
                     mvb.animationStartIndex = mvb._animationStartIndex + startAnim;
                 }
             }
