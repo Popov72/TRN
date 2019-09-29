@@ -1,6 +1,6 @@
-TRN.Behaviours.RemoveObject = function(nbhv, parent) {
+TRN.Behaviours.RemoveObject = function(nbhv, bhvMgr) {
     this.nbhv = nbhv;
-    this.parent = parent;
+    this.bhvMgr = bhvMgr;
 }
 
 TRN.Behaviours.RemoveObject.prototype = {
@@ -10,7 +10,7 @@ TRN.Behaviours.RemoveObject.prototype = {
     init : function(lstObjs) {
 
         lstObjs.forEach( (obj) => {
-            this.parent.scene.scene.remove(obj);
+            this.bhvMgr.removeObject(obj);
         });
 
         return TRN.Consts.Behaviour.retDontKeepBehaviour;

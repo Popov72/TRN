@@ -1,6 +1,5 @@
-TRN.Behaviours.Zbias = function(nbhv, parent) {
+TRN.Behaviours.Zbias = function(nbhv, bhvMgr) {
     this.nbhv = nbhv;
-    this.parent = parent;
 }
 
 TRN.Behaviours.Zbias.prototype = {

@@ -169,21 +169,6 @@ TRN.MasterLoader = {
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_hand', true, 0) - 1;
 		TRN.Consts.useUVRotate = confMgr.levelBoolean(sceneJSON.levelShortFileName, 'uvrotate', true, false);
 
-		// make sure the skies are displayed first
-		if (scene.objects.skydome) {
-			scene.objects.skydome.renderDepth = -1e11;
-		}
-
-		if (scene.objects.sky) {
-			scene.objects.sky.renderDepth = -1e10;
-		}
-
-		if (scene.objects.skydome) {
-            var skyTexture = scene.textures["texture" + (TRN.Helper.objSize(scene.textures)-1)];
-			skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
-			skyTexture.needsUpdate = true;
-		}
-
 		// initialize the animated textures
 		scene.animatedTextures = sceneJSON.animatedTextures;
 		
@@ -194,6 +179,20 @@ TRN.MasterLoader = {
 				animTexture.progressor = new TRN.Sequence(animTexture.animcoords.length, 1.0/animTexture.animspeed);
 			}
 
+		}
+
+        // Set all objects as auto update=false
+        // Camera, skies, animated objects will have their matrixAutoUpdate set to true later
+		for (var objID in scene.objects) {
+
+			var obj = scene.objects[objID];
+			var objJSON = sceneJSON.objects[objID];
+
+			obj.initPos = new THREE.Vector3();
+            obj.initPos.copy(obj.position);
+
+            obj.updateMatrix();
+            obj.matrixAutoUpdate = false;
 		}
 
 		// animations
@@ -235,82 +234,32 @@ TRN.MasterLoader = {
 			}
 
 			// instanciate the first track for each animated object
-			for (var objID in scene.objects) {
+            for (var objID in scene.objects) {
 
-				var obj = scene.objects[objID];
-				var objJSON = sceneJSON.objects[objID];
+                var obj = scene.objects[objID];
+                var objJSON = sceneJSON.objects[objID];
 
-				if (!objJSON.has_anims || !objJSON.visible) continue;
+                if (!objJSON.has_anims || !objJSON.visible) continue;
 
-				if (sceneJSON.cutScene.frames) {
+                obj.matrixAutoUpdate = true;
 
-					// register all animations we will need in the cut scene
-					var registered = {}, anmIndex = objJSON.animationStartIndex, allTrackInstances = {};
+                var animIndex = objJSON.animationStartIndex;
 
-					while (true) {
+                var track = scene.animTracks[animIndex];
+                var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
 
-						if (registered[anmIndex]) break;
-						
-						registered[anmIndex] = true;
+                if (track) { // to avoid bugging for lost artifact TR3 levels
+                    trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
 
-						var track = scene.animTracks[anmIndex];
-						var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
+                    trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
+                    trackInstance.interpolate();
+        
+                    obj.trackInstance = trackInstance;
+                }
 
-						allTrackInstances[anmIndex] = trackInstance;
+                obj.prevTrackInstance = obj.trackInstance;
+                obj.prevTrackInstanceFrame = 0;
 
-						anmIndex = track.nextTrack;
-
-					}
-
-					obj.allTrackInstances = allTrackInstances;
-
-					var trackInstance = allTrackInstances[objJSON.animationStartIndex];
-
-					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
-					trackInstance.setNoInterpolationToNextTrack = true;
-
-					trackInstance.runForward(0);
-					trackInstance.interpolate();
-
-					obj.trackInstance = trackInstance;
-
-				} else {
-
-					var animIndex = objJSON.animationStartIndex;
-
-					var track = scene.animTracks[animIndex];
-					var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
-
-					if (track) { // to avoid bugging for lost artifact TR3 levels
-						trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
-
-						trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
-						trackInstance.interpolate();
-			
-						obj.trackInstance = trackInstance;
-					}
-				}
-
-				obj.prevTrackInstance = obj.trackInstance;
-				obj.prevTrackInstanceFrame = 0;
-
-			}
-		}
-
-		// Set all objects except camera/sky + animated objects as auto update=false
-		for (var objID in scene.objects) {
-
-			var obj = scene.objects[objID];
-			var objJSON = sceneJSON.objects[objID];
-
-			obj.initPos = new THREE.Vector3();
-            obj.initPos.copy(obj.position);
-
-			if (!objJSON.has_anims && objID.indexOf('camera') < 0 && objID.indexOf('sky') < 0) {
-
-				obj.updateMatrix();
-                obj.matrixAutoUpdate = false;
-                
             }
 		}
 

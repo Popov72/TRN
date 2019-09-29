@@ -62,11 +62,11 @@ TRN.Loader = {
 	 		}
 		}
 
-		var skyRemovePolyStart = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'sky > removepoly > start', true, 0);
-		var skyRemovePolyNum   = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'sky > removepoly > num', true, 0);
+		var skyRemovePolyStart = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'behaviour[name="Sky"] > removepoly > start', true, 0);
+		var skyRemovePolyNum   = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'behaviour[name="Sky"] > removepoly > num', true, 0);
 		if (skyRemovePolyNum > 0) {
-			var skyId = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'sky > objectid', true, 0);
-			if (skyId) {
+			var skyId = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'behaviour[name="Sky"] > id', true, 0);
+			if (skyId > 0) {
 				for (var m = 0; m < out.moveables.length; ++m) {
 					var moveable = out.moveables[m];
 					if (moveable.objectID == skyId) {

@@ -1,6 +1,5 @@
-TRN.Behaviours.Flare = function(nbhv, parent) {
+TRN.Behaviours.Flare = function(nbhv, bhvMgr) {
     this.nbhv = nbhv;
-    this.parent = parent;
 }
 
 TRN.Behaviours.Flare.prototype = {

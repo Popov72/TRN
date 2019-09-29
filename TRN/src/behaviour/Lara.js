@@ -1,6 +1,5 @@
-TRN.Behaviours.Lara = function(nbhv, parent) {
+TRN.Behaviours.Lara = function(nbhv, bhvMgr) {
     this.nbhv = nbhv;
-    this.parent = parent;
 }
 
 TRN.Behaviours.Lara.prototype = {

@@ -127,52 +127,35 @@ TRN.Play.prototype = {
 			jQuery('#nobumpmapping').prop('disabled', 'disabled');
 		}
 
+        this.sceneBackground = new THREE.Scene();
+
         this.buildLists();
 
-        TRN.Behaviours.applyBehaviours(this.objectList, this.sceneJSON, this.confMgr, this);
+        this.bhvMgr = new TRN.Behaviours.BehaviourManager(this.objectList, this.sceneJSON, this.confMgr, this);
+        this.bhvMgr.loadBehaviours();
 
 		this.panel.show();
-
-        if (this.sceneJSON.cutScene.frames) {
-            this.useAdditionalLights = true;
-            TRN.Helper.setLightsOnMoveables(this.scene.objects, this.sceneJSON, true);
-        }
 
         this.panel.updateFromParent();
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
-        this.sceneBackground = new THREE.Scene();
-
-        if (this.scene.scene.getObjectByName("skydome")) {
-            this.sceneBackground.skydome = this.scene.scene.getObjectByName("skydome");
-            this.scene.scene.remove(this.sceneBackground.skydome);
-            this.sceneBackground.add(this.sceneBackground.skydome);
-        }
-        if (this.scene.scene.getObjectByName("sky")) {
-            this.sceneBackground.sky = this.scene.scene.getObjectByName("sky");
-            this.scene.scene.remove(this.sceneBackground.sky);
-            this.sceneBackground.add(this.sceneBackground.sky);
-        }
-
 		this.renderer.initWebGLObjects(this.scene.scene);
         this.renderer.initWebGLObjects(this.sceneBackground);
 
         this.startTime = this.quantumTime = (new Date()).getTime();
-        
-		this.animate();
+    
+        this.bhvMgr.onBeforeRenderLoop();
+
+		this.renderLoop();
 
         this.onWindowResize();
-
-		if (this.sceneJSON.cutScene.sound != null) {
-			TRN.Helper.startSound(this.sceneJSON.cutScene.sound);
-		}
 	},
 
 
-	animate : function () {
+	renderLoop : function () {
 
-		requestAnimationFrame( this.animate.bind(this) );
+		requestAnimationFrame( this.renderLoop.bind(this) );
 
 		var delta = this.clock.getDelta();
 		var curTime = (new Date()).getTime();
@@ -188,15 +171,17 @@ TRN.Play.prototype = {
 
 		this.controls.update(delta);
 
+        this.bhvMgr.frameStarted(curTime, delta);
+
 		this.animateObjects(delta);
 
-		this.animateCutScene(delta);
-		
 		this.animateTextures(delta);
 
 		this.camera.updateMatrixWorld();
 
 		this.updateObjects(curTime);
+
+        this.bhvMgr.frameEnded(curTime, delta);
 
 		if (this.needWebGLInit) {
 			this.needWebGLInit = false;
@@ -275,61 +260,6 @@ TRN.Play.prototype = {
 
 	},
 
-	animateCutScene : function (delta) {
-
-		if (this.sceneJSON.cutScene.frames == null) { return; }
-
-		this.sceneJSON.cutScene.curFrame += TRN.baseFrameRate * delta;
-
-		var t = this.sceneJSON.cutScene.curFrame - Math.floor(this.sceneJSON.cutScene.curFrame);
-		var cfrmA = Math.min(Math.floor(this.sceneJSON.cutScene.curFrame), this.sceneJSON.cutScene.frames.length-3);
-		var cfrmB = Math.min(cfrmA+1, this.sceneJSON.cutScene.frames.length-3);
-
-		if (cfrmA < this.sceneJSON.cutScene.frames.length-3) {
-
-			if (!this.controls.captureMouse) {
-
-				var frm1 = this.sceneJSON.cutScene.frames[cfrmA];
-				var frm2 = this.sceneJSON.cutScene.frames[cfrmB];
-				var maxDelta = 512.0 * 512.0, fovMult = 60.0 / 16384.0, rollMult = -90.0 / 16384.0;
-
-                var dp = (new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ)).sub(new THREE.Vector3(frm2.posX, -frm2.posY, -frm1.posZ)).lengthSq();
-                var dt = (new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ)).sub(new THREE.Vector3(frm2.targetX, -frm2.targetY, -frm1.targetZ)).lengthSq();
-                
-                var eyePos = new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ);
-                var lkat = new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ);
-                var fov = frm1.fov * fovMult;
-				var roll = frm1.roll * rollMult;
-
-                if (dp <= maxDelta && dt <= maxDelta) {
-                    eyePos.lerp(new THREE.Vector3(frm2.posX, -frm2.posY, -frm2.posZ), t);
-                    lkat.lerp(new THREE.Vector3(frm2.targetX, -frm2.targetY, -frm2.targetZ), t);
-                    fov = TRN.Helper.lerp(frm1.fov * fovMult, frm2.fov * fovMult, t);
-                    roll = TRN.Helper.lerp(frm1.roll * rollMult, frm2.roll * rollMult, t);
-                }
-
-				var q = new THREE.Quaternion();
-				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.sceneJSON.cutScene.origin.rotY) );
-
-				lkat.applyQuaternion(q);
-
-				this.camera.fov = fov;
-				this.camera.position = eyePos;
-				this.camera.position.applyQuaternion(q);
-				this.camera.lookAt(lkat);
-				this.camera.position.add(this.sceneJSON.cutScene.origin);
-				this.camera.quaternion.multiplyQuaternions(q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(roll) ), this.camera.quaternion);
-				this.camera.updateProjectionMatrix();
-			}
-
-		} else {
-
-			this.sceneJSON.cutScene.frames = null;
-
-		}
-
-	},
-
 	animateTextures : function (delta) {
 
 		if (!this.scene.animatedTextures) { return; }
@@ -341,60 +271,9 @@ TRN.Play.prototype = {
 
 	},
 
-    findRoom : function(pos) {
-        var roomList = this.objectList['room'];
-        for (var r in roomList) {
-            var obj = roomList[r], objJSON = this.sceneJSON.objects[obj.name];
-            if (objJSON.isAlternateRoom) continue;
-            if (obj && obj.geometry.boundingBox.containsPoint(pos)) {
-                return r;
-            }
-        }
-        return -1;
-    },
-
 	updateObjects : function (curTime) {
 
-		if (this.sceneBackground.sky) {
-			this.sceneBackground.sky.position = this.camera.position;
-		}
-		if (this.sceneBackground.skydome) {
-			this.sceneBackground.skydome.position = this.camera.position;
-			var material = this.sceneBackground.skydome.material.materials[0];
-			if (material.uniforms) {
-				var pgr = curTime / (50.0*1000.0);
-				pgr = pgr - Math.floor(pgr);
-				material.uniforms.offsetRepeat.value[0] = pgr;
-			}
-		}
-
 		this.sceneJSON.curRoom = -1;
-
-        if (this.sceneJSON.cutScene.frames != null) {
-            for (var objID in this.scene.objects) {
-                var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
-
-                if (obj.dummy || !(obj instanceof THREE.SkinnedMesh)) continue;
-
-                var pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
-                pos.x += obj.bones[0].position.x;
-                pos.y += obj.bones[0].position.y;
-                pos.z += obj.bones[0].position.z;
-
-                var roomObj = this.findRoom(pos);
-
-                if (roomObj >= 0 && roomObj != objJSON.roomIndex) {
-                    objJSON.roomIndex = roomObj;
-
-                    var materials = obj.material.materials;
-                    for (var i = 0; i < materials.length; ++i) {
-                        if (materials[i].uniforms.numPointLight !== undefined) {
-                            TRN.Helper.setMaterialLightsUniform(this.sceneJSON.objects['room' + roomObj], materials[i], false, this.useAdditionalLights);
-                        }
-                    }
-                }
-            }
-        }
 
 		for (var objID in this.scene.objects) {
 

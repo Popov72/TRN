@@ -9,7 +9,8 @@ var BasicControls = function ( object, domElement ) {
 	this.domElement = ( domElement !== undefined ) ? domElement : document.body;
 	this.enabled = true;
 	this.captureMouse = false;
-	
+    
+    object.matrixAutoUpdate = true;
 	object.useQuaternion = true;
 
 	this.states = { 

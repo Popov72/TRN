@@ -1,6 +1,5 @@
-TRN.Behaviours.ParticleSystem = function(nbhv, parent) {
+TRN.Behaviours.ParticleSystem = function(nbhv, bhvMgr) {
     this.nbhv = nbhv;
-    this.parent = parent;
 }
 
 TRN.Behaviours.ParticleSystem.prototype = {

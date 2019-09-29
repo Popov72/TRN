@@ -1,6 +1,5 @@
-TRN.Behaviours.BasicControl = function(nbhv, parent) {
+TRN.Behaviours.BasicControl = function(nbhv, bhvMgr) {
     this.nbhv = nbhv;
-    this.parent = parent;
 }
 
 TRN.Behaviours.BasicControl.prototype = {

@@ -1,6 +1,5 @@
-TRN.Behaviours.Light = function(nbhv, parent) {
+TRN.Behaviours.Light = function(nbhv, bhvMgr) {
     this.nbhv = nbhv;
-    this.parent = parent;
 }
 
 TRN.Behaviours.Light.prototype = {

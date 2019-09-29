@@ -212,6 +212,17 @@ TRN.Helper = {
         }
 
         return children;
+    },
+
+    findRoom : function(pos, roomList, sceneJSON) {
+        for (var r in roomList) {
+            var obj = roomList[r], objJSON = sceneJSON.objects[obj.name];
+            if (objJSON.isAlternateRoom) continue;
+            if (obj && obj.geometry.boundingBox.containsPoint(pos)) {
+                return r;
+            }
+        }
+        return -1;
     }
 
 }
