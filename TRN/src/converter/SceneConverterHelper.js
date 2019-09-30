@@ -397,8 +397,181 @@ TRN.extend(TRN.SceneConverter.prototype, {
         }
     
         return 0;
-    }
+    },
+
+    makeAnimationForActor : function(cutscene, actor, indexActor, animName, mshswap) {
+
+        function makeQuaternion(angleX, angleY, angleZ) {
+
+            var angleX = 2 * Math.PI * (angleX % 1024) / 1024.0;
+            var angleY = 2 * Math.PI * (angleY % 1024) / 1024.0;
+            var angleZ = 2 * Math.PI * (angleZ % 1024) / 1024.0;
     
+            var qx = glMatrix.quat.create(), qy = glMatrix.quat.create(), qz = glMatrix.quat.create();
+    
+            glMatrix.quat.setAxisAngle(qx, [1,0,0], angleX);
+            glMatrix.quat.setAxisAngle(qy, [0,1,0], -angleY);
+            glMatrix.quat.setAxisAngle(qz, [0,0,1], -angleZ);
+    
+            glMatrix.quat.multiply(qy, qy, qx);
+            glMatrix.quat.multiply(qy, qy, qz);
+    
+            return qy;
+        }
+
+        var animation = {
+            "fps": 30,
+            "frameRate": 1,
+            "keys": [],
+            "name": animName,
+            "nextTrack": this.sc.animTracks.length,
+            "nextTrackFrame": 0,
+            "numFrames": cutscene.numFrames,
+            "numKeys": cutscene.numFrames,
+            "frameStart": 0,
+            "commands": []
+        };
+
+        if (mshswap && indexActor == 0) {
+            var animation2 = Object.assign({}, animation);
+
+            animation2.nextTrack = this.sc.animTracks.length;
+
+            mshswap.animationStartIndex = this.sc.animTracks.length;
+
+            this.sc.animTracks.push(animation2);
+
+            if (cutscene.index == 1) {
+                animation2.commands = [
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0, TRN.Animation.Commands.Misc.ANIMCMD_MISC_HIDEOBJECT] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [24, TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT] }
+                ];
+            }
+
+            if (cutscene.index == 2) {
+                animation2.commands = [
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0, TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [140, TRN.Animation.Commands.Misc.ANIMCMD_MISC_HIDEOBJECT] }
+                ];
+            }
+        }
+
+        var CST0 = 3;
+
+        var prev = [];
+        for (var m = 0; m < actor.meshes.length; ++m) {
+            var mesh = actor.meshes[m];
+
+            var posHdr = mesh.positionHeader;
+            var rotHdr = mesh.rotationHeader;
+
+            prev.push({
+                "position": {
+                    x: posHdr ? posHdr.startPosX*CST0 : 0,
+                    y: posHdr ? -posHdr.startPosY*CST0 : 0,
+                    z: posHdr ? -posHdr.startPosZ*CST0 : 0
+                },
+                "rotation": {
+                    x: rotHdr.startRotX % 1024,
+                    y: rotHdr.startRotY % 1024,
+                    z: rotHdr.startRotZ % 1024
+                }
+            });
+        }
+
+        for (var d = 0; d < cutscene.numFrames; ++d) {
+
+            var key = {
+                "time": d,
+                "data": [],
+                "boundingBox": {
+                    xmin: -1e7, ymin: -1e7, zmin: -1e7,
+                    xmax:  1e7, ymax:  1e7, zmax:  1e7
+                }
+            };
+
+            var addKey = true;
+
+            for (var m = 0; m < actor.meshes.length; ++m) {
+                var mesh = actor.meshes[m];
+
+                var posData = mesh.positionData;
+                var rotData = mesh.rotationData;
+
+                if (rotData.length <= d) {
+                    addKey = false;
+                    break;
+                }
+
+                var transX = 0, transY = 0, transZ = 0;
+
+                if (posData) {
+                    transX = posData.dx[d]*CST0;
+                    transY = -posData.dy[d]*CST0;
+                    transZ = -posData.dz[d]*CST0;
+                }
+
+                var cur = {
+                    "position": {
+                        x: transX + prev[m].position.x,
+                        y: transY + prev[m].position.y,
+                        z: transZ + prev[m].position.z
+                    },
+                    "rotation": {
+                        x: (rotData.dx[d] + prev[m].rotation.x) % 1024, 
+                        y: (rotData.dy[d] + prev[m].rotation.y) % 1024, 
+                        z: (rotData.dz[d] + prev[m].rotation.z) % 1024
+                    }
+                };
+
+                var quat = makeQuaternion(cur.rotation.x, cur.rotation.y, cur.rotation.z);
+
+                key.data.push({
+                    "position": 	{ x:cur.position.x, y:cur.position.y, z:cur.position.z },
+                    "quaternion":	{ x:quat[0], y:quat[1], z:quat[2], w:quat[3] }
+                });
+
+                prev[m] = cur;
+            }
+
+            if (addKey) {
+                animation.keys.push(key);
+            }
+        }
+
+        return animation;
+    },
+
+    makeAnimationForCamera : function(cutscene) {
+
+        // create camera frames
+        var frames = [], ocam = cutscene.camera, CST = 2;
+        var prev = {
+            posX:       ocam.cameraHeader.startPosX*CST,    posY:       ocam.cameraHeader.startPosY*CST,    posZ:       ocam.cameraHeader.startPosZ*CST,
+            targetX:    ocam.targetHeader.startPosX*CST,    targetY:    ocam.targetHeader.startPosY*CST,    targetZ:    ocam.targetHeader.startPosZ*CST
+        }
+
+        for (var d = 0; d < cutscene.numFrames; ++d) {
+            if (ocam.cameraPositionData.dx.length <= d) {
+                break;
+            }
+            var cur = {
+                fov: 13000,
+                roll: 0,
+                
+                posX: ocam.cameraPositionData.dx[d]*CST + prev.posX,
+                posY: ocam.cameraPositionData.dy[d]*CST + prev.posY,
+                posZ: ocam.cameraPositionData.dz[d]*CST + prev.posZ,
+
+                targetX: ocam.targetPositionData.dx[d]*CST + prev.targetX,
+                targetY: ocam.targetPositionData.dy[d]*CST + prev.targetY,
+                targetZ: ocam.targetPositionData.dz[d]*CST + prev.targetZ
+            };
+            frames.push(cur);
+            prev = cur;
+        }
+
+        return frames;
+    }
 
 });
-
