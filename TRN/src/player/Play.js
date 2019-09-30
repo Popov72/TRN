@@ -134,6 +134,7 @@ TRN.Play.prototype = {
 
         this.bhvMgr = new TRN.Behaviours.BehaviourManager(this.objectList, this.sceneJSON, this.confMgr, this);
         this.bhvMgr.loadBehaviours();
+        this.bhvMgr.addBehaviour('Sprite');
 
 		this.panel.show();
 
