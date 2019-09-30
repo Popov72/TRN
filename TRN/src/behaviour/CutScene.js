@@ -5,6 +5,7 @@ TRN.Behaviours.CutScene = function(nbhv, bhvMgr) {
     this.scene = bhvMgr.parent.scene;
     this.sceneJSON = bhvMgr.parent.sceneJSON;
     this.cutscene = this.parent.sceneJSON.cutScene;
+    this.cutSceneEnded = false;
 }
 
 TRN.Behaviours.CutScene.prototype = {
@@ -114,7 +115,7 @@ TRN.Behaviours.CutScene.prototype = {
             }
         }
         
-        if (!this.cutscene.frames) {
+        if (this.cutSceneEnded) {
             return;
         }
 
@@ -164,7 +165,7 @@ TRN.Behaviours.CutScene.prototype = {
 
 		} else {
 
-			this.cutscene.frames = null;
+			this.cutSceneEnded = true;
 
 		}
         
