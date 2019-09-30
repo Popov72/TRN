@@ -111,7 +111,8 @@ TRN.Play.prototype = {
 		this.oscene = oscene;
 		this.sceneJSON = oscene.sceneJSON;
 		this.scene = oscene.scene;
-		this.camera = oscene.camera;
+        this.camera = oscene.camera;
+        this.isCutscene = this.sceneJSON.cutScene.frames != null;
 
 		this.controls = new BasicControls( this.camera, document.body );
 
@@ -210,9 +211,9 @@ TRN.Play.prototype = {
 
 		for (var objID in this.scene.objects) {
 
-			var obj = this.scene.objects[objID];
+			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
 
-			if (obj.trackInstance && obj.visible) {
+			if (obj.trackInstance && (obj.visible || this.isCutscene)) {
 
 				if (!obj.trackInstance.runForward(delta)) {
 
@@ -227,13 +228,13 @@ TRN.Play.prototype = {
 					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
 					trackInstance.setCurrentFrame(nextTrackFrame);
 
-					trackInstance.setNoInterpolationToNextTrack = this.sceneJSON.cutScene.frames != null;
+					trackInstance.setNoInterpolationToNextTrack = this.isCutscene;
 
 				}
 
 				if (obj.trackInstance != obj.prevTrackInstance) {
 					this.processAnimCommands(obj.prevTrackInstance, obj.prevTrackInstanceFrame, 1e10, obj);
-					this.processAnimCommands(obj.trackInstance, 0, obj.trackInstance.param.curFrame, obj);
+                    this.processAnimCommands(obj.trackInstance, 0, obj.trackInstance.param.curFrame, obj);
 
 				} else {
 
