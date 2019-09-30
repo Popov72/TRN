@@ -689,7 +689,7 @@ TRN.SceneConverter.prototype = {
 
 				var mesh = this.trlevel.meshes[meshIndex];
 
-                if (/*mesh.dummy ||*/ (idx == 0 && this.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints)) {
+                if ((mesh.dummy && this.trlevel.rversion == 'TR4') || (idx == 0 && this.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints)) {
                     // hack to remove bad data from joint #0 of Lara joints in TR4
                 } else {
                     var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
