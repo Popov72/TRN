@@ -8,7 +8,6 @@ TRN.Behaviours.RemoveObject.prototype = {
     constructor : TRN.Behaviours.RemoveObject,
 
     init : function(lstObjs) {
-
         lstObjs.forEach( (obj) => {
             this.bhvMgr.removeObject(obj);
         });

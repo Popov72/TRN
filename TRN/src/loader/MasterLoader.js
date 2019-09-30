@@ -150,60 +150,49 @@ TRN.MasterLoader = {
 		We now make additional setup in the scene created by ThreeJS
 	*/
 	_postProcessLevel : function (progressbar, callbackLevelLoaded, oscene) {
+		var sceneData = oscene.sceneJSON.data, sceneRender = oscene.scene.scene;
+		var confMgr = new TRN.ConfigMgr(sceneData.rversion), shaderMgr = new TRN.ShaderMgr();
 
-		var sceneJSON = oscene.sceneJSON, scene = oscene.scene;
-		var confMgr = new TRN.ConfigMgr(sceneJSON.rversion), shaderMgr = new TRN.ShaderMgr();
-
-		sceneJSON.curRoom = -1;
-
-		TRN.ObjectID.skyId = confMgr.levelNumber(sceneJSON.levelShortFileName, 'sky > objectid', true, 0);
-		TRN.ObjectID.Lara  = confMgr.levelNumber(sceneJSON.levelShortFileName, 'lara > id', true, 0);
-		TRN.ObjectID.Ponytail = confMgr.levelNumber(sceneJSON.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
-		TRN.Consts.leftThighIndex = confMgr.levelNumber(sceneJSON.levelShortFileName, 
+		TRN.ObjectID.skyId = confMgr.levelNumber(sceneData.levelShortFileName, 'sky > objectid', true, 0);
+		TRN.ObjectID.Lara  = confMgr.levelNumber(sceneData.levelShortFileName, 'lara > id', true, 0);
+		TRN.ObjectID.Ponytail = confMgr.levelNumber(sceneData.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
+		TRN.Consts.leftThighIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > left_thigh', true, 0) - 1;
-		TRN.Consts.rightThighIndex = confMgr.levelNumber(sceneJSON.levelShortFileName, 
+		TRN.Consts.rightThighIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_thigh', true, 0) - 1;
-		TRN.Consts.leftHandIndex = confMgr.levelNumber(sceneJSON.levelShortFileName, 
+		TRN.Consts.leftHandIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > left_hand', true, 0) - 1;
-		TRN.Consts.rightHandIndex = confMgr.levelNumber(sceneJSON.levelShortFileName, 
+		TRN.Consts.rightHandIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
 			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_hand', true, 0) - 1;
-		TRN.Consts.useUVRotate = confMgr.levelBoolean(sceneJSON.levelShortFileName, 'uvrotate', true, false);
+		TRN.Consts.useUVRotate = confMgr.levelBoolean(sceneData.levelShortFileName, 'uvrotate', true, false);
+
+        sceneData.textures = oscene.scene.textures;
 
 		// initialize the animated textures
-		scene.animatedTextures = sceneJSON.animatedTextures;
-		
-		if (scene.animatedTextures) {
-
-			for (var i = 0; i < scene.animatedTextures.length; ++i) {
-				var animTexture = scene.animatedTextures[i];
+		if (sceneData.animatedTextures) {
+			for (var i = 0; i < sceneData.animatedTextures.length; ++i) {
+				var animTexture = sceneData.animatedTextures[i];
 				animTexture.progressor = new TRN.Sequence(animTexture.animcoords.length, 1.0/animTexture.animspeed);
 			}
-
 		}
 
         // Set all objects as auto update=false
         // Camera, skies, animated objects will have their matrixAutoUpdate set to true later
-		for (var objID in scene.objects) {
-
-			var obj = scene.objects[objID];
-			var objJSON = sceneJSON.objects[objID];
-
+		sceneRender.traverse( (obj) => {
 			obj.initPos = new THREE.Vector3();
             obj.initPos.copy(obj.position);
 
             obj.updateMatrix();
             obj.matrixAutoUpdate = false;
-		}
+		});
 
 		// animations
-		if (sceneJSON.animTracks) {
-
-			scene.animTracks = [];
+		if (sceneData.animTracks) {
+			var animTracks = [];
 
 			// create one track per animation
-			for (var t = 0; t < sceneJSON.animTracks.length; ++t) {
-
-				var trackJSON = sceneJSON.animTracks[t], keys = trackJSON.keys;
+			for (var t = 0; t < sceneData.animTracks.length; ++t) {
+				var trackJSON = sceneData.animTracks[t], keys = trackJSON.keys;
 
 				var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
 
@@ -212,10 +201,9 @@ TRN.MasterLoader = {
 				track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
 				track.setCommands(trackJSON.commands);
 
-				scene.animTracks.push(track);
+				animTracks.push(track);
 
 				for (var k = 0; k < keys.length; ++k) {
-
 					var keyJSON = keys[k], dataJSON = keyJSON.data, bbox = keyJSON.boundingBox;
 
 					var boundingBox = new THREE.Box3(new THREE.Vector3(bbox.xmin, bbox.ymin, bbox.zmin), new THREE.Vector3(bbox.xmax, bbox.ymax, bbox.zmax));
@@ -223,30 +211,29 @@ TRN.MasterLoader = {
 					var key = new TRN.Animation.Key(keyJSON.time, boundingBox);
 
 					for (var d = 0; d < dataJSON.length; ++d) {
-
 						key.addData(dataJSON[d].position, dataJSON[d].quaternion);
-
 					}
 
 					track.addKey(key);
-
 				}
 			}
 
+            sceneData.animTracks = animTracks;
+
 			// instanciate the first track for each animated object
-            for (var objID in scene.objects) {
+            sceneRender.traverse( (obj) => {
+                var data = sceneData.objects[obj.name];
 
-                var obj = scene.objects[objID];
-                var objJSON = sceneJSON.objects[objID];
+                if (!data || !data.has_anims || !data.visible) {
+                    return;
+                }
 
-                if (!objJSON.has_anims || !objJSON.visible) continue;
+                obj.traverse( (o) => o.matrixAutoUpdate = true );
 
-                obj.matrixAutoUpdate = true;
+                var animIndex = data.animationStartIndex;
 
-                var animIndex = objJSON.animationStartIndex;
-
-                var track = scene.animTracks[animIndex];
-                var trackInstance = new TRN.Animation.TrackInstance(track, obj, sceneJSON.embeds[objJSON.geometry].bones);
+                var track = sceneData.animTracks[animIndex];
+                var trackInstance = new TRN.Animation.TrackInstance(track, obj, data.bonesStartingPos);
 
                 if (track) { // to avoid bugging for lost artifact TR3 levels
                     trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
@@ -254,45 +241,52 @@ TRN.MasterLoader = {
                     trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
                     trackInstance.interpolate();
         
-                    obj.trackInstance = trackInstance;
+                    data.trackInstance = trackInstance;
                 }
 
-                obj.prevTrackInstance = obj.trackInstance;
-                obj.prevTrackInstanceFrame = 0;
-
-            }
+                data.prevTrackInstance = data.trackInstance;
+                data.prevTrackInstanceFrame = 0;
+            });
 		}
 
-		// don't flip Y coordinates in textures
-		for (var texture in scene.textures) {
+        // don't flip Y coordinates in textures
+		for (var texture in sceneData.textures) {
 
-			if (!scene.textures.hasOwnProperty(texture)) continue;
+			if (!sceneData.textures.hasOwnProperty(texture)) continue;
 
-			scene.textures[texture].flipY = false;
+			sceneData.textures[texture].flipY = false;
 
 		}
 
 		// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
-		var tintColor = confMgr.levelColor(sceneJSON.levelShortFileName, 'globaltintcolor', true, null), globalTintColor = null;
+		var tintColor = confMgr.levelColor(sceneData.levelShortFileName, 'globaltintcolor', true, null), globalTintColor = null;
 
 		if (tintColor != null) {
 			globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
-		}
-		for (var objID in scene.objects) {
+        }
+        
+        sceneRender.traverse( (obj) => {
+            var data = sceneData.objects[obj.name];
 
-			var obj = scene.objects[objID];
-			var objJSON = sceneJSON.objects[objID];
+            if (data) {
+                if (data.visible == undefined) {
+                    console.log('Object has no visible property!', obj);
+                }
+                obj.visible = data.visible;
+            }
 
-			if (!(obj instanceof THREE.Mesh)) continue;
+			if (!(obj instanceof THREE.Mesh)) {
+                return;
+            }
 
-			if (!objJSON.has_anims) {
+			if (!data.has_anims) {
 				obj.geometry.computeBoundingBox();
 				obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
 			}
 
-			if (objJSON.type == "room") {
-				var portals = objJSON.portals, meshPortals = [];
-				objJSON.meshPortals = meshPortals;
+			if (data.type == "room") {
+				var portals = data.portals, meshPortals = [];
+				data.meshPortals = meshPortals;
 				for (var p = 0; p < portals.length; ++p) {
 					var portal = portals[p], geom = new THREE.Geometry();
 					geom.vertices.push(
@@ -320,42 +314,36 @@ TRN.MasterLoader = {
 						vertexColors: THREE.VertexColors,
 						transparent: true
 					}));
-					mesh.name = objID + '_portal' + p;
+					mesh.name = obj.name + '_portal' + p;
 					mesh.position.x = mesh.position.y = mesh.position.z = 0;
 					mesh.updateMatrix();
 					mesh.matrixAutoUpdate = false;
 					mesh.visible = false;
 					meshPortals.push(mesh);
-					scene.scene.add(mesh);
+					sceneRender.add(mesh);
 				}
 			}
 
 			obj.frustumCulled = true;
-			obj.dummy = objJSON.dummy;
 
 			var material = new THREE.MeshFaceMaterial();
 
-			//obj.geometry.computeFaceNormals();
-			//obj.geometry.computeVertexNormals(true);
-
-			var attributes = sceneJSON.embeds[sceneJSON.geometries[objJSON.geometry].id].attributes;
+			var attributes = data.attributes;
 
 			if (attributes) {
 				attributes._flags.needsUpdate = true;
 			}
 
 			for (var mt_ = 0; mt_ < obj.material.length; ++mt_) {
-
-				var elem = obj.material[mt_];
-                material.materials[mt_] = scene.materials[elem.material].clone();
-                material.materials[mt_].uniforms = elem.uniforms;
+                var elem = obj.material[mt_];
+                
+                material.materials[mt_] = oscene.scene.materials[elem.material].clone();
+                material.materials[mt_].uniforms = jQuery.extend(true, {}, elem.uniforms);
                 material.materials[mt_].attributes = attributes;
 
 				for (var mkey in elem) {
-
 					if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
 					material.materials[mt_][mkey] = elem[mkey];
-
 				}
 			}
 
@@ -363,17 +351,18 @@ TRN.MasterLoader = {
             
 			var materials = material.materials;
 
-			if (!materials || !materials.length) continue;
+			if (!materials || !materials.length) {
+                return;
+            }
 
 			for (var i = 0; i < materials.length; ++i) {
-
 				var material = materials[i];
 
 				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
-					material.uniforms.map.value = scene.textures['texture' + material.uniforms.map.value];
+					material.uniforms.map.value = sceneData.textures['texture' + material.uniforms.map.value];
 				}
 				if (material.uniforms.mapBump && typeof(material.uniforms.mapBump.value) == 'string' && material.uniforms.mapBump.value) {
-					material.uniforms.mapBump.value = scene.textures['texture' + material.uniforms.mapBump.value];
+					material.uniforms.mapBump.value = sceneData.textures['texture' + material.uniforms.mapBump.value];
 				}
 
 				if (globalTintColor != null) {
@@ -382,69 +371,30 @@ TRN.MasterLoader = {
 				}
 
 				if (material.hasAlpha) {
-
 					material.transparent = true;
 					material.blending = THREE.AdditiveBlending;
 					material.blendSrc = THREE.OneFactor;
 					material.blendDst = THREE.OneMinusSrcColorFactor;
 					material.depthWrite = false;
 					material.needsUpdate = true;
-
 				}
 			}
-		}
+		});
 
-		// put pistols in Lara holsters
-		var obj = scene.objects[TRN.Consts.objNameForPistolAnim];
-		var lara = oscene.findObjectById(TRN.ObjectID.Lara);
-
-		if (obj && lara) {
-			var mswap = new TRN.MeshSwap(obj, lara);
-
-			mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.rightThighIndex]);
-		}
-
-		var camera = scene.currentCamera;
-
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-
-		//camera.position.set(55293.20054,4864.60863,-68762.60736);
-		//camera.quaternion.set(-0.06961,-0.82905,-0.10597,0.54460);
-
-		if (TRN.Browser.QueryString.pos) {
-
-			var vals = TRN.Browser.QueryString.pos.split(',');
-			camera.position.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]));
-
-		}
-
-		if (TRN.Browser.QueryString.rot) {
-
-			var vals = TRN.Browser.QueryString.rot.split(',');
-			camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
-
-		}
-
-		camera.updateMatrix();
-		camera.updateMatrixWorld();
-
-		oscene.setCamera(camera);
-
-		if (sceneJSON.cutScene.soundData && TRN.Browser.AudioContext) {
+		if (sceneData.cutScene.soundData && TRN.Browser.AudioContext) {
 
             TRN.Browser.AudioContext.decodeAudioData(
 
-                TRN.Base64Binary.decodeArrayBuffer(sceneJSON.cutScene.soundData),
+                TRN.Base64Binary.decodeArrayBuffer(sceneData.cutScene.soundData),
 
                 function(buffer) {
 
                     if (!buffer) {
                         console.log('error decoding sound data for cut scene');
                     } else {
-						sceneJSON.cutScene.sound = TRN.Browser.AudioContext.createBufferSource();
-						sceneJSON.cutScene.sound.buffer = buffer;
-						sceneJSON.cutScene.sound.connect(TRN.Browser.AudioContext.destination);
+						sceneData.cutScene.sound = TRN.Browser.AudioContext.createBufferSource();
+						sceneData.cutScene.sound.buffer = buffer;
+						sceneData.cutScene.sound.connect(TRN.Browser.AudioContext.destination);
                     }
 
 					callbackLevelLoaded(oscene);
@@ -456,5 +406,6 @@ TRN.MasterLoader = {
 			callbackLevelLoaded(oscene);
 
 		}
-	}
+    }
+    
 }

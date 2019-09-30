@@ -3,11 +3,10 @@ TRN.Play = function (container) {
 	this.container = jQuery(container);
 
 	this.camera = null;
-	this.scene = null;
-	this.sceneJSON = null;
+    this.sceneRender = null;
+    this.sceneData = null;
 	this.controls = null;
 	this.startTime = -1;
-    this.gcounter = 0;
     this.singleRoomMode = false;
     this.useAdditionalLights = false;
 
@@ -53,35 +52,32 @@ TRN.Play.prototype = {
 	constructor : TRN.Play,
 
 	onWindowResize : function () {
-
 		this.camera.aspect = this.container.width() / this.container.height();
 		this.camera.updateProjectionMatrix();
 
 		this.renderer.setSize( this.container.width(), this.container.height() );
 
 		this.render();
-
 	},
 
     buildLists : function() {
         this.objectList = {};
 
-        for (var objID in this.scene.objects) {
-            var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID], type = objJSON.type;
+        this.sceneRender.traverse( (obj) => {
+            var data = this.sceneData.objects[obj.name];
 
-            var id = objJSON.objectid_orig;
-            if (objJSON.type == 'room') {
-                id = objJSON.roomIndex;
-            }
+            if (!data) return;
+
+            var id = data.objectid, type = data.type;
 
             if (id == undefined) {
-                console.log('buildLists: not found objectid_orig property', objJSON);
-                continue;
+                console.log('buildLists: not found objectid property', obj.name, obj);
+                return;
             }
 
             if (type == undefined) {
-                console.log('buildLists: not found type property', objJSON);
-                continue;
+                console.log('buildLists: not found type property', obj.name, obj);
+                return;
             }
 
             var objs = this.objectList[type];
@@ -89,8 +85,9 @@ TRN.Play.prototype = {
                 objs = {};
                 this.objectList[type] = objs;
             }
+
             if (objs[id] && type == 'room') {
-                console.log('Already found room with id ' + id + ':', type, objs[id], objJSON)
+                console.log('Already found room with id ' + id + ':', type, objs[id], data)
             }
 
             if (type == 'room') {
@@ -103,36 +100,126 @@ TRN.Play.prototype = {
                 }
                 objsForId.push(obj);
             }
+        } );
+    },
+
+    setUniformsFromRoom : function(obj, roomIndex) {
+        var materials = obj.material.materials;
+        var roomData = this.sceneData.objects['room' + roomIndex];
+        var data = this.sceneData.objects[obj.name];
+
+        for (var mat = 0; mat < materials.length; ++mat) {
+            var material = materials[mat];
+
+            material.uniforms.ambientColor.value = roomData.ambientColor;
+
+            if (data.type == 'staticmesh') {
+                material.uniforms.lighting.value = data.lighting;
+            } else if (data.type == 'moveable') {
+				if (data.moveableIsInternallyLit) {
+					// item is internally lit
+					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
+                    material.uniforms.ambientColor.value = data.lighting;
+				} else {
+                    TRN.Helper.setMaterialLightsUniform(roomData, material, false, this.useAdditionalLights);
+                }
+            }
+
+            if (!roomData.flickering)      material.uniforms.flickerColor.value = [1, 1, 1];
+            if (roomData.filledWithWater)  material.uniforms.tintColor.value = [this.sceneData.waterColor.in.r, this.sceneData.waterColor.in.g, this.sceneData.waterColor.in.b];
         }
     },
 
 	start : function (oscene) {
+        this.dbg = oscene.scene;
 
 		this.oscene = oscene;
-		this.sceneJSON = oscene.sceneJSON;
-		this.scene = oscene.scene;
-        this.camera = oscene.camera;
-        this.isCutscene = this.sceneJSON.cutScene.frames != null;
+        this.sceneData = oscene.sceneJSON.data;
+		this.sceneRender = oscene.scene.scene;
+        this.camera = oscene.scene.currentCamera;
+        this.isCutscene = this.sceneData.cutScene.frames != null;
 
-		this.controls = new BasicControls( this.camera, document.body );
+        this.controls = new BasicControls( this.camera, document.body );
 
-        this.confMgr = new TRN.ConfigMgr(this.sceneJSON.rversion);
+        this.confMgr = new TRN.ConfigMgr(this.sceneData.rversion);
         
-		var tintColor = this.confMgr.levelColor(this.sceneJSON.levelShortFileName, 'globaltintcolor', true, null);
+		var tintColor = this.confMgr.levelColor(this.sceneData.levelShortFileName, 'globaltintcolor', true, null);
 
 		if (tintColor != null) {
 			this.globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
 		}
 
-		if (this.sceneJSON.rversion != 'TR4') {
+		if (this.sceneData.rversion != 'TR4') {
 			jQuery('#nobumpmapping').prop('disabled', 'disabled');
 		}
 
         this.sceneBackground = new THREE.Scene();
 
+		//this.camera.position.set(55293.20054,4864.60863,-68762.60736);
+		//this.camera.quaternion.set(-0.06961,-0.82905,-0.10597,0.54460);
+
+		if (TRN.Browser.QueryString.pos) {
+			var vals = TRN.Browser.QueryString.pos.split(',');
+			this.camera.position.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]));
+		}
+
+		if (TRN.Browser.QueryString.rot) {
+			var vals = TRN.Browser.QueryString.rot.split(',');
+			this.camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
+		}
+
+		this.camera.updateMatrix();
+		this.camera.updateMatrixWorld();
+
         this.buildLists();
 
-        this.bhvMgr = new TRN.Behaviours.BehaviourManager(this.objectList, this.sceneJSON, this.confMgr, this);
+        var moveables = this.objectList['moveable'];
+        for (var objID in moveables) {
+            var lstObj = moveables[objID];
+            for (var i = 0; i < lstObj.length; ++i) {
+                var obj = lstObj[i];
+                var materials = obj.material ? obj.material.materials : null;
+                if (materials) {
+                    for (var m = 0; m < materials.length; ++m) {
+                        TRN.Helper.createLightsUniforms(materials[m]);
+                    }
+                }
+            }
+        }
+    
+        TRN.Helper.setLightsOnMoveables(this.objectList['moveable'], this.sceneData, this.useAdditionalLights);
+
+        this.sceneRender.traverse( (obj) => {
+            var data = this.sceneData.objects[obj.name];
+
+            if (!data || data.roomIndex < 0) return;
+
+            this.setUniformsFromRoom(obj, data.roomIndex);
+        });
+
+        TRN.ObjectID.PistolAnim = this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'behaviour[name="Lara"] > pistol_anim > id', true, -1);
+
+        var meshSwapIds = [
+            this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'meshswap > objid1', true, 0),
+            this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'meshswap > objid2', true, 0),
+            this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'meshswap > objid3', true, 0)
+        ];
+        for (var i = 0; i < meshSwapIds.length; ++i) {
+            TRN.ObjectID['meshswap' + (i+1)] = meshSwapIds[i];
+        }
+
+        // put pistols in Lara holsters
+        var obj = this.objectList['moveable'][TRN.ObjectID.PistolAnim];
+		var lara = this.objectList['moveable'][TRN.ObjectID.Lara];
+
+		if (obj && lara) {
+			var mswap = new TRN.MeshSwap(obj[0], lara[0]);
+
+			mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.rightThighIndex]);
+		}
+
+        this.bhvMgr = new TRN.Behaviours.BehaviourManager(this.objectList, this.sceneData, this.confMgr, this);
+        
         this.bhvMgr.loadBehaviours();
         this.bhvMgr.addBehaviour('Sprite');
 
@@ -142,7 +229,7 @@ TRN.Play.prototype = {
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
-		this.renderer.initWebGLObjects(this.scene.scene);
+		this.renderer.initWebGLObjects(this.sceneRender);
         this.renderer.initWebGLObjects(this.sceneBackground);
 
         this.startTime = this.quantumTime = (new Date()).getTime();
@@ -156,7 +243,6 @@ TRN.Play.prototype = {
 
 
 	renderLoop : function () {
-
 		requestAnimationFrame( this.renderLoop.bind(this) );
 
 		var delta = this.clock.getDelta();
@@ -187,142 +273,143 @@ TRN.Play.prototype = {
 
 		if (this.needWebGLInit) {
 			this.needWebGLInit = false;
-			this.renderer.initWebGLObjects(this.scene.scene);
+			this.renderer.initWebGLObjects(this.sceneRender);
 		}
 
 		this.render();
-
 	},
 
 	render : function () {
-
         this.renderer.clear(true, true, true);
 
         this.renderer.render( this.sceneBackground, this.camera );
 
-		this.renderer.render( this.scene.scene, this.camera );
+		this.renderer.render( this.sceneRender, this.camera );
 
 		this.stats.update();
 
 		this.panel.showInfo();
-
 	},
 
 	animateObjects : function(delta) {
+        var animatables = this.objectList['moveable'];
 
-		for (var objID in this.scene.objects) {
+		for (var objID in animatables) {
+            var lstObj = this.objectList['moveable'][objID];
+            
+            for (var i = 0; i < lstObj.length; ++i) {
+                var obj = lstObj[i];
 
-			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
+                data = this.sceneData.objects[obj.name];
 
-			if (obj.trackInstance && (obj.visible || this.isCutscene)) {
+                if (data.trackInstance && (obj.visible || this.isCutscene)) {
+                    if (!data.trackInstance.runForward(delta)) {
+                        // it's the end of the current track and we are in a cut scene => we link to the next track
+                        var trackInstance = data.trackInstance;
 
-				if (!obj.trackInstance.runForward(delta)) {
+                        var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.curFrame - trackInstance.track.numFrames;//trackInstance.param.interpFactor;
+                        
+                        trackInstance = data.allTrackInstances[trackInstance.track.nextTrack];
+                        data.trackInstance = trackInstance;
 
-					// it's the end of the current track and we are in a cut scene => we link to the next track
-					var trackInstance = obj.trackInstance;
+                        trackInstance.setNextTrackInstance(data.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
+                        trackInstance.setCurrentFrame(nextTrackFrame);
 
-					var nextTrackFrame = trackInstance.track.nextTrackFrame + trackInstance.param.curFrame - trackInstance.track.numFrames;//trackInstance.param.interpFactor;
-					
-					trackInstance = obj.allTrackInstances[trackInstance.track.nextTrack];
-					obj.trackInstance = trackInstance;
-
-					trackInstance.setNextTrackInstance(obj.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
-					trackInstance.setCurrentFrame(nextTrackFrame);
-
-					trackInstance.setNoInterpolationToNextTrack = this.isCutscene;
-
-				}
-
-				if (obj.trackInstance != obj.prevTrackInstance) {
-					this.processAnimCommands(obj.prevTrackInstance, obj.prevTrackInstanceFrame, 1e10, obj);
-                    this.processAnimCommands(obj.trackInstance, 0, obj.trackInstance.param.curFrame, obj);
-
-				} else {
-
-                    var frm1 = obj.prevTrackInstanceFrame, frm2 = obj.trackInstance.param.curFrame;
-                    if (frm1 > frm2) {
-                        // we have looped in the same animation
-                        this.processAnimCommands(obj.trackInstance, frm1, 1e10, obj);
-                        this.processAnimCommands(obj.trackInstance, 0, frm2, obj);
-                    } else {
-                        this.processAnimCommands(obj.trackInstance, frm1, frm2, obj);
+                        trackInstance.setNoInterpolationToNextTrack = this.isCutscene;
                     }
 
-				}
+                    if (data.trackInstance != data.prevTrackInstance) {
+                        this.processAnimCommands(data.prevTrackInstance, data.prevTrackInstanceFrame, 1e10, obj);
+                        this.processAnimCommands(data.trackInstance, 0, data.trackInstance.param.curFrame, obj);
+                    } else {
+                        var frm1 = data.prevTrackInstanceFrame, frm2 = data.trackInstance.param.curFrame;
+                        if (frm1 > frm2) {
+                            // we have looped in the same animation
+                            this.processAnimCommands(data.trackInstance, frm1, 1e10, obj);
+                            this.processAnimCommands(data.trackInstance, 0, frm2, obj);
+                        } else {
+                            this.processAnimCommands(data.trackInstance, frm1, frm2, obj);
+                        }
+                    }
 
-                objJSON.visible = obj.visible;
+                    data.visible = obj.visible;
 
-				obj.prevTrackInstance = obj.trackInstance;
-				obj.prevTrackInstanceFrame = obj.trackInstance.param.curFrame;
+                    data.prevTrackInstance = data.trackInstance;
+                    data.prevTrackInstanceFrame = data.trackInstance.param.curFrame;
 
-				obj.trackInstance.interpolate();
+                    data.trackInstance.interpolate();
 
-				var boundingBox = obj.trackInstance.track.keys[obj.trackInstance.param.curKey].boundingBox;
+                    var boundingBox = data.trackInstance.track.keys[data.trackInstance.param.curKey].boundingBox;
 
-				boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
-				obj.geometry.boundingBox = boundingBox;
+                    boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
+                    obj.geometry.boundingBox = boundingBox;
 
-				if (obj.boxHelper) {
-					this.needWebGLInit = true;
-					obj.boxHelper.update(obj);
-				}
-			}
+                    if (obj.boxHelper) {
+                        this.needWebGLInit = true;
+                        obj.boxHelper.update(obj);
+                    }
+                }
+            }
 		}
-
 	},
 
 	animateTextures : function (delta) {
+		if (!this.sceneData.animatedTextures) { 
+            return; 
+        }
 
-		if (!this.scene.animatedTextures) { return; }
-
-		for (var i = 0; i < this.scene.animatedTextures.length; ++i) {
-			var animTexture = this.scene.animatedTextures[i];
+		for (var i = 0; i < this.sceneData.animatedTextures.length; ++i) {
+			var animTexture = this.sceneData.animatedTextures[i];
 			animTexture.progressor.update(delta);
 		}
-
-	},
+    },
 
 	updateObjects : function (curTime) {
+		this.curRoom = -1;
 
-		this.sceneJSON.curRoom = -1;
+		this.sceneRender.traverse( (obj) => {
+            var data = this.sceneData.objects[obj.name];
 
-		for (var objID in this.scene.objects) {
+            if (!data || data.dummy) {
+                return;
+            }
 
-			var obj = this.scene.objects[objID], objJSON = this.sceneJSON.objects[objID];
-
-			if (obj.dummy) continue;
-
-			if (objJSON.type == 'room') {
-
-				if (obj.geometry.boundingBox.containsPoint(this.camera.position) && !objJSON.isAlternateRoom) {
-					this.sceneJSON.curRoom = objJSON.roomIndex;
+            // Test camera room membership
+			if (data.type == 'room') {
+				if (obj.geometry.boundingBox.containsPoint(this.camera.position) && !data.isAlternateRoom) {
+					this.curRoom = data.roomIndex;
 				}
-
 			}
 
+            // Set the visibility for the object
 			if (this.singleRoomMode) {
-				obj.visible = objJSON.roomIndex == this.sceneJSON.curRoom && !objJSON.isAlternateRoom;
+				obj.visible = data.roomIndex == this.curRoom && !data.isAlternateRoom;
 			} else {
-				obj.visible = objJSON.visible;
+				obj.visible = data.visible;
 			}
 
-			if (obj.boxHelper) obj.boxHelper.visible = obj.visible;
+			if (obj.boxHelper) {
+                obj.boxHelper.visible = obj.visible;
+            }
 
-			if (!(obj instanceof THREE.Mesh)) continue;
+            // We continue only if it is a displayable object
+			if (!(obj instanceof THREE.Mesh)) {
+                return;
+            }
 
-			if (objJSON.type == 'sprite') {
+            // Update material uniforms
+            var materials = obj.material.materials;
+            
+			if (!materials || !materials.length) {
+                return;
+            }
 
-				// make sure the object is always facing the camera
-				obj.quaternion.set(this.camera.quaternion.x, this.camera.quaternion.y, this.camera.quaternion.z, this.camera.quaternion.w);
-
-				obj.updateMatrix();
-				obj.updateMatrixWorld();
-			}
-
-			var materials = obj.material.materials;
-			if (!materials || !materials.length) continue;
-
-			var room = objJSON.type == 'room' ? objJSON : this.sceneJSON.objects['room' + objJSON.roomIndex];
+            var room = this.sceneData.objects['room' + data.roomIndex];
+            
+            if (!room) {
+                // skies are not in any room, no need to update their uniforms
+                return;
+            }
 
 			for (var i = 0; i < materials.length; ++i) {
 
@@ -337,13 +424,13 @@ TRN.Play.prototype = {
 
 				if (userData.animatedTexture) {
 
-					var animTexture = this.scene.animatedTextures[userData.animatedTexture.idxAnimatedTexture];
+					var animTexture = this.sceneData.animatedTextures[userData.animatedTexture.idxAnimatedTexture];
 
 					if (!animTexture.scrolltexture || !TRN.Consts.useUVRotate) {
 
 						var coords = animTexture.animcoords[(animTexture.progressor.currentTile + userData.animatedTexture.pos) % animTexture.animcoords.length];
 
-						material.uniforms.map.value = this.scene.textures[coords.texture];
+						material.uniforms.map.value = this.sceneData.textures[coords.texture];
 						material.uniforms.offsetRepeat.value[0] = coords.minU - userData.animatedTexture.minU;
                         material.uniforms.offsetRepeat.value[1] = coords.minV - userData.animatedTexture.minV;
 					} else {
@@ -355,16 +442,15 @@ TRN.Play.prototype = {
                         material.uniforms.offsetRepeat.value[3] = 0.5;
 					}
 
-				} else if (objJSON.hasScrollAnim) {
+				} else if (data.hasScrollAnim) {
 					var pgr = curTime / (5*material.uniforms.map.value.image.height), h = (TRN.Consts.moveableScrollAnimTileHeight/2.0)/material.uniforms.map.value.image.height;
 					pgr = pgr - h * Math.floor(pgr / h);
 					material.uniforms.offsetRepeat.value[1] = h - pgr;
 				}
 
 			}
-		}
-		this.gcounter++;
-
+        });
+        
 	},
 
 	processAnimCommands : function (trackInstance, prevFrame, curFrame, obj) {
@@ -392,10 +478,10 @@ TRN.Play.prototype = {
 						}
 
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
-							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
+							var oswap = this.objectList['moveable'][TRN.ObjectID.PistolAnim];
 
 							if (oswap) {
-								var mswap = new TRN.MeshSwap(oswap, obj);
+								var mswap = new TRN.MeshSwap(oswap[0], obj);
 
 								mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.leftHandIndex]);
 
@@ -405,10 +491,10 @@ TRN.Play.prototype = {
 						}
 
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
-							var oswap = this.scene.objects[TRN.Consts.objNameForPistolAnim];
+							var oswap = this.objectList['moveable'][TRN.ObjectID.PistolAnim];
 
 							if (oswap) {
-								var mswap = new TRN.MeshSwap(oswap, obj);
+								var mswap = new TRN.MeshSwap(oswap[0], obj);
 
 								mswap.swap([TRN.Consts.rightThighIndex, TRN.Consts.rightHandIndex]);
 
@@ -421,10 +507,10 @@ TRN.Play.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP2:
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP3: {
 							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
-							var oswap = this.scene.objects['meshswap' + idx];
+							var oswap = this.objectList['moveable'][TRN.ObjectID['meshswap' + idx]];
 
 							if (oswap) {
-								var mswap = new TRN.MeshSwap(obj, oswap);
+								var mswap = new TRN.MeshSwap(obj, oswap[0]);
 
 								mswap.swapall();
 

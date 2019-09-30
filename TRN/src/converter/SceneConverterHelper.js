@@ -309,61 +309,6 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return lstMat;
 	},
 
-    createLightsUniforms : function(material) {
-
-        var u = material.uniforms;
-
-        u.numDirectionalLight           = { type: "i", value: 0 };
-        u.directionalLight_direction    = { type: "fv"  };
-        u.directionalLight_color        = { type: "fv"  };
-
-        u.numPointLight                 = { type: "i", value: -1 }; // -1 here means the object is internally lit
-        u.pointLight_position           = { type: "fv"  };
-        u.pointLight_color              = { type: "fv"  };
-        u.pointLight_distance           = { type: "fv1" };
-
-        u.numSpotLight                  = { type: "i", value: 0 };
-        u.spotLight_position            = { type: "fv"  };
-        u.spotLight_color               = { type: "fv"  };
-        u.spotLight_distance            = { type: "fv1" };
-        u.spotLight_direction           = { type: "fv"  };
-        u.spotLight_coneCos             = { type: "fv1" };
-        u.spotLight_penumbraCos         = { type: "fv1" };
-
-    },
-
-    makeMaterialForMoveableInstance : function(objID, roomIndex, lighting) {
-		var room = this.sc.objects['room' + roomIndex];
-
-		var hasGeometry = this.sc.embeds['moveable' + objID];
-		var materials = null;
-		if (hasGeometry) {
-			var moveableIsInternallyLit = this.sc.embeds['moveable' + objID].moveableIsInternallyLit;
-			materials = [];
-			for (var mat = 0; mat < this.sc.embeds['moveable' + objID]._materials.length; ++mat) {
-                var material = jQuery.extend(true, {}, this.sc.embeds['moveable' + objID]._materials[mat]);
-                
-                this.createLightsUniforms(material);
-				if (lighting != -1 || moveableIsInternallyLit) {
-					// item is internally lit
-					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
-					if (lighting == -1) lighting = 0;
-                    material.uniforms.ambientColor.value = this.convertIntensity(lighting);
-				} else {
-                    material.uniforms.ambientColor.value = room.ambientColor;
-                    TRN.Helper.setMaterialLightsUniform(room, material, false, false);
-                }
-
-                if (!room.flickering)       material.uniforms.flickerColor.value = [1, 1, 1];
-                if (room.filledWithWater)   material.uniforms.tintColor.value    = [this.sc.waterColor.in.r, this.sc.waterColor.in.g, this.sc.waterColor.in.b];
-
-				materials.push(material);
-			}
-        }
-        
-        return materials;
-    },
-
 	findStatichMeshByID : function (objectID) {
 		for (var sg = 0; sg < this.trlevel.staticMeshes.length; ++sg) {
 			if (this.trlevel.staticMeshes[sg].objectID == objectID) {
@@ -424,7 +369,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
             "frameRate": 1,
             "keys": [],
             "name": animName,
-            "nextTrack": this.sc.animTracks.length,
+            "nextTrack": this.sc.data.animTracks.length,
             "nextTrackFrame": 0,
             "numFrames": cutscene.numFrames,
             "numKeys": cutscene.numFrames,
@@ -435,11 +380,11 @@ TRN.extend(TRN.SceneConverter.prototype, {
         if (mshswap && indexActor == 0) {
             var animation2 = Object.assign({}, animation);
 
-            animation2.nextTrack = this.sc.animTracks.length;
+            animation2.nextTrack = this.sc.data.animTracks.length;
 
-            mshswap.animationStartIndex = this.sc.animTracks.length;
+            this.sc.data.objects[mshswap.objID].animationStartIndex = this.sc.data.animTracks.length;
 
-            this.sc.animTracks.push(animation2);
+            this.sc.data.animTracks.push(animation2);
 
             if (cutscene.index == 1) {
                 animation2.commands = [

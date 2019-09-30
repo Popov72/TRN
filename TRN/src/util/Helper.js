@@ -78,6 +78,29 @@ TRN.Helper = {
     	return a + (b - a) * t;
 	},
 
+    createLightsUniforms : function(material) {
+
+        var u = material.uniforms;
+
+        u.numDirectionalLight           = { type: "i", value: 0 };
+        u.directionalLight_direction    = { type: "fv"  };
+        u.directionalLight_color        = { type: "fv"  };
+
+        u.numPointLight                 = { type: "i", value: -1 }; // -1 here means the object is internally lit
+        u.pointLight_position           = { type: "fv"  };
+        u.pointLight_color              = { type: "fv"  };
+        u.pointLight_distance           = { type: "fv1" };
+
+        u.numSpotLight                  = { type: "i", value: 0 };
+        u.spotLight_position            = { type: "fv"  };
+        u.spotLight_color               = { type: "fv"  };
+        u.spotLight_distance            = { type: "fv1" };
+        u.spotLight_direction           = { type: "fv"  };
+        u.spotLight_coneCos             = { type: "fv1" };
+        u.spotLight_penumbraCos         = { type: "fv1" };
+
+    },
+
     setMaterialLightsUniform : function(room, material, noreset, useExtLights) {
 
         noreset = noreset || false;
@@ -141,21 +164,24 @@ TRN.Helper = {
         }
     },
 
-    setLightsOnMoveables : function(objects, sceneJSON, useAdditionalLigths) {
+    setLightsOnMoveables : function(objects, sceneData, useAdditionalLigths) {
         for (var objID in objects) {
-            var obj = objects[objID];
+            var lstObj = objects[objID];
 
-            if (!(obj instanceof THREE.Mesh)) continue;
+            for (var i = 0; i < lstObj.length; ++i) {
+                var obj = lstObj[i];
+                var materials = obj.material ? obj.material.materials : null;
+                if (!materials || !materials.length) continue;
 
-            var materials = obj.material ? obj.material.materials : null;
-            if (!materials || !materials.length) continue;
+                var data = sceneData.objects[obj.name];
+                if (data.roomIndex >= 0) {
+                    for (var m = 0; m < materials.length; ++m) {
+                        var material = materials[m];
+                        if (!material.uniforms || material.uniforms.numPointLight === undefined || material.uniforms.numPointLight < 0) continue;
 
-            var objJSON = sceneJSON.objects[objID];
-            for (var i = 0; i < materials.length; ++i) {
-                var material = materials[i];
-                if (!material.uniforms || material.uniforms.numPointLight === undefined || material.uniforms.numPointLight < 0) continue;
-
-                TRN.Helper.setMaterialLightsUniform(sceneJSON.objects['room' + objJSON.roomIndex], material, false, useAdditionalLigths);
+                        TRN.Helper.setMaterialLightsUniform(sceneData.objects['room' + data.roomIndex], material, false, useAdditionalLigths);
+                    }
+                }
             }
         }
     },
@@ -214,10 +240,10 @@ TRN.Helper = {
         return children;
     },
 
-    findRoom : function(pos, roomList, sceneJSON) {
+    findRoom : function(pos, roomList, sceneData) {
         for (var r in roomList) {
-            var obj = roomList[r], objJSON = sceneJSON.objects[obj.name];
-            if (objJSON.isAlternateRoom) continue;
+            var obj = roomList[r], data = sceneData.objects[obj.name];
+            if (data.isAlternateRoom) continue;
             if (obj && obj.geometry.boundingBox.containsPoint(pos)) {
                 return r;
             }
