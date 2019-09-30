@@ -237,9 +237,18 @@ TRN.Play.prototype = {
 
 				} else {
 
-					this.processAnimCommands(obj.trackInstance, obj.prevTrackInstanceFrame, obj.trackInstance.param.curFrame, obj);
+                    var frm1 = obj.prevTrackInstanceFrame, frm2 = obj.trackInstance.param.curFrame;
+                    if (frm1 > frm2) {
+                        // we have looped in the same animation
+                        this.processAnimCommands(obj.trackInstance, frm1, 1e10, obj);
+                        this.processAnimCommands(obj.trackInstance, 0, frm2, obj);
+                    } else {
+                        this.processAnimCommands(obj.trackInstance, frm1, frm2, obj);
+                    }
 
 				}
+
+                objJSON.visible = obj.visible;
 
 				obj.prevTrackInstance = obj.trackInstance;
 				obj.prevTrackInstanceFrame = obj.trackInstance.param.curFrame;
