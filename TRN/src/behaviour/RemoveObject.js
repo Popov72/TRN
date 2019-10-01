@@ -1,18 +1,20 @@
-TRN.Behaviours.RemoveObject = function(nbhv, bhvMgr) {
+TRN.Behaviours.RemoveObject = function(nbhv, gameData) {
     this.nbhv = nbhv;
-    this.bhvMgr = bhvMgr;
+    this.objMgr = gameData.objMgr;
 }
 
 TRN.Behaviours.RemoveObject.prototype = {
 
     constructor : TRN.Behaviours.RemoveObject,
 
-    init : function(lstObjs) {
-        lstObjs.forEach( (obj) => {
-            this.bhvMgr.removeObject(obj);
-        });
+    init : async function(lstObjs, resolve) {
+        if (lstObjs) {
+            lstObjs.forEach( (obj) => {
+                this.objMgr.removeObjectFromScene(obj);
+            });
+        }
 
-        return TRN.Consts.Behaviour.retDontKeepBehaviour;
+        resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
     }
 
 }

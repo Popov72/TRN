@@ -1,23 +1,24 @@
-TRN.Behaviours.Sprite = function(nbhv, bhvMgr) {
-    this.bhvMgr = bhvMgr;
+TRN.Behaviours.Sprite = function(nbhv, gameData) {
+    this.objMgr = gameData.objMgr;
+    this.camera = gameData.camera;
 }
 
 TRN.Behaviours.Sprite.prototype = {
 
     constructor : TRN.Behaviours.Sprite,
 
-    init : function(lstObjs) {
-        this.objects = this.bhvMgr.objectList['sprite'];
-
-        return TRN.Consts.Behaviour.retKeepBehaviour;
+    init : async function(lstObjs, resolve) {
+        resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     },
 
     frameEnded : function() {
         // make sure the object is always facing the camera
-        var cameraRot = this.bhvMgr.parent.camera;
+        var cameraRot = this.camera;
 
-        for (var objID in this.objects) {
-            var lstObj = this.objects[objID];
+        var objects = this.objMgr.objectList['sprite'];
+
+        for (var objID in objects) {
+            var lstObj = objects[objID];
 
             for (var i = 0; i < lstObj.length; ++i) {
                 var obj = lstObj[i];

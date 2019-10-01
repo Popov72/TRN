@@ -1,31 +1,38 @@
-TRN.Behaviours.Sky = function(nbhv, bhvMgr) {
+TRN.Behaviours.Sky = function(nbhv, gameData) {
     this.nbhv = nbhv;
-    this.bhvMgr = bhvMgr;
-    this.scene = bhvMgr.scene;
-    this.sceneBackground = bhvMgr.parent.sceneBackground;
+    this.scene = gameData.sceneRender;
+    this.sceneData = gameData.sceneData;
+    this.sceneBackground = gameData.sceneBackground;
+    this.bhvMgr = gameData.bhvMgr;
+    this.confMgr = gameData.confMgr;
+    this.objMgr = gameData.objMgr;
+    this.camera = gameData.camera;
 }
 
 TRN.Behaviours.Sky.prototype = {
 
     constructor : TRN.Behaviours.Sky,
 
-    init : function(lstObjs) {
-        var id = this.nbhv.id, hide = this.nbhv.hide == 'true';
-        var objSky = this.bhvMgr.objectList['moveable'][id];
-
-        if (!objSky || objSky.length != 1) {
-            return TRN.Consts.Behaviour.retDontKeepBehaviour;
-        }
-
-        this.objSky = objSky[0];
-
-        this.scene.remove(this.objSky);
+    init : async function(lstObjs, resolve) {
+        var id = this.nbhv.id, 
+            hide = this.nbhv.hide == 'true', 
+            noanim = this.nbhv.noanim == 'true';
 
         if (hide) {
-            this.bhvMgr.removeObject(this.objSky);
-            
-            return TRN.Consts.Behaviour.retDontKeepBehaviour;
+            resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
+            return;
         }
+
+        this.objSky = this.objMgr.createMoveable(id, -1, false);
+
+        if (this.objSky == null) {
+            resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
+            return;
+        }
+
+        var data = this.sceneData.objects[this.objSky.name];
+
+        data.has_anims = !noanim;
 
         this.objSky.renderDepth = 1;
         this.objSky.matrixAutoUpdate = true;
@@ -44,11 +51,11 @@ TRN.Behaviours.Sky.prototype = {
             //material.depthTest = false;
         }
 
-        return TRN.Consts.Behaviour.retKeepBehaviour;
+        resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     },
 
     frameEnded : function() {
-        this.objSky.position = this.bhvMgr.parent.camera.position;
+        this.objSky.position = this.camera.position;
     }
 
 }

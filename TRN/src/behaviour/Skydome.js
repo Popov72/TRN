@@ -1,20 +1,24 @@
-TRN.Behaviours.Skydome = function(nbhv, bhvMgr) {
+TRN.Behaviours.Skydome = function(nbhv, gameData) {
     this.nbhv = nbhv;
-    this.bhvMgr = bhvMgr;
-    this.scene = bhvMgr.scene;
-    this.sceneBackground = bhvMgr.parent.sceneBackground;
+    this.scene = gameData.sceneRender;
+    this.sceneData = gameData.sceneData;
+    this.sceneBackground = gameData.sceneBackground;
+    this.bhvMgr = gameData.bhvMgr;
+    this.objMgr = gameData.objMgr;
+    this.camera = gameData.camera;
 }
 
 TRN.Behaviours.Skydome.prototype = {
 
     constructor : TRN.Behaviours.Skydome,
 
-    init : function(lstObjs) {
+    init : async function(lstObjs, resolve) {
         var hide = this.nbhv.hide == 'true';
-        var objSky = this.bhvMgr.objectList['skydome'];
+        var objSky = this.objMgr.objectList['skydome'];
 
         if (!objSky || !objSky['0']) {
-            return TRN.Consts.Behaviour.retDontKeepBehaviour;
+            resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
+            return;
         }
 
         this.objSky = objSky['0'][0];
@@ -22,15 +26,16 @@ TRN.Behaviours.Skydome.prototype = {
         this.scene.remove(this.objSky);
 
         if (hide) {
-            this.bhvMgr.removeObject(this.objSky);
+            this.objMgr.removeObjectFromScene(this.objSky);
             
-            return TRN.Consts.Behaviour.retDontKeepBehaviour;
+            resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
+            return;
         }
 
         this.objSky.renderDepth = 0;
         this.objSky.matrixAutoUpdate = true;
         
-        var skyTexture = this.bhvMgr.parent.sceneData.textures["texture" + (TRN.Helper.objSize(this.bhvMgr.parent.sceneData.textures)-1)];
+        var skyTexture = this.sceneData.textures["texture" + (TRN.Helper.objSize(this.sceneData.textures)-1)];
 
         skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
 
@@ -42,11 +47,11 @@ TRN.Behaviours.Skydome.prototype = {
 
         material.uniforms.tintColor.value = skyColor;
 
-        return TRN.Consts.Behaviour.retKeepBehaviour;
+        resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     },
 
     frameEnded : function(curTime) {
-        this.objSky.position = this.bhvMgr.parent.camera.position;
+        this.objSky.position = this.camera.position;
 
         var material = this.objSky.material.materials[0];
 

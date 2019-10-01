@@ -1,4 +1,4 @@
-TRN.Behaviours.BasicControl = function(nbhv, bhvMgr) {
+TRN.Behaviours.BasicControl = function(nbhv, gameData) {
     this.nbhv = nbhv;
 }
 
@@ -6,9 +6,8 @@ TRN.Behaviours.BasicControl.prototype = {
 
     constructor : TRN.Behaviours.BasicControl,
 
-    init : function(lstObjs) {
-
-        return TRN.Consts.Behaviour.retKeepBehaviour;
+    init : async function(lstObjs, resolve) {
+        resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     }
 
 }

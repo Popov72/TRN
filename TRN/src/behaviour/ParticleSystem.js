@@ -1,4 +1,4 @@
-TRN.Behaviours.ParticleSystem = function(nbhv, bhvMgr) {
+TRN.Behaviours.ParticleSystem = function(nbhv, gameData) {
     this.nbhv = nbhv;
 }
 
@@ -6,9 +6,8 @@ TRN.Behaviours.ParticleSystem.prototype = {
 
     constructor : TRN.Behaviours.ParticleSystem,
 
-    init : function(lstObjs) {
-
-        return TRN.Consts.Behaviour.retKeepBehaviour;
+    init : async function(lstObjs) {
+        resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     }
 
 }

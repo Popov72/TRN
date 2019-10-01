@@ -1,4 +1,4 @@
-TRN.Behaviours.Light = function(nbhv, bhvMgr) {
+TRN.Behaviours.Light = function(nbhv, gameData) {
     this.nbhv = nbhv;
 }
 
@@ -6,9 +6,8 @@ TRN.Behaviours.Light.prototype = {
 
     constructor : TRN.Behaviours.Light,
 
-    init : function(lstObjs) {
-
-        return TRN.Consts.Behaviour.retKeepBehaviour;
+    init : async function(lstObjs, resolve) {
+        resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     }
 
 }

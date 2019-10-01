@@ -1,4 +1,4 @@
-TRN.Behaviours.Zbias = function(nbhv, bhvMgr) {
+TRN.Behaviours.Zbias = function(nbhv, gameData) {
     this.nbhv = nbhv;
 }
 
@@ -6,7 +6,7 @@ TRN.Behaviours.Zbias.prototype = {
 
     constructor : TRN.Behaviours.Zbias,
 
-    init : function(lstObjs) {
+    init : async function(lstObjs, resolve) {
         var params = this.nbhv.polygoneoffset;
         if (params) {
             var factor = params.factor, unit = params.unit;
@@ -21,7 +21,7 @@ TRN.Behaviours.Zbias.prototype = {
             });
         }
 
-        return TRN.Consts.Behaviour.retDontKeepBehaviour;
+        resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
     }
 
 }

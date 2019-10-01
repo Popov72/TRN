@@ -49,6 +49,35 @@ TRN.Animation.Commands.Misc = {
 	ANIMCMD_MISC_ADDITIONALSOUND2:                  16416
 };
 
+TRN.Animation.addTrack = function(trackJSON, animTracks) {
+    var keys = trackJSON.keys;
+
+    var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
+
+    trackJSON.commands.frameStart = trackJSON.frameStart;
+
+    track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
+    track.setCommands(trackJSON.commands);
+
+    animTracks.push(track);
+
+    for (var k = 0; k < keys.length; ++k) {
+        var keyJSON = keys[k], dataJSON = keyJSON.data, bbox = keyJSON.boundingBox;
+
+        var boundingBox = new THREE.Box3(new THREE.Vector3(bbox.xmin, bbox.ymin, bbox.zmin), new THREE.Vector3(bbox.xmax, bbox.ymax, bbox.zmax));
+
+        var key = new TRN.Animation.Key(keyJSON.time, boundingBox);
+
+        for (var d = 0; d < dataJSON.length; ++d) {
+            key.addData(dataJSON[d].position, dataJSON[d].quaternion);
+        }
+
+        track.addKey(key);
+    }
+
+    return track;
+}
+
 TRN.Animation.Key = function(time, boundingBox) {
 
 	this.time = time;

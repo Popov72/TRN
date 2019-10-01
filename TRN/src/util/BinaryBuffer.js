@@ -1,6 +1,5 @@
-TRN.BinaryBuffer = function (urlList, callback) {
+TRN.BinaryBuffer = function (urlList) {
     this.urlList = urlList;
-    this.onload = callback;
     this.bufferList = new Array();
     this.loadCount = 0;
 }
@@ -9,33 +8,32 @@ TRN.BinaryBuffer.prototype = {
 
     constructor : TRN.BinaryBuffer,
 
-    loadBuffer : function(url, index) {
+    loadBuffer : function(url, index, resolve) {
 
         var request = new XMLHttpRequest();
+
         request.open("GET", url, true);
         request.responseType = "arraybuffer";
 
-        var loader = this;
-
-        request.onerror = function() {
+        request.onerror = () => {
             console.log('BinaryBuffer: XHR error', request.status, request.statusText);
-            if (++loader.loadCount == loader.urlList.length) {
-                loader.onload(loader.bufferList);
+            if (++this.loadCount == this.urlList.length) {
+                resolve(this.bufferList);
             }
         }
 
-        request.onreadystatechange = function() {
+        request.onreadystatechange = () => {
             if (request.readyState != 4) return;
 
             if (request.status != 200) {
     	   		console.log('Could not read a binary file. ', request.status, request.statusText);
-                if (++loader.loadCount == loader.urlList.length) {
-                    loader.onload(loader.bufferList);
+                if (++this.loadCount == this.urlList.length) {
+                    resolve(this.bufferList);
                 }
             } else {
-                loader.bufferList[index] = request.response;
-                if (++loader.loadCount == loader.urlList.length) {
-                    loader.onload(loader.bufferList);
+                this.bufferList[index] = request.response;
+                if (++this.loadCount == this.urlList.length) {
+                    resolve(this.bufferList);
                 }
             }
         }
@@ -44,7 +42,10 @@ TRN.BinaryBuffer.prototype = {
     },
 
     load : function() {
-        for (var i = 0; i < this.urlList.length; ++i)
-            this.loadBuffer(this.urlList[i], i);
+        return new Promise(( resolve, reject ) => {
+            for (var i = 0; i < this.urlList.length; ++i) {
+                this.loadBuffer(this.urlList[i], i, resolve);
+            }
+        } );
     }
 }

@@ -201,11 +201,15 @@ TRN.SceneConverter.prototype = {
 	createRooms : function () {
 		// flag the alternate rooms
 		for (var m = 0; m < this.trlevel.rooms.length; ++m) {
+			this.trlevel.rooms[m].isAlternate = false;
+        }
+        
+		for (var m = 0; m < this.trlevel.rooms.length; ++m) {
 			var room = this.trlevel.rooms[m];
-			var alternate = room.alternateRoom;
-			if (alternate != -1) {
-				this.trlevel.rooms[alternate].isAlternate = true;
-			}
+            var alternate = room.alternateRoom;
+            if (alternate != -1) {
+                this.trlevel.rooms[alternate].isAlternate = true;
+            }
 		}
 		
 		var maxLightsInRoom = 0, roomL = -1;
@@ -717,9 +721,17 @@ TRN.SceneConverter.prototype = {
 		console.log('Num moveables=', numMoveables)
 	},
 
+    createAllMoveableInstances : function() {
+        for (var m = 0; m < this.trlevel.moveables.length; ++m) {
+            var moveable = this.trlevel.moveables[m];
+
+            this.createMoveableInstance(-1, -1, 0, 0, 0, 0, [0, 0, 0, 1], moveable, undefined, false);
+        }
+    },
+
 	createMoveableInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, moveable, jsonid, visible) {
 
-		if (typeof(jsonid) == 'undefined') jsonid = 'moveable' + moveable.objectID + '_' + itemIndex;
+		if (typeof(jsonid) == 'undefined') jsonid = 'moveable' + moveable.objectID + (itemIndex >= 0 ? '_' + itemIndex : '');
 		if (typeof(visible) == 'undefined') visible = true;
 
 		var room = this.sc.data.objects['room' + roomIndex];
@@ -748,22 +760,23 @@ TRN.SceneConverter.prototype = {
 			"_animationStartIndex"	: moveable.animation, // this one won't change, whereas animationStartIndex can be changed before starting, for Lara for eg, to set the "standing" anim
 			"hasScrollAnim"			: hasGeometry ? hasGeometry.objHasScrollAnim : false,
             "objectid"              : moveable.objectID,
-            "visible"  				: room.visible && visible,
+            "visible"  				: room ? room.visible && visible : visible,
             "bonesStartingPos"      : hasGeometry ? hasGeometry.bones : null,
             "attributes"            : hasGeometry ? hasGeometry.attributes : null,
             "internallyLit"         : hasGeometry ? hasGeometry.moveableIsInternallyLit || lighting != -1 : false,
             "lighting"              : lighting == -1 ? 0 : this.convertIntensity(lighting)
         }
 
+        if (itemIndex >= 0) {
+            var spriteSeqObjID = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
 
-		var spriteSeqObjID = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
-
-		if (spriteSeqObjID >= 0) {
-			var spriteSeq = this.findSpriteSequenceByID(spriteSeqObjID);
-			if (spriteSeq != null) {
-                this.createSpriteSeqInstance(itemIndex, roomIndex, x, y, z, 0, null, spriteSeq);
-			}
-		}
+            if (spriteSeqObjID >= 0) {
+                var spriteSeq = this.findSpriteSequenceByID(spriteSeqObjID);
+                if (spriteSeq != null) {
+                    this.createSpriteSeqInstance(itemIndex, roomIndex, x, y, z, 0, null, spriteSeq);
+                }
+            }
+        }
 
 		return { obj: this.sc.objects[jsonid], objID: jsonid };
 	},
@@ -831,86 +844,6 @@ TRN.SceneConverter.prototype = {
 		}
 
         this.laraMoveable = laraMoveable;
-
-		if (laraMoveable != null) {
-            var laraRoomIndex = this.sc.data.objects[laraMoveable.objID].roomIndex;
-            
-            // create the 'meshswap' moveables
-			var meshSwapIds = [
-				this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'meshswap > objid1', true, 0),
-				this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'meshswap > objid2', true, 0),
-				this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'meshswap > objid3', true, 0)
-			];
-			for (var i = 0; i < meshSwapIds.length; ++i) {
-				var mid = meshSwapIds[i];
-
-				if (mid == 0) continue;
-
-				var mindex = this.movObjID2Index[mid];
-				
-				if (typeof(mindex) != "undefined") {
-					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, [0,0,0,1], this.trlevel.moveables[mindex], undefined, false);
-
-					this.sc.data.objects[mobj.objID].dummy = true;
-				}
-			}
-
-			// create the 'pistol anim' moveable
-			var pistolAnimId = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'behaviour[name="Lara"] > pistol_anim > id', true, -1);
-			if (pistolAnimId != -1) {
-				var mindex = this.movObjID2Index[pistolAnimId];
-
-				if (typeof(mindex) != "undefined") {
-					var mobj = this.createMoveableInstance(0, laraRoomIndex, 0, 0, 0, -1, [0,0,0,1], this.trlevel.moveables[mindex], undefined, false);
-
-					this.sc.data.objects[mobj.objID].dummy = true;
-				}
-			}
-
-			// translate starting position of Lara
-			var startTrans = this.confMgr.levelVector3(this.sc.data.levelShortFileName, 'behaviour[name="Lara"] > starttrans', true, null);
-			if (startTrans != null) {
-				laraMoveable.obj.position[0] += startTrans.x;
-				laraMoveable.obj.position[1] += startTrans.y;
-				laraMoveable.obj.position[2] += startTrans.z;
-			}
-
-		}
-
-		// specific handling of the sky
-		var skyId = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'behaviour[name="Sky"] > id', true, 0);
-		if (skyId > 0 && this.movObjID2Index[skyId]) {
-			moveable = this.trlevel.moveables[this.movObjID2Index[skyId]];
-
-            var skyNoAnim = this.confMgr.levelBoolean(this.sc.data.levelShortFileName, 'behaviour[name="Sky"] > noanim', true, false);
-			this.sc.objects['sky'] = {
-				"geometry" 				: "moveable" + moveable.objectID,
-				"material" 				: this.sc.embeds['moveable' + moveable.objectID]._materials,
-				"position" 				: [ 0, 0, 0 ],
-				"quaternion" 			: [ 0, 0, 0, 1 ],
-				"scale"	   				: [1, 1, 1],
-				"skin"					: true,
-                "use_vertex_texture" 	: true
-            };
-            
-            this.sc.data.objects['sky'] = {
-				"type"     				: 'moveable',
-                "raw"                   : moveable,
-				"animationStartIndex"	: moveable.animation,
-                "_animationStartIndex"	: moveable.animation,
-                "hasScrollAnim"         : false,
-				"has_anims"				: !skyNoAnim,
-                "objectid" 				: moveable.objectID,
-                "roomIndex"             : -1,
-				"visible"  				: true,
-                "bonesStartingPos"      : this.sc.embeds['moveable' + moveable.objectID].bones,
-                "attributes"            : this.sc.embeds['moveable' + moveable.objectID].attributes,
-                "internallyLit"         : false,
-                "lighting"              : 0
-            };
-
-			numMoveableInstances++;	
-		}
 
 		// specific handling of the skydome (TR4 only)
 		if (this.trlevel.rversion == 'TR4') {
@@ -1220,97 +1153,6 @@ TRN.SceneConverter.prototype = {
         delete this.sc.geometries['moveable' + TRN.ObjectID.LaraJoints];
     },
 
-    makeTR4Cutscene : function(cutscenes) {
-
-        var ocs = this.sc.data.cutScene;
-
-        console.log(cutscenes);
-
-        var cutscene = cutscenes[0];
-
-        ocs.origin.x = cutscene.originX;
-        ocs.origin.y = -cutscene.originY;
-        ocs.origin.z = -cutscene.originZ;
-        ocs.origin.rotY = 0;
-
-        // hide moveables (except Lara) that are already in the level and that are referenced in the cutscene (we will create them later)
-        var idInCutscenes = {};
-        for (var ac = 0; ac < cutscene.actors.length; ++ac) {
-            var id = cutscene.actors[ac].slotNumber;
-            idInCutscenes[id] = true;
-        }
-
-        for (var objID in  this.sc.data.objects) {
-            var objData = this.sc.data.objects[objID];
-            if (objData.type == 'moveable' && objData.objectid != TRN.ObjectID.Lara && objData.objectid in idInCutscenes) {
-                objData.visible = false;
-            }
-        }
-
-        if (cutscene.index == 10) {
-            var scroll = 'room22_staticmesh3';
-            var q = glMatrix.quat.create();
-
-            glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(60));
-
-            this.sc.objects[scroll].quaternion = q;
-            this.sc.objects[scroll].position[0] += 850;
-        }
-
-        var laraRoomIndex = this.sc.data.objects[this.laraMoveable.objID].roomIndex;
-
-        // create moveable instances used in cutscene
-        var actorMoveables = [], mshswap = null;
-        for (var ac = 0; ac < cutscene.actors.length; ++ac) {
-            var id = cutscene.actors[ac].slotNumber;
-            var mvb;
-            if (id != TRN.ObjectID.Lara) {
-                var m = this.movObjID2Index[id];
-                mvb = this.createMoveableInstance(ac, laraRoomIndex, this.laraMoveable.obj.position[0], this.laraMoveable.obj.position[1], this.laraMoveable.obj.position[2], -1, [0, 0, 0, -1], this.trlevel.moveables[m]);
-            } else {
-                mvb = this.laraMoveable;
-                if (cutscene.index in { 1:1, 2:1, 21:1 }) {
-                    mshswap = this.createMoveableInstance(ac+1, laraRoomIndex, mvb.obj.position[0], mvb.obj.position[1], mvb.obj.position[2], -1, [0, 0, 0, -1], this.trlevel.moveables[this.movObjID2Index[417]]);
-                    mshswap.obj.position = [ocs.origin.x, ocs.origin.y, ocs.origin.z];
-                    mshswap.obj.quaternion = [0, 0, 0, 1];
-                }
-            }
-            actorMoveables.push(mvb);
-
-            mvb.obj.position = [ocs.origin.x, ocs.origin.y, ocs.origin.z];
-            mvb.obj.quaternion = [0, 0, 0, 1];
-        }
-
-        // create actor frames
-        for (var ac = 0; ac < cutscene.actors.length; ++ac) {
-            var actor = cutscene.actors[ac];
-
-            var animation = this.makeAnimationForActor(cutscene, actor, ac, "anim_cutscene_actor" + ac, mshswap);
-
-            this.sc.data.objects[actorMoveables[ac].objID].animationStartIndex = this.sc.data.animTracks.length;
-
-            this.sc.data.animTracks.push(animation);
-
-            if (cutscene.index == 1) {
-                var animation2 = this.makeAnimationForActor(cutscenes[1], cutscenes[1].actors[ac], ac, "anim_cutscene2_actor" + ac, null);
-
-                animation.nextTrack = this.sc.data.animTracks.length;
-                animation2.nextTrack = this.sc.data.animTracks.length-1;
-    
-                this.sc.data.animTracks.push(animation2);
-            }
-        }
-
-        // create camera frames
-        var frames = this.makeAnimationForCamera(cutscene);
-
-        if (cutscene.index == 1) {
-            frames = frames.concat(this.makeAnimationForCamera(cutscenes[1]));
-        }
-
-        ocs.frames = frames;
-    },
-
     collectLightsExt : function() {
 
         var addedLights = 0;
@@ -1500,7 +1342,9 @@ TRN.SceneConverter.prototype = {
         
         this.collectLightsExt();
 
-		this.createMoveables();
+        this.createMoveables();
+        
+        this.createAllMoveableInstances();
 
 		this.createAnimations();
 
@@ -1512,32 +1356,6 @@ TRN.SceneConverter.prototype = {
 
         if (this.trlevel.rversion == 'TR4') {
             this.makeSkinnedLara();
-            if(TRN.Browser.QueryString.cutscene != undefined) {
-                var icutscene = parseInt(TRN.Browser.QueryString.cutscene), cutscene = [];
-                jQuery.ajax({
-                    type: "GET",
-                    url: 'TRN/level/tr4/TR4_cutscenes/cut' + icutscene + '.json',
-                    dataType: "json",
-                    cache: false,
-                    async: false
-                }).done(function(data) { cutscene.push(data); });
-    
-                cutscene[0].index = icutscene;
-
-                if (cutscene[0].index == 1) {
-                    jQuery.ajax({
-                        type: "GET",
-                        url: 'TRN/level/tr4/TR4_cutscenes/cut' + (icutscene+1) + '.json',
-                        dataType: "json",
-                        cache: false,
-                        async: false
-                    }).done(function(data) { cutscene.push(data); });
-        
-                    cutscene[1].index = icutscene+1;
-                }
-
-                this.makeTR4Cutscene(cutscene);
-            }
         }
         
         // delete some properties that are not needed anymore on embeds
@@ -1549,68 +1367,7 @@ TRN.SceneConverter.prototype = {
             delete embed.moveableIndex;
             delete embed.moveableIsInternallyLit;
         }
-
-        if(TRN.Browser.QueryString.cutscene != undefined && this.trlevel.rversion == 'TR4') {
-            // get the sound for this cut scene
-            if (cutscene[0].info.audio !== "") {
-                var this_ = this;
-                var binaryBuffer = new TRN.BinaryBuffer(
-                    [
-                    this_.sc.data.soundPath + cutscene[0].info.audio + '.aac'
-                    ],
-                    function finishedLoading(bufferList, err) {
-                        if (bufferList != null && bufferList.length > 0) {
-                            this_.sc.data.cutScene.soundData = TRN.Base64Binary.encode(bufferList[0]);
-                        } else {
-                            console.log('Error when loading file. ', err);
-                        }
-                        callback_created(this_.sc);
-                    }
-                );
-                binaryBuffer.load();
-            } else {
-                callback_created(this.sc);
-            }
-
-            return;
-        }
-
-        if (this.sc.data.cutScene.frames) {
-			// update position/quaternion for some specific items if we play a cut scene
-			var min = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'cutscene > animminid', true, 0);
-			var max = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'cutscene > animmaxid', true, 0);
-			for (var objID in this.sc.objects) {
-				var objJSON = this.sc.objects[objID], objData = this.sc.data.objects[objID];
-
-                if (objData.type != 'moveable') continue;
-
-				if (objData.objectid == this.laraObjectID || (objData.objectid >= min && objData.objectid <= max)) {
-					objJSON.position = [ this.sc.data.cutScene.origin.x, this.sc.data.cutScene.origin.y, this.sc.data.cutScene.origin.z ];
-					var q = glMatrix.quat.create();
-					glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(this.sc.data.cutScene.origin.rotY));
-					objJSON.quaternion = q;
-				}
-			}
-
-			// get the sound for this cut scene
-			var this_ = this;
-			var binaryBuffer = new TRN.BinaryBuffer(
-				[
-				  this_.sc.data.soundPath + this_.sc.data.levelShortFileNameNoExt.toUpperCase()
-				],
-				function finishedLoading(bufferList, err) {
-					if (bufferList != null && bufferList.length > 0) {
-						this_.sc.data.cutScene.soundData = TRN.Base64Binary.encode(bufferList[0]);
-					} else {
-						console.log('Error when loading file. ', err);
-					}
-					callback_created(this_.sc);
-				}
-			);
-			binaryBuffer.load();
-		} else {
-			callback_created(this.sc);
-		}
-
+        
+        callback_created(this.sc);
 	}
 }

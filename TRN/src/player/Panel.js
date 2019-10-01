@@ -1,8 +1,9 @@
-TRN.Panel = function(domElement, parent) {
+TRN.Panel = function(domElement, gameData, renderer) {
 	
 	var html;
 
-	this.parent = parent;
+    this.parent = gameData;
+    this.renderer = renderer;
 
 	jQuery.ajax({
 		type: "GET",
@@ -36,12 +37,12 @@ TRN.Panel.prototype = {
 	},
 
 	showInfo : function() {
-		var sceneData = this.parent.sceneData, camera = this.parent.camera, renderer = this.parent.renderer;
+		var sceneData = this.parent.sceneData, camera = this.parent.camera, renderer = this.renderer;
 
 		var numObj = this.parent.sceneRender.__objects.length;
 
 		this.elem.find('#currentroom').html(this.parent.curRoom);
-		this.elem.find('#numlights').html(this.parent.curRoom != -1 ? (this.parent.useAdditionalLights ? sceneData.objects['room'+this.parent.curRoom].lightsExt.length : sceneData.objects['room'+this.parent.curRoom].lights.length) : '');
+		this.elem.find('#numlights').html(this.parent.curRoom != -1 ? (this.parent.matMgr.useAdditionalLights ? sceneData.objects['room'+this.parent.curRoom].lightsExt.length : sceneData.objects['room'+this.parent.curRoom].lights.length) : '');
 		this.elem.find('#camerapos').html(camera.position.x.toFixed(5)+','+camera.position.y.toFixed(5)+','+camera.position.z.toFixed(5));
 		this.elem.find('#camerarot').html(camera.quaternion.x.toFixed(5)+','+camera.quaternion.y.toFixed(5)+','+camera.quaternion.z.toFixed(5)+','+camera.quaternion.w.toFixed(5));
 		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces + ' / ' + numObj);
@@ -51,7 +52,7 @@ TRN.Panel.prototype = {
     updateFromParent : function() {
 
         this.elem.find('#singleroommode').prop('checked', this.parent.singleRoomMode);
-        this.elem.find('#useaddlights').prop('checked', this.parent.useAdditionalLights);
+        this.elem.find('#useaddlights').prop('checked', this.parent.matMgr.useAdditionalLights);
 
     },
 
@@ -221,9 +222,8 @@ TRN.Panel.prototype = {
 		this.elem.find('#useaddlights').on('click', function() {
             var sceneData = this_.parent.sceneData;
 
-            this_.parent.useAdditionalLights = this.checked;
-
-            TRN.Helper.setLightsOnMoveables(this_.parent.objectList['moveable'], sceneData, this.checked);
+            this_.parent.matMgr.useAdditionalLights = this.checked;
+            this_.parent.matMgr.setLightUniformsForObjects(this_.parent.objMgr.objectList['moveable']);
 		});
 
 	    var prefix = ['', 'webkit', 'moz'];

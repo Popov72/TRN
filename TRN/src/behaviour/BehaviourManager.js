@@ -6,22 +6,25 @@ TRN.Consts.Behaviour = {
     "retDontKeepBehaviour" : 1
 }
 
-TRN.Behaviours.BehaviourManager = function(objectlist, sceneData, confMgr, parent) {
+TRN.Behaviours.BehaviourManager = function(gameData) {
+    this.gameData = gameData;
+
+    this.sceneData = gameData.sceneData;
+    this.confMgr = gameData.confMgr;
+
     this.behaviours = [];
     this.behavioursByName = {};
-
-    this.parent = parent;
-    this.objectList = objectlist;
-    this.sceneData = sceneData;
-    this.scene = parent.sceneRender;
-    this.confMgr = confMgr;
 }
 
 TRN.Behaviours.BehaviourManager.prototype = {
 
     constructor : TRN.Behaviours.BehaviourManager,
 
-    removeObject : function(obj) {
+    setObjectManager : function(objMgr) {
+        this.objMgr = objMgr;
+    },
+
+    removeBehaviours : function(obj) {
         if (obj.__behaviours) {
             obj.__behaviours.forEach( (bhv) => {
 
@@ -41,8 +44,6 @@ TRN.Behaviours.BehaviourManager.prototype = {
 
             delete obj.__behaviours;
         };
-
-        this.scene.remove(obj);
     },
 
     callFunction : function(funcname, params) {
@@ -66,7 +67,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
     },
 
     addBehaviour : function(name, params, objectid, objecttype) {
-        var lstObjs = objecttype ? this.objectList[objecttype] : null;
+        var lstObjs = objecttype ? this.objMgr.objectList[objecttype] : null;
 
         if ((!lstObjs || !lstObjs[objectid]) && (objectid || objecttype)) {
             return;
@@ -79,55 +80,62 @@ TRN.Behaviours.BehaviourManager.prototype = {
             }
         }
 
-        var obhv = new TRN.Behaviours[name](params, this, objectid, objecttype);
+        var obhv = new TRN.Behaviours[name](params, this.gameData, objectid, objecttype);
 
         obhv.__name = name;
 
-        if (obhv.init(lstObjs) != TRN.Consts.Behaviour.retDontKeepBehaviour) {
-            this.behaviours.push(obhv);
-
-            if (lstObjs) {
-                lstObjs.forEach( (obj) => {
-                    var lbhv = obj.__behaviours;
-                    if (!lbhv) {
-                        lbhv = [];
-                        obj.__behaviours = lbhv;
-                    }
-                    lbhv.push(obhv);
-                });
+        return new Promise( (resolve, reject) => {
+            obhv.init(lstObjs, resolve);
+        }).then( (res) => {
+            if (res/*obhv.init(lstObjs)*/ != TRN.Consts.Behaviour.retDontKeepBehaviour) {
+                this.behaviours.push(obhv);
+    
+                if (lstObjs) {
+                    lstObjs.forEach( (obj) => {
+                        var lbhv = obj.__behaviours;
+                        if (!lbhv) {
+                            lbhv = [];
+                            obj.__behaviours = lbhv;
+                        }
+                        lbhv.push(obhv);
+                    });
+                }
+    
+                var blst = this.behavioursByName[name];
+                if (!blst) {
+                    blst = [];
+                    this.behavioursByName[name] = blst;
+                }
+                blst.push(obhv);
+            } else {
+                obhv = null;
             }
-
-            var blst = this.behavioursByName[name];
-            if (!blst) {
-                blst = [];
-                this.behavioursByName[name] = blst;
-            }
-            blst.push(obhv);
-        } else {
-            obhv = null;
-        }
+        });
     },
 
     loadBehaviours : function() {
-       
         this.behaviours = [];
         this.behavioursByName = {};
 
         var behaviours = jQuery(this.confMgr.globalParam('behaviour', true));
 
-        this.loadBehavioursSub(behaviours);
+        var allPromises = this.loadBehavioursSub(behaviours);
 
         behaviours = jQuery(this.confMgr.levelParam(this.sceneData.levelShortFileName, 'behaviour', false, true));
         
-        this.loadBehavioursSub(behaviours);
+        allPromises = allPromises.concat(this.loadBehavioursSub(behaviours));
+
+        return allPromises;
     },
 
     loadBehavioursSub : function(behaviours) {
+        var promises = [];
+
         for (var bhv = 0; bhv < behaviours.size(); ++bhv) {
             var nbhv = behaviours[bhv], name = nbhv.getAttribute("name"), cutsceneOnly = nbhv.getAttribute("cutsceneonly");
     
             if (nbhv.__consumed || !TRN.Behaviours[name]) continue;
-            if (cutsceneOnly && cutsceneOnly == "true" && !this.parent.isCutscene) continue;
+            if (cutsceneOnly && cutsceneOnly == "true" && !this.gameData.isCutscene) continue;
     
             // get the type and id of the object to apply the behaviour to
             var objectid = nbhv.getAttribute('objectid'), objecttype = nbhv.getAttribute('objecttype') || "moveable";
@@ -168,8 +176,10 @@ TRN.Behaviours.BehaviourManager.prototype = {
             }
     
             // create the behaviour
-            this.addBehaviour(name, nbhv, objectid, objecttype);
+            promises.push(this.addBehaviour(name, nbhv, objectid, objecttype));
         }
+
+        return promises;
     }
 
 }

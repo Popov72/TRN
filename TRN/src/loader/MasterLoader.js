@@ -192,30 +192,7 @@ TRN.MasterLoader = {
 
 			// create one track per animation
 			for (var t = 0; t < sceneData.animTracks.length; ++t) {
-				var trackJSON = sceneData.animTracks[t], keys = trackJSON.keys;
-
-				var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
-
-				trackJSON.commands.frameStart = trackJSON.frameStart;
-
-				track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
-				track.setCommands(trackJSON.commands);
-
-				animTracks.push(track);
-
-				for (var k = 0; k < keys.length; ++k) {
-					var keyJSON = keys[k], dataJSON = keyJSON.data, bbox = keyJSON.boundingBox;
-
-					var boundingBox = new THREE.Box3(new THREE.Vector3(bbox.xmin, bbox.ymin, bbox.zmin), new THREE.Vector3(bbox.xmax, bbox.ymax, bbox.zmax));
-
-					var key = new TRN.Animation.Key(keyJSON.time, boundingBox);
-
-					for (var d = 0; d < dataJSON.length; ++d) {
-						key.addData(dataJSON[d].position, dataJSON[d].quaternion);
-					}
-
-					track.addKey(key);
-				}
+                TRN.Animation.addTrack(sceneData.animTracks[t], animTracks);
 			}
 
             sceneData.animTracks = animTracks;
@@ -265,10 +242,17 @@ TRN.MasterLoader = {
 			globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
         }
         
+        var objToRemoveFromScene = [];
+
         sceneRender.traverse( (obj) => {
             var data = sceneData.objects[obj.name];
 
             if (data) {
+                if (data.type == 'moveable' && data.roomIndex < 0) {
+                    data.liveObj = obj;
+                    objToRemoveFromScene.push(obj);
+                }
+
                 if (data.visible == undefined) {
                     console.log('Object has no visible property!', obj);
                 }
@@ -381,31 +365,9 @@ TRN.MasterLoader = {
 			}
 		});
 
-		if (sceneData.cutScene.soundData && TRN.Browser.AudioContext) {
+        objToRemoveFromScene.forEach( (obj) => sceneRender.remove(obj) );
 
-            TRN.Browser.AudioContext.decodeAudioData(
-
-                TRN.Base64Binary.decodeArrayBuffer(sceneData.cutScene.soundData),
-
-                function(buffer) {
-
-                    if (!buffer) {
-                        console.log('error decoding sound data for cut scene');
-                    } else {
-						sceneData.cutScene.sound = TRN.Browser.AudioContext.createBufferSource();
-						sceneData.cutScene.sound.buffer = buffer;
-						sceneData.cutScene.sound.connect(TRN.Browser.AudioContext.destination);
-                    }
-
-					callbackLevelLoaded(oscene);
-                }    
-            );
-
-		} else {
-
-			callbackLevelLoaded(oscene);
-
-		}
+		callbackLevelLoaded(oscene);
     }
     
 }

@@ -1,4 +1,4 @@
-TRN.Behaviours.Flare = function(nbhv, bhvMgr) {
+TRN.Behaviours.Flare = function(nbhv, gameData) {
     this.nbhv = nbhv;
 }
 
@@ -6,9 +6,8 @@ TRN.Behaviours.Flare.prototype = {
 
     constructor : TRN.Behaviours.Flare,
 
-    init : function(lstObjs) {
-
-        return TRN.Consts.Behaviour.retKeepBehaviour;
+    init : async function(lstObjs, resolve) {
+        resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     }
 
 }

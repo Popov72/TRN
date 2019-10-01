@@ -298,8 +298,10 @@
 			<level id="living.tr2"		type="normal"	name="Living Quarters">
 				<moveable id="0">
 					<startanim>86</startanim>
-					<starttrans><x>0</x><y>500</y><z>0</z></starttrans>
 				</moveable>
+                <behaviour name="Lara">
+					<starttrans><x>0</x><y>500</y><z>0</z></starttrans>
+                </behaviour>
 			</level>
 			<level id="deck.tr2"		type="normal"	name="The Deck"/>
 			<level id="skidoo.tr2"		type="normal"	name="Tibetan Foothills"/>
@@ -440,8 +442,10 @@
 			<level id="shore.tr2"		type="normal"	name="Coastal Village">
 				<moveable id="0">
 					<startanim>86</startanim>
-					<starttrans><x>0</x><y>500</y><z>0</z></starttrans>
 				</moveable>
+                <behaviour name="Lara">
+					<starttrans><x>0</x><y>500</y><z>0</z></starttrans>
+                </behaviour>
 			</level>
 			<level id="crash.tr2"		type="normal"	name="Crash Site"/>
 			<level id="rapids.tr2"		type="normal"	name="Madubu Gorge"/>
@@ -631,21 +635,18 @@
 		<levels>
 			<level id="angkor1.tr4"			type="normal"	name="Angkor Wat">
 				<uvrotate>true</uvrotate>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
 			</level>
 			<level id="ang_race.tr4"		type="normal"	name="Race For The Iris">
 				<moveable id="0">
 					<startanim>70</startanim>
 				</moveable>
                 <behaviour name="RemoveObject" objectid="431" cutsceneonly="true"/>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
             </level>
 			<level id="settomb1.tr4"		type="normal"	name="The Tomb Of Seth"/>
 			<level id="settomb2.tr4"		type="normal"	name="Burial Chambers">
 				<moveable id="0">
 					<startanim>70</startanim>
 				</moveable>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
             </level>
 			<level id="jeepchas.tr4"		type="normal"	name="Valley Of The Kings">
                 <behaviour name="Skydome">
@@ -664,7 +665,6 @@
 				</moveable>
 			</level>
 			<level id="karnak1.tr4"			type="normal"	name="Temple Of Karnak">
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
                 <behaviour name="RemoveObject" objectid="41" cutsceneonly="true"/>
                 <behaviour name="RemoveObject" objectid="145" cutsceneonly="true"/>
                 <behaviour name="RemoveObject" objectid="408" cutsceneonly="true"/>
@@ -674,7 +674,6 @@
 				<moveable id="0">
 					<startanim>70</startanim>
 				</moveable>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
             </level>
 			<level id="lake.tr4"			type="normal"	name="The Sacred Lake">
 				<moveable id="0">
@@ -685,17 +684,14 @@
 			<level id="semer2.tr4"			type="normal"	name="Guardian Of Semerket"/>
 			<level id="train.tr4"			type="normal"	name="Desert Railroad"/>
 			<level id="alexhub.tr4"			type="normal"	name="Alexandria">
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
 				<behaviour name="RemoveObject" objectid="422" cutsceneonly="true"/>
             </level>
 			<level id="alexhub2.tr4"		type="normal"	name="Coastal Ruins">
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
             </level>
 			<level id="csplit1.tr4"			type="normal"	name="Catacombs"/>
 			<level id="csplit2.tr4"			type="normal"	name="Temple Of Poseidon"/>
 			<level id="library.tr4"			type="normal"	name="The Lost Library"/>
 			<level id="libend.tr4"			type="normal"	name="Hall Of Demetrius">
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
                 <behaviour name="RemoveObject" objectid="41" cutsceneonly="true"/>
             </level>
 			<level id="palaces.tr4"			type="normal"	name="Pharos,Temple Of Isis">
@@ -704,7 +700,6 @@
 				</moveable>
             </level>
 			<level id="palaces2.tr4"		type="normal"	name="Cleopatra´s Palaces">
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
             </level>
 			<level id="bikebit.tr4"			type="normal"	name="City Of The Dead">
                 <behaviour name="Skydome">
@@ -732,7 +727,6 @@
                 <behaviour name="Sky">
                     <hide>true</hide>
                 </behaviour>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
                 <behaviour name="RemoveObject" objectid="408" cutsceneonly="true"/>
                 <behaviour name="RemoveObject" objectid="435" cutsceneonly="true"/>
 			</level>
@@ -754,7 +748,6 @@
                 <behaviour name="Sky">
                     <hide>true</hide>
                 </behaviour>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
 				<behaviour name="RemoveObject" objectid="201" cutsceneonly="true"/>
 			</level>
 			<level id="citnew.tr4"			type="normal"	name="Citadel">
@@ -764,7 +757,6 @@
                 <behaviour name="Sky">
                     <hide>true</hide>
                 </behaviour>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
 				<behaviour name="RemoveObject" objectid="394" cutsceneonly="true"/>
 				<behaviour name="RemoveObject" objectid="422" cutsceneonly="true"/>
 			</level>
@@ -775,7 +767,6 @@
                 <behaviour name="Sky">
                     <hide>true</hide>
                 </behaviour>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
                 <behaviour name="RemoveObject" objectid="422" cutsceneonly="true"/>
 			</level>
 			<level id="joby2.tr4"			type="normal"	name="Underneath The Sphinx"/>
@@ -789,7 +780,6 @@
                 <behaviour name="Zbias" objectid="12" objecttype="staticmesh">
                     <polygoneoffset><factor>-1</factor><unit>1</unit></polygoneoffset>
                 </behaviour>
-                <behaviour name="CutScene" objectid="0" cutsceneonly="true"><useadditionallights>true</useadditionallights></behaviour>
                 <behaviour name="RemoveObject" objectid="408" cutsceneonly="true"/>
                 <behaviour name="RemoveObject" objectid="443" cutsceneonly="true"/>
 			</level>
