@@ -6,7 +6,7 @@ TRN.Behaviours.ParticleSystem.prototype = {
 
     constructor : TRN.Behaviours.ParticleSystem,
 
-    init : async function(lstObjs) {
+    init : async function(lstObjs, resolve) {
         resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     }
 
