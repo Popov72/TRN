@@ -62,10 +62,10 @@ TRN.Loader = {
 	 		}
 		}
 
-		var skyRemovePolyStart = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'behaviour[name="Sky"] > removepoly > start', true, 0);
-		var skyRemovePolyNum   = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'behaviour[name="Sky"] > removepoly > num', true, 0);
+		var skyRemovePolyStart = out.confMgr.number('behaviour[name="Sky"] > removepoly > start', true, 0);
+		var skyRemovePolyNum   = out.confMgr.number('behaviour[name="Sky"] > removepoly > num', true, 0);
 		if (skyRemovePolyNum > 0) {
-			var skyId = out.confMgr.levelNumber(out.shortfilename.toLowerCase(), 'behaviour[name="Sky"] > id', true, 0);
+			var skyId = out.confMgr.number('behaviour[name="Sky"] > id', true, 0);
 			if (skyId > 0) {
 				for (var m = 0; m < out.moveables.length; ++m) {
 					var moveable = out.moveables[m];
@@ -202,7 +202,8 @@ TRN.Loader = {
 		out.textile = [];
 		out.animatedTexturesUVCount = out.animatedTexturesUVCount || 0;
 
-		out.confMgr = new TRN.ConfigMgr(out.rversion);
+        out.confMgr = new TRN.ConfigManager(out.rversion);
+        out.confMgr.levelName = out.filename.toLowerCase();
 
 		if (out.textile32misc != undefined) {
 			out.textile32 = out.textile32.concat(out.textile32misc);

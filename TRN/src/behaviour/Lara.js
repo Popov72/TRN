@@ -74,9 +74,9 @@ TRN.Behaviours.Lara.prototype = {
 
         // create the meshswap objects
         var meshSwapIds = [
-            this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'meshswap > objid1', true, 0),
-            this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'meshswap > objid2', true, 0),
-            this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'meshswap > objid3', true, 0)
+            this.confMgr.number('meshswap > objid1', true, 0),
+            this.confMgr.number('meshswap > objid2', true, 0),
+            this.confMgr.number('meshswap > objid3', true, 0)
         ];
         for (var i = 0; i < meshSwapIds.length; ++i) {
             TRN.ObjectID['meshswap' + (i+1)] = meshSwapIds[i];

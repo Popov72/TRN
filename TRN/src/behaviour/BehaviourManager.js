@@ -131,7 +131,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
 
         var allPromises = this.loadBehavioursSub(behaviours);
 
-        behaviours = jQuery(this.confMgr.levelParam(this.sceneData.levelShortFileName, 'behaviour', false, true));
+        behaviours = jQuery(this.confMgr.param('behaviour', false, true));
         
         allPromises = allPromises.concat(this.loadBehavioursSub(behaviours));
 
@@ -159,7 +159,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
     
             // get overriden data from the level (if any)
             // look first for a <behaviour> tag with the ssame objectid and objecttype as the current one
-            var bhvLevel = jQuery(this.confMgr.levelParam(this.sceneData.levelShortFileName, 'behaviour[name="' + name + '"][objectid="' + objectid + '"]', false, true));
+            var bhvLevel = jQuery(this.confMgr.param('behaviour[name="' + name + '"][objectid="' + objectid + '"]', false, true));
             if (bhvLevel.size() > 0 && bhvLevel[0] !== nbhv) {
                 var tp = bhvLevel[0].getAttribute("objecttype") || "moveable";
                 if (tp != objecttype) {
@@ -168,7 +168,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
             }
             if (!bhvLevel || bhvLevel.size() == 0) {
                 // not found. Look for a <behaviour> with the same name as the current one and without any of the objectid / objecttype attributes
-                bhvLevel = jQuery(this.confMgr.levelParam(this.sceneData.levelShortFileName, 'behaviour[name="' + name + '"]', false, true));
+                bhvLevel = jQuery(this.confMgr.param('behaviour[name="' + name + '"]', false, true));
                 if (bhvLevel.size() > 0 && bhvLevel[0] !== nbhv) {
                     if (bhvLevel[0].getAttribute("objectid") || bhvLevel[0].getAttribute("objecttype")) {
                         bhvLevel = null;

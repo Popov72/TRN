@@ -22,8 +22,10 @@ TRN.Behaviours.CutScene.prototype = {
         var useAddLights = this.nbhv.useadditionallights === 'true' || this.nbhv.useadditionallights === true, index = this.nbhv.index || 0;
 
         this.matMgr.useAdditionalLights = useAddLights;
-        this.cutscene.index = index;
-        this.cutscene.curFrame = 0;
+        this.cutscene = {
+            "index":    index,
+            "curFrame": 0
+        };
 
         // set cutscene origin
         var lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara][0];
@@ -32,7 +34,7 @@ TRN.Behaviours.CutScene.prototype = {
         this.cutscene.position = lara.position;
 
         var laraQuat = lara.quaternion;
-		var laraAngle = this.confMgr.levelFloat(this.sceneData.levelShortFileName, 'behaviour[name="Lara"] > angle');
+		var laraAngle = this.confMgr.float('behaviour[name="Lara"] > angle');
 		if (laraAngle != undefined) {
 			var q = glMatrix.quat.create();
             glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraAngle));
@@ -45,8 +47,8 @@ TRN.Behaviours.CutScene.prototype = {
         this.cutscene.quaternion = laraQuat;
 
         // update position/quaternion for some specific items when we play a cut scene
-        var min = this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'cutscene > animminid', true, -1);
-        var max = this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'cutscene > animmaxid', true, -1);
+        var min = this.confMgr.number('cutscene > animminid', true, -1);
+        var max = this.confMgr.number('cutscene > animmaxid', true, -1);
         var moveables = this.objMgr.objectList['moveable'];
         for (var objID in moveables) {
             var lstObj = moveables[objID];

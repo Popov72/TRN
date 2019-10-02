@@ -1,9 +1,8 @@
 /*
 	Convert the JSON object created by the raw level loader to a higher level JSON scene
 */
-TRN.SceneConverter = function(confMgr) {
+TRN.SceneConverter = function() {
 
-	this.confMgr = confMgr;
 	this.shaderMgr = new TRN.ShaderMgr();
 
 	return this;
@@ -639,7 +638,7 @@ TRN.SceneConverter.prototype = {
 
 	createMoveables : function () {
 
-		var objIdAnim  = this.confMgr.levelParam(this.sc.data.levelShortFileName, 'behaviour[name="ScrollTexture"]', true, true);
+		var objIdAnim  = this.confMgr.param('behaviour[name="ScrollTexture"]', true, true);
         var lstIdAnim  =  {};
         
         if (objIdAnim) {
@@ -742,7 +741,7 @@ TRN.SceneConverter.prototype = {
 
 		var room = this.sc.data.objects['room' + roomIndex];
 
-		var objIDForVisu = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
+		var objIDForVisu = this.confMgr.number('moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
 
         var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
         
@@ -772,7 +771,7 @@ TRN.SceneConverter.prototype = {
         }
 
         if (itemIndex >= 0) {
-            var spriteSeqObjID = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
+            var spriteSeqObjID = this.confMgr.number('moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
 
             if (spriteSeqObjID >= 0) {
                 var spriteSeq = this.findSpriteSequenceByID(spriteSeqObjID);
@@ -1207,6 +1206,8 @@ TRN.SceneConverter.prototype = {
 	convert : function (trlevel, callback_created) {
 		glMatrix.glMatrix.setMatrixArrayType(Array);
 
+        this.confMgr = trlevel.confMgr;
+
 		this.sc =  {
 			"metadata": {
 				"formatVersion": 3.2,
@@ -1248,7 +1249,7 @@ TRN.SceneConverter.prototype = {
 		this.sc.data.rversion = this.sc.data.trlevel.rversion;
 		this.sc.data.soundPath = "TRN/sound/" + this.sc.data.rversion.toLowerCase() + "/";
 
-        this.laraObjectID = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'lara > id', true, 0);
+        this.laraObjectID = this.confMgr.number('lara > id', true, 0);
 
 		this.movObjID2Index = {};
 
@@ -1270,9 +1271,9 @@ TRN.SceneConverter.prototype = {
 
 		this.sc.objects.camera1 = {
 			"type"      : "PerspectiveCamera",
-			"fov"       : this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'camera > fov', true, 50),
-			"near"      : this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'camera > neardist', true, 50),
-			"far"       : this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'camera > fardist', true, 10000),
+			"fov"       : this.confMgr.float('camera > fov', true, 50),
+			"near"      : this.confMgr.float('camera > neardist', true, 50),
+			"far"       : this.confMgr.float('camera > fardist', true, 10000),
 			"position"  : [ 0, 0, 0 ],
             "quaternion": [ 0, 0, 0, 1 ]
 		}

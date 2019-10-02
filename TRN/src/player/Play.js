@@ -69,7 +69,7 @@ TRN.Play.prototype = {
 
         this.gameData.camera = oscene.scene.currentCamera;
 
-        this.gameData.confMgr = new TRN.ConfigMgr(this.gameData.sceneData.rversion);
+        this.gameData.confMgr = this.gameData.sceneData.trlevel.confMgr;
         this.gameData.matMgr  = new TRN.MaterialManager(this.gameData);
         this.gameData.objMgr  = new TRN.ObjectManager(this.gameData);
         this.gameData.bhvMgr  = new TRN.Behaviours.BehaviourManager(this.gameData);
@@ -78,14 +78,14 @@ TRN.Play.prototype = {
         this.gameData.objMgr.setBehaviourManager(this.gameData.bhvMgr);
         this.gameData.bhvMgr.setObjectManager(this.gameData.objMgr);
 
-        TRN.ObjectID.Lara  = this.gameData.confMgr.levelNumber(this.gameData.sceneData.levelShortFileName, 'lara > id', true, 0);
+        TRN.ObjectID.Lara  = this.gameData.confMgr.number('lara > id', true, 0);
 
-		var isCutScene = this.gameData.confMgr.levelParam(this.gameData.sceneData.levelShortFileName, '', false, true).attr('type') == 'cutscene';
+		var isCutScene = this.gameData.confMgr.param('', false, true).attr('type') == 'cutscene';
         var cutsceneIndex = this.gameData.sceneData.rversion == 'TR4' && TRN.Browser.QueryString.cutscene != undefined ? parseInt(TRN.Browser.QueryString.cutscene) : -1;
 
         this.gameData.isCutscene = isCutScene || cutsceneIndex > 0;
 
-		var tintColor = this.gameData.confMgr.levelColor(this.gameData.sceneData.levelShortFileName, 'globaltintcolor', true, null);
+		var tintColor = this.gameData.confMgr.color('globaltintcolor', true, null);
 
 		if (tintColor != null) {
 			this.gameData.globalTintColor = [tintColor.r, tintColor.g, tintColor.b];

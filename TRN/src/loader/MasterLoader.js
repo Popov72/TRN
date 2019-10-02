@@ -19,7 +19,7 @@ TRN.MasterLoader = {
 				return;
 			}
 
-			var converter = new TRN.SceneConverter(new TRN.ConfigMgr(rs.json.rversion));
+			var converter = new TRN.SceneConverter();
 
 			converter.convert(rs.json, this._parseLevel.bind(this, trlevel, progressbar, callbackLevelLoaded));
 
@@ -66,7 +66,7 @@ TRN.MasterLoader = {
 			    		console.log('Level unzipped.');
 			    	} else if (isBin) {
 						var rs = TRN.Loader.loadRawLevel(request.response, trlevel);
-						var converter = new TRN.SceneConverter(new TRN.ConfigMgr(rs.json.rversion));
+						var converter = new TRN.SceneConverter();
 						converter.convert(rs.json, this_._parseLevel.bind(this_, trlevel, progressbar, callbackLevelLoaded));
 						return;
 			    	} else {
