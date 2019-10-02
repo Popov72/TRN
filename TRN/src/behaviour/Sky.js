@@ -6,6 +6,7 @@ TRN.Behaviours.Sky = function(nbhv, gameData) {
     this.bhvMgr = gameData.bhvMgr;
     this.confMgr = gameData.confMgr;
     this.objMgr = gameData.objMgr;
+    this.anmMgr = gameData.anmMgr;
     this.camera = gameData.camera;
 }
 
@@ -36,6 +37,10 @@ TRN.Behaviours.Sky.prototype = {
 
         this.objSky.renderDepth = 1;
         this.objSky.matrixAutoUpdate = true;
+
+        if (data.has_anims) {
+            this.anmMgr.setAnimation(this.objSky, data.animationStartIndex, false);
+        }
 
         this.sceneBackground.add(this.objSky);
 

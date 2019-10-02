@@ -2,7 +2,6 @@ var TRN = {};
 
 TRN.ObjectID = {
 	"Lara" : 0,
-    "Ponytail" : 2,
     "LaraJoints" : 9
 };
 

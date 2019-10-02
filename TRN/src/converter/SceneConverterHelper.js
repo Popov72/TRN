@@ -51,8 +51,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
                     mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('sky');
                     break;
             }
-			mat.parameters.vertexShader   = mat.parameters.vertexShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
-			mat.parameters.fragmentShader = mat.parameters.fragmentShader.replace(/##tr_version##/g, this.trlevel.rversion.substr(2));
+			mat.parameters.vertexShader   = mat.parameters.vertexShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
+			mat.parameters.fragmentShader = mat.parameters.fragmentShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
         }
 
 		return matName;
@@ -61,7 +61,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 	convertIntensity : function(intensity) {
 		var l = [intensity/8192.0, intensity/8192.0, intensity/8192.0];
 
-		if (this.trlevel.rversion == 'TR3' || this.trlevel.rversion == 'TR4') {
+		if (this.sc.data.trlevel.rversion == 'TR3' || this.sc.data.trlevel.rversion == 'TR4') {
 			var b = ((intensity & 0x7C00) >> 10) << 3, g = ((intensity & 0x03E0) >> 5) << 3, r = (intensity & 0x001F) << 3;
 			l = [r/255, g/255, b/255];
 		}
@@ -88,7 +88,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		var vertex = rvertex.vertex, attribute = rvertex.attributes;
 		var lighting = 0;
 
-		switch(this.trlevel.rversion) {
+		switch(this.sc.data.trlevel.rversion) {
 			case 'TR1':
 				lighting = Math.floor((1.0-rvertex.lighting1/8192.)*2*256);
 				if (lighting > 255) lighting = 255;
@@ -121,7 +121,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		var strengthEffect = ((attribute & 0x1E)-16)/16;
 
 		if (moveVertex) moveLight = 1;
-		if ((this.trlevel.rversion == 'TR1' || this.trlevel.rversion == 'TR2') && isFilledWithWater) moveLight = 1;
+		if ((this.sc.data.trlevel.rversion == 'TR1' || this.sc.data.trlevel.rversion == 'TR2') && isFilledWithWater) moveLight = 1;
 		if (isFilledWithWater && (attribute & 0x8000) == 0) moveVertex = 1;
 
 		return {
@@ -148,8 +148,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		var minU = 0, minV = 0, maxV = 0;
         minU = minV = 1;
         for (var tv = 0; tv < vertices.length; ++tv) {
-            var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
-            var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
+            var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.sc.data.trlevel.atlas.width;
+            var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.sc.data.trlevel.atlas.height;
             if (minU > u) minU = u;
             if (minV > v) minV = v;
             if (maxV < v) maxV = v;
@@ -177,7 +177,7 @@ TRN.extend(TRN.SceneConverter.prototype, {
 			} else {
                 imat = imat.imat;
             }
-		} else if (origTile >= this.trlevel.numRoomTextiles+this.trlevel.numObjTextiles) {
+		} else if (origTile >= this.sc.data.trlevel.numRoomTextiles+this.sc.data.trlevel.numObjTextiles) {
 			imat = tiles2material['bump' + origTile];
 			if (typeof(imat) == 'undefined') {
                 imat = TRN.Helper.objSize(tiles2material);
@@ -202,8 +202,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		var numUVs = parseInt(obj.uvs[0].length / 2);
 		for (var tv = 0; tv < vertices.length; ++tv) {
 			obj.faces.push(numUVs++);
-			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.trlevel.atlas.width;
-			var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.trlevel.atlas.height;
+			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.sc.data.trlevel.atlas.width;
+			var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.sc.data.trlevel.atlas.height;
 			if (!isAnimatedObject) {
 				obj.uvs[0].push(u, v);
 			} else if (v != maxV) {
@@ -293,13 +293,13 @@ TRN.extend(TRN.SceneConverter.prototype, {
 				lstMat[imat].uniforms.map.value = "" + tile;
 				lstMat[imat].uniforms.mapBump.value = "" + tile;
 				if (isBump) {
-                    if (this.trlevel.atlas.make) {
-                        var row0 = Math.floor(origTile / this.trlevel.atlas.numColPerRow), col0 = origTile - row0 * this.trlevel.atlas.numColPerRow;
-                        var row = Math.floor((origTile + this.trlevel.numBumpTextiles/2) / this.trlevel.atlas.numColPerRow), col = (origTile + this.trlevel.numBumpTextiles/2) - row * this.trlevel.atlas.numColPerRow;
+                    if (this.sc.data.trlevel.atlas.make) {
+                        var row0 = Math.floor(origTile / this.sc.data.trlevel.atlas.numColPerRow), col0 = origTile - row0 * this.sc.data.trlevel.atlas.numColPerRow;
+                        var row = Math.floor((origTile + this.sc.data.trlevel.numBumpTextiles/2) / this.sc.data.trlevel.atlas.numColPerRow), col = (origTile + this.sc.data.trlevel.numBumpTextiles/2) - row * this.sc.data.trlevel.atlas.numColPerRow;
                         lstMat[imat].uniforms.mapBump.value = "" + tile;
-                        lstMat[imat].uniforms.offsetBump.value = [(col-col0)*256.0/this.trlevel.atlas.width, (row-row0)*256.0/this.trlevel.atlas.height,0,1];
+                        lstMat[imat].uniforms.offsetBump.value = [(col-col0)*256.0/this.sc.data.trlevel.atlas.width, (row-row0)*256.0/this.sc.data.trlevel.atlas.height,0,1];
                     } else {
-                        lstMat[imat].uniforms.mapBump.value = "" + (Math.floor(origTile) + this.trlevel.numBumpTextiles/2);
+                        lstMat[imat].uniforms.mapBump.value = "" + (Math.floor(origTile) + this.sc.data.trlevel.numBumpTextiles/2);
                     }
 				}
 			}
@@ -310,31 +310,31 @@ TRN.extend(TRN.SceneConverter.prototype, {
 	},
 
 	findStatichMeshByID : function (objectID) {
-		for (var sg = 0; sg < this.trlevel.staticMeshes.length; ++sg) {
-			if (this.trlevel.staticMeshes[sg].objectID == objectID) {
-				return this.trlevel.staticMeshes[sg];
+		for (var sg = 0; sg < this.sc.data.trlevel.staticMeshes.length; ++sg) {
+			if (this.sc.data.trlevel.staticMeshes[sg].objectID == objectID) {
+				return this.sc.data.trlevel.staticMeshes[sg];
 			}
 		}
 		return null;
 	},
 
 	findSpriteSequenceByID : function(objectID) {
-		for (var sq = 0; sq < this.trlevel.spriteSequences.length; ++sq) {
-			if (this.trlevel.spriteSequences[sq].objectID == objectID) {
-				return this.trlevel.spriteSequences[sq];
+		for (var sq = 0; sq < this.sc.data.trlevel.spriteSequences.length; ++sq) {
+			if (this.sc.data.trlevel.spriteSequences[sq].objectID == objectID) {
+				return this.sc.data.trlevel.spriteSequences[sq];
 			}
 		}
 		return null;
     },
     
     numAnimationsForMoveable : function(moveableIdx) {
-        var curr_moveable = this.trlevel.moveables[moveableIdx];
+        var curr_moveable = this.sc.data.trlevel.moveables[moveableIdx];
 
         if (curr_moveable.animation != 0xFFFF) {
-            var next_anim_index = this.trlevel.animations.length;
-            for (var i = moveableIdx + 1; i < this.trlevel.moveables.length; ++i) {
-                if (this.trlevel.moveables[i].animation != 0xFFFF) {
-                    next_anim_index = this.trlevel.moveables[i].animation;
+            var next_anim_index = this.sc.data.trlevel.animations.length;
+            for (var i = moveableIdx + 1; i < this.sc.data.trlevel.moveables.length; ++i) {
+                if (this.sc.data.trlevel.moveables[i].animation != 0xFFFF) {
+                    next_anim_index = this.sc.data.trlevel.moveables[i].animation;
                     break;
                 }
             }

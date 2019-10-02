@@ -151,80 +151,16 @@ TRN.MasterLoader = {
 	*/
 	_postProcessLevel : function (progressbar, callbackLevelLoaded, oscene) {
 		var sceneData = oscene.sceneJSON.data, sceneRender = oscene.scene.scene;
-		var confMgr = new TRN.ConfigMgr(sceneData.rversion), shaderMgr = new TRN.ShaderMgr();
-
-		TRN.ObjectID.skyId = confMgr.levelNumber(sceneData.levelShortFileName, 'sky > objectid', true, 0);
-		TRN.ObjectID.Lara  = confMgr.levelNumber(sceneData.levelShortFileName, 'lara > id', true, 0);
-		TRN.ObjectID.Ponytail = confMgr.levelNumber(sceneData.levelShortFileName, 'behaviour[name="Lara"] > lara > ponytailid', true, -1);
-		TRN.Consts.leftThighIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
-			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > left_thigh', true, 0) - 1;
-		TRN.Consts.rightThighIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
-			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_thigh', true, 0) - 1;
-		TRN.Consts.leftHandIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
-			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > left_hand', true, 0) - 1;
-		TRN.Consts.rightHandIndex = confMgr.levelNumber(sceneData.levelShortFileName, 
-			'moveables > moveable[id="' + TRN.ObjectID.Lara + '"] > behaviour[name="Lara"] > pistol_anim > right_hand', true, 0) - 1;
-		TRN.Consts.useUVRotate = confMgr.levelBoolean(sceneData.levelShortFileName, 'uvrotate', true, false);
+		var shaderMgr = new TRN.ShaderMgr();
 
         sceneData.textures = oscene.scene.textures;
-
-		// initialize the animated textures
-		if (sceneData.animatedTextures) {
-			for (var i = 0; i < sceneData.animatedTextures.length; ++i) {
-				var animTexture = sceneData.animatedTextures[i];
-				animTexture.progressor = new TRN.Sequence(animTexture.animcoords.length, 1.0/animTexture.animspeed);
-			}
-		}
 
         // Set all objects as auto update=false
         // Camera, skies, animated objects will have their matrixAutoUpdate set to true later
 		sceneRender.traverse( (obj) => {
-			obj.initPos = new THREE.Vector3();
-            obj.initPos.copy(obj.position);
-
             obj.updateMatrix();
             obj.matrixAutoUpdate = false;
 		});
-
-		// animations
-		if (sceneData.animTracks) {
-			var animTracks = [];
-
-			// create one track per animation
-			for (var t = 0; t < sceneData.animTracks.length; ++t) {
-                TRN.Animation.addTrack(sceneData.animTracks[t], animTracks);
-			}
-
-            sceneData.animTracks = animTracks;
-
-			// instanciate the first track for each animated object
-            sceneRender.traverse( (obj) => {
-                var data = sceneData.objects[obj.name];
-
-                if (!data || !data.has_anims || !data.visible) {
-                    return;
-                }
-
-                obj.traverse( (o) => o.matrixAutoUpdate = true );
-
-                var animIndex = data.animationStartIndex;
-
-                var track = sceneData.animTracks[animIndex];
-                var trackInstance = new TRN.Animation.TrackInstance(track, obj, data.bonesStartingPos);
-
-                if (track) { // to avoid bugging for lost artifact TR3 levels
-                    trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
-
-                    trackInstance.runForward(Math.random()*track.getLength()); // pass a delta time, to desynchro identical objects
-                    trackInstance.interpolate();
-        
-                    data.trackInstance = trackInstance;
-                }
-
-                data.prevTrackInstance = data.trackInstance;
-                data.prevTrackInstanceFrame = 0;
-            });
-		}
 
         // don't flip Y coordinates in textures
 		for (var texture in sceneData.textures) {
@@ -232,16 +168,9 @@ TRN.MasterLoader = {
 			if (!sceneData.textures.hasOwnProperty(texture)) continue;
 
 			sceneData.textures[texture].flipY = false;
-
 		}
 
 		// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
-		var tintColor = confMgr.levelColor(sceneData.levelShortFileName, 'globaltintcolor', true, null), globalTintColor = null;
-
-		if (tintColor != null) {
-			globalTintColor = [tintColor.r, tintColor.g, tintColor.b];
-        }
-        
         var objToRemoveFromScene = [];
 
         sceneRender.traverse( (obj) => {
@@ -256,6 +185,7 @@ TRN.MasterLoader = {
                 if (data.visible == undefined) {
                     console.log('Object has no visible property!', obj);
                 }
+
                 obj.visible = data.visible;
             }
 
@@ -349,18 +279,12 @@ TRN.MasterLoader = {
 					material.uniforms.mapBump.value = sceneData.textures['texture' + material.uniforms.mapBump.value];
 				}
 
-				if (globalTintColor != null) {
-					// used in cut scene 3 in TR1
-					material.uniforms.tintColor.value = globalTintColor;
-				}
-
 				if (material.hasAlpha) {
 					material.transparent = true;
 					material.blending = THREE.AdditiveBlending;
 					material.blendSrc = THREE.OneFactor;
 					material.blendDst = THREE.OneMinusSrcColorFactor;
 					material.depthWrite = false;
-					material.needsUpdate = true;
 				}
 			}
 		});

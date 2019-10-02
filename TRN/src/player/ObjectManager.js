@@ -1,4 +1,5 @@
 TRN.ObjectManager = function(gameData) {
+    this.gameData = gameData;
     this.sceneRender = gameData.sceneRender;
     this.sceneData = gameData.sceneData;
 
@@ -78,7 +79,7 @@ TRN.ObjectManager.prototype = {
         mvb.visible = true;
         mvb.matrixAutoUpdate = true;
 
-        this.sceneData.objects[mvb.name] = {
+        var newData = {
             "type"   	            : 'moveable',
             "roomIndex"             : roomIndex,
             "has_anims"				: data.has_anims,
@@ -90,6 +91,13 @@ TRN.ObjectManager.prototype = {
             "internallyLit"         : data.internallyLit,
             "lighting"              : data.lighting
         };
+
+        this.sceneData.objects[mvb.name] = newData;
+
+        if (newData.has_anims) {
+            newData.animationStartIndex = data.animationStartIndex;
+            newData.numAnimations = data.numAnimations;
+        }
 
         var lst = this.objectList['moveable'][moveableID];
         if (!lst) {
@@ -109,7 +117,6 @@ TRN.ObjectManager.prototype = {
     },
 
     removeObjectFromScene : function(obj, removeBehaviours) {
-
         if (removeBehaviours === undefined) {
             removeBehaviours = true;
         }
@@ -120,5 +127,104 @@ TRN.ObjectManager.prototype = {
 
         this.sceneRender.remove(obj);
     },
+
+    collectObjectsWithAnimatedTextures_ : function(lst) {
+        var objs = [];
+
+        for (var objID in lst) {
+            var lstObjs = lst[objID];
+
+            if (!Array.isArray(lstObjs)) {
+                lstObjs = [lstObjs];
+            }
+
+            for (var i = 0; i < lstObjs.length; ++i) {
+                var obj = lstObjs[i],
+                    materials = obj.material.materials;
+            
+                for (var m = 0; m < materials.length; ++m) {
+                    var material = materials[m],
+                        userData = material.userData;
+
+                    if (!userData || !userData.animatedTexture) {
+                        continue;
+                    }
+
+                    var animTexture = this.sceneData.animatedTextures[userData.animatedTexture.idxAnimatedTexture];
+
+                    if (!animTexture.scrolltexture) {
+                        objs.push(obj);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return objs;
+    },
+
+    collectObjectsWithAnimatedTextures : function() {
+        var objs = this.collectObjectsWithAnimatedTextures_(this.objectList['room']);
+        
+        objs = objs.concat(this.collectObjectsWithAnimatedTextures_(this.objectList['sprite']));
+
+        return objs;
+    },
+
+	updateObjects : function (curTime) {
+		this.gameData.curRoom = -1;
+
+		this.sceneRender.traverse( (obj) => {
+            var data = this.sceneData.objects[obj.name];
+
+            if (!data) {
+                return;
+            }
+
+            // Test camera room membership
+			if (data.type == 'room') {
+				if (obj.geometry.boundingBox.containsPoint(this.gameData.camera.position) && !data.isAlternateRoom) {
+					this.gameData.curRoom = data.roomIndex;
+				}
+			}
+
+            // Set the visibility for the object
+			if (this.gameData.singleRoomMode) {
+				obj.visible = data.roomIndex == this.gameData.curRoom && !data.isAlternateRoom;
+			} else {
+				obj.visible = data.visible;
+			}
+
+			if (obj.boxHelper) {
+                obj.boxHelper.visible = obj.visible;
+            }
+
+            // We continue only if it is a displayable object
+			if (!(obj instanceof THREE.Mesh)) {
+                return;
+            }
+
+            // Update material uniforms
+            var materials = obj.material.materials,
+                room = this.sceneData.objects['room' + data.roomIndex];
+            
+			if (!materials || !materials.length || !room) {
+                return;
+            }
+
+			for (var i = 0; i < materials.length; ++i) {
+
+				var material = materials[i];
+
+				if (this.gameData.globalTintColor != null) {
+					material.uniforms.tintColor.value = this.gameData.globalTintColor;
+                }
+                
+				material.uniforms.curTime.value = curTime;
+				material.uniforms.rnd.value = this.gameData.quantumRnd;
+				material.uniforms.flickerColor.value = room && room.flickering ? this.gameData.flickerColor : this.gameData.unitVec3;
+			}
+        });
+	}
 
 }

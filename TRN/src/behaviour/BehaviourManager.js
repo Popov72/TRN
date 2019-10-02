@@ -66,17 +66,27 @@ TRN.Behaviours.BehaviourManager.prototype = {
         this.callFunction('frameEnded', [curTime, delta]);
     },
 
-    addBehaviour : function(name, params, objectid, objecttype) {
-        var lstObjs = objecttype ? this.objMgr.objectList[objecttype] : null;
+    getBehaviour : function(name) {
+        return this.behavioursByName[name];
+    },
 
-        if ((!lstObjs || !lstObjs[objectid]) && (objectid || objecttype)) {
-            return;
-        }
+    addBehaviour : function(name, params, objectid, objecttype, _lstObjs) {
+        var lstObjs;
 
-        if (lstObjs && lstObjs[objectid]) {
-            lstObjs = lstObjs[objectid];
-            if (!Array.isArray(lstObjs)) {
-                lstObjs = [lstObjs];
+        if (_lstObjs !== undefined) {
+            lstObjs = _lstObjs;
+        } else {
+            lstObjs = objecttype ? this.objMgr.objectList[objecttype] : null;
+
+            if ((!lstObjs || !lstObjs[objectid]) && (objectid || objecttype)) {
+                return;
+            }
+
+            if (lstObjs && lstObjs[objectid]) {
+                lstObjs = lstObjs[objectid];
+                if (!Array.isArray(lstObjs)) {
+                    lstObjs = [lstObjs];
+                }
             }
         }
 
@@ -87,7 +97,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
         return new Promise( (resolve, reject) => {
             obhv.init(lstObjs, resolve);
         }).then( (res) => {
-            if (res/*obhv.init(lstObjs)*/ != TRN.Consts.Behaviour.retDontKeepBehaviour) {
+            if (res != TRN.Consts.Behaviour.retDontKeepBehaviour) {
                 this.behaviours.push(obhv);
     
                 if (lstObjs) {

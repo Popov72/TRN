@@ -1,6 +1,9 @@
+const noSound = true;
+
 TRN.Behaviours.CutScene = function(nbhv, gameData) {
     this.nbhv = nbhv;
     this.gameData = gameData;
+    this.bhvMgr = gameData.bhvMgr;
     this.confMgr = gameData.confMgr;
     this.matMgr = gameData.matMgr;
     this.objMgr = gameData.objMgr;
@@ -19,6 +22,27 @@ TRN.Behaviours.CutScene.prototype = {
         var useAddLights = this.nbhv.useadditionallights === 'true' || this.nbhv.useadditionallights === true, index = this.nbhv.index || 0;
 
         this.matMgr.useAdditionalLights = useAddLights;
+        this.cutscene.index = index;
+        this.cutscene.curFrame = 0;
+
+        // set cutscene origin
+        var lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara][0];
+
+        this.cutscene.frames = this.sceneData.trlevel.cinematicFrames;
+        this.cutscene.position = lara.position;
+
+        var laraQuat = lara.quaternion;
+		var laraAngle = this.confMgr.levelFloat(this.sceneData.levelShortFileName, 'behaviour[name="Lara"] > angle');
+		if (laraAngle != undefined) {
+			var q = glMatrix.quat.create();
+            glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraAngle));
+            laraQuat.x = q[0];
+            laraQuat.y = q[1];
+            laraQuat.z = q[2];
+            laraQuat.w = q[3];
+        }
+        
+        this.cutscene.quaternion = laraQuat;
 
         // update position/quaternion for some specific items when we play a cut scene
         var min = this.confMgr.levelNumber(this.sceneData.levelShortFileName, 'cutscene > animminid', true, -1);
@@ -31,10 +55,8 @@ TRN.Behaviours.CutScene.prototype = {
                 var data = this.sceneData.objects[obj.name];
 
                 if (data.objectid == TRN.ObjectID.Lara || data.objectid >= min && data.objectid <= max) {
-                    obj.position.set(this.cutscene.origin.x, this.cutscene.origin.y, this.cutscene.origin.z);
-                    var q = glMatrix.quat.create();
-                    glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(this.cutscene.origin.rotY));
-                    obj.quaternion.set(q[0], q[1], q[2], q[3]);
+                    obj.position.set(this.cutscene.position.x, this.cutscene.position.y, this.cutscene.position.z);
+                    obj.quaternion.set(this.cutscene.quaternion.x, this.cutscene.quaternion.y, this.cutscene.quaternion.z, this.cutscene.quaternion.w);
                 }
             });
         }
@@ -130,7 +152,7 @@ TRN.Behaviours.CutScene.prototype = {
     },
 
     onBeforeRenderLoop : function() {
-		if (this.cutscene.sound != null) {
+		if (this.cutscene.sound != null && !noSound) {
 			TRN.Helper.startSound(this.cutscene.sound);
         }
 
@@ -138,22 +160,24 @@ TRN.Behaviours.CutScene.prototype = {
     },
 
     frameStarted : function(curTime, delta) {
-        // Update object lights
-        for (var objID in this.objects) {
-            var obj = this.objects[objID], data = this.sceneData.objects[obj.name];
+        // Update object lights (only in TR4 cutscenes)
+        if (this.cutscene.index > 0) {
+            for (var objID in this.objects) {
+                var obj = this.objects[objID], data = this.sceneData.objects[obj.name];
 
-            var pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
+                var pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
 
-            pos.x += obj.bones[0].position.x;
-            pos.y += obj.bones[0].position.y;
-            pos.z += obj.bones[0].position.z;
+                pos.x += obj.bones[0].position.x;
+                pos.y += obj.bones[0].position.y;
+                pos.z += obj.bones[0].position.z;
 
-            var roomObj = TRN.Helper.findRoom(pos, this.objMgr.objectList['room'], this.sceneData);
+                var roomObj = TRN.Helper.findRoom(pos, this.objMgr.objectList['room'], this.sceneData);
 
-            if (roomObj >= 0 && roomObj != data.roomIndex) {
-                data.roomIndex = roomObj;
+                if (roomObj >= 0 && roomObj != data.roomIndex) {
+                    data.roomIndex = roomObj;
 
-                this.matMgr.setUniformsFromRoom(obj, roomObj);
+                    this.matMgr.setUniformsFromRoom(obj, roomObj);
+                }
             }
         }
         
@@ -169,7 +193,8 @@ TRN.Behaviours.CutScene.prototype = {
 		var cfrmB = Math.min(cfrmA+1, this.cutscene.frames.length-3);
 
 		if (cfrmA < this.cutscene.frames.length-3) {
-			if (!this.gameData.controls.captureMouse) {
+            var bhvCtrl = this.bhvMgr.getBehaviour("BasicControl")[0];
+			if (!bhvCtrl.captureMouse) {
 				var frm1 = this.cutscene.frames[cfrmA];
 				var frm2 = this.cutscene.frames[cfrmB];
 				var maxDelta = 512.0 * 512.0, fovMult = 60.0 / 16384.0, rollMult = -90.0 / 16384.0;
@@ -189,8 +214,7 @@ TRN.Behaviours.CutScene.prototype = {
                     roll = TRN.Helper.lerp(frm1.roll * rollMult, frm2.roll * rollMult, t);
                 }
 
-				var q = new THREE.Quaternion();
-				q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(this.cutscene.origin.rotY) );
+				var q = this.cutscene.quaternion.clone();
 
 				lkat.applyQuaternion(q);
 
@@ -198,7 +222,7 @@ TRN.Behaviours.CutScene.prototype = {
 				this.camera.position = eyePos;
 				this.camera.position.applyQuaternion(q);
 				this.camera.lookAt(lkat);
-				this.camera.position.add(this.cutscene.origin);
+				this.camera.position.add(this.cutscene.position);
 				this.camera.quaternion.multiplyQuaternions(q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(roll) ), this.camera.quaternion);
 				this.camera.updateProjectionMatrix();
 			}

@@ -40,10 +40,11 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
         var cutscene = cutscenes[0];
 
-        ocs.origin.x = cutscene.originX;
-        ocs.origin.y = -cutscene.originY;
-        ocs.origin.z = -cutscene.originZ;
-        ocs.origin.rotY = 0;
+        ocs.position.x = cutscene.originX;
+        ocs.position.y = -cutscene.originY;
+        ocs.position.z = -cutscene.originZ;
+        ocs.quaternion.x = ocs.quaternion.y = ocs.quaternion.z = 0;
+        ocs.quaternion.z = 1;
 
         // hide moveables (except Lara) that are already in the level and that are referenced in the cutscene (we will create them later)
         var idInCutscenes = {};
@@ -86,13 +87,13 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                 mvb = lara;
                 if (cutscene.index in { 1:1, 2:1, 21:1 }) {
                     mshswap = this.objMgr.createMoveable(417, laraRoomIndex);
-                    mshswap.position.set(ocs.origin.x, ocs.origin.y, ocs.origin.z);
+                    mshswap.position.set(ocs.position.x, ocs.position.y, ocs.position.z);
                     mshswap.quaternion.set(0, 0, 0, 1);
                 }
             }
             actorMoveables.push(mvb);
 
-            mvb.position.set(ocs.origin.x, ocs.origin.y, ocs.origin.z);
+            mvb.position.set(ocs.position.x, ocs.position.y, ocs.position.z);
             mvb.quaternion.set(0, 0, 0, 1);
         }
 

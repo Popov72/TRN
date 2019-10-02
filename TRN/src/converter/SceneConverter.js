@@ -17,10 +17,10 @@ TRN.SceneConverter.prototype = {
 	createTextures : function () {
 
 		// create one texture per tile	
-		for (var i = 0; i < this.trlevel.textile.length; ++i) {
+		for (var i = 0; i < this.sc.data.trlevel.textile.length; ++i) {
 			var name = 'texture' + i;
 			this.sc.textures[name] = {
-				"url": this.trlevel.textile[i],
+				"url": this.sc.data.trlevel.textile[i],
 				"anisotropy": 16
 			};
 		}
@@ -28,13 +28,13 @@ TRN.SceneConverter.prototype = {
 
 	// Collect the animated textures
 	createAnimatedTextures : function () {
-		var i = 0, adata = this.trlevel.animatedTextures, numAnimatedTextures = adata[i++];
+		var i = 0, adata = this.sc.data.trlevel.animatedTextures, numAnimatedTextures = adata[i++];
 		var animatedTextures = [], mapObjTexture2AnimTexture = {};
 		while (numAnimatedTextures-- > 0) {
 			var numTextures = adata[i++] + 1, snumTextures = numTextures;
 			var anmcoords = [];
 			while (numTextures-- > 0) {
-				var texture = adata[i++], tex = this.trlevel.objectTextures[texture], tile = tex.tile & 0x7FFF;
+				var texture = adata[i++], tex = this.sc.data.trlevel.objectTextures[texture], tile = tex.tile & 0x7FFF;
 				var isTri = (tex.tile & 0x8000) != 0;
 
 			    var minU = 0x7FFF, minV = 0x7FFF, numVertices = isTri ? 3 : 4;
@@ -48,18 +48,18 @@ TRN.SceneConverter.prototype = {
 			        if (minU > u) minU = u; if (minV > v) minV = v;
 			    }
 
-			    anmcoords.push({ minU:(minU+0.5)/this.trlevel.atlas.width, minV:(minV+0.5)/this.trlevel.atlas.height, texture:"texture" + tile});
+			    anmcoords.push({ minU:(minU+0.5)/this.sc.data.trlevel.atlas.width, minV:(minV+0.5)/this.sc.data.trlevel.atlas.height, texture:"texture" + tile});
 			}
 
 			animatedTextures.push({
 				"animcoords": anmcoords,
-				"animspeed" : this.trlevel.rversion == 'TR1' ? 5 : this.trlevel.rversion == 'TR2' ? 6 : 14,
-				"scrolltexture" : (animatedTextures.length < this.trlevel.animatedTexturesUVCount)
+				"animspeed" : this.sc.data.trlevel.rversion == 'TR1' ? 5 : this.sc.data.trlevel.rversion == 'TR2' ? 6 : 14,
+				"scrolltexture" : (animatedTextures.length < this.sc.data.trlevel.animatedTexturesUVCount)
 			});
 		}
 
 		this.sc.data.animatedTextures = animatedTextures;
-		this.trlevel.mapObjTexture2AnimTexture = mapObjTexture2AnimTexture; // => to know for each objTexture if it is part of an animated texture, and if yes which is its starting position in the sequence
+		this.sc.data.trlevel.mapObjTexture2AnimTexture = mapObjTexture2AnimTexture; // => to know for each objTexture if it is part of an animated texture, and if yes which is its starting position in the sequence
 	},
 
 	// create one mesh
@@ -67,7 +67,7 @@ TRN.SceneConverter.prototype = {
 
 		if (this.sc.embeds['mesh' + meshIndex]) return -1; // mesh already created
 
-		var mesh = this.trlevel.meshes[meshIndex];
+		var mesh = this.sc.data.trlevel.meshes[meshIndex];
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
 			_flags: { type:"f4", value:[] }
@@ -76,7 +76,7 @@ TRN.SceneConverter.prototype = {
 
 		meshJSON.attributes = attributes;
 
-		var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0, attributes);
+		var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, 0, attributes);
 
 		meshJSON._materials = this.makeMaterialList(tiles2material, 'mesh');
 
@@ -103,8 +103,8 @@ TRN.SceneConverter.prototype = {
 
 			if (this.sc.embeds[spriteid]) return true; // sprite already created
 
-			if (spriteIndex >= this.trlevel.spriteTextures.length) {
-				console.log('spriteindex', spriteIndex, 'is too big: only', this.trlevel.spriteTextures.length, 'sprites in this.trlevel.spriteTextures !');
+			if (spriteIndex >= this.sc.data.trlevel.spriteTextures.length) {
+				console.log('spriteindex', spriteIndex, 'is too big: only', this.sc.data.trlevel.spriteTextures.length, 'sprites in this.sc.data.trlevel.spriteTextures !');
 				return false;
 			}
 
@@ -119,7 +119,7 @@ TRN.SceneConverter.prototype = {
 		}
 
 
-		var sprite = this.trlevel.spriteTextures[spriteIndex];
+		var sprite = this.sc.data.trlevel.spriteTextures[spriteIndex];
 		var meshJSON = this.createNewJSONEmbed();
 		var attributes = {
 			_flags: { type:"f4", value:[] }
@@ -147,8 +147,8 @@ TRN.SceneConverter.prototype = {
 		var width = (sprite.width-255)/256;
 		var height = (sprite.height-255)/256;
 		var row = 0, col = 0;
-		if (this.trlevel.atlas.make) {
-			row = Math.floor(sprite.tile / this.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.trlevel.atlas.numColPerRow;
+		if (this.sc.data.trlevel.atlas.make) {
+			row = Math.floor(sprite.tile / this.sc.data.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.sc.data.trlevel.atlas.numColPerRow;
 			sprite.tile = 0;
 		}
 		var objectTextures = [
@@ -171,12 +171,12 @@ TRN.SceneConverter.prototype = {
 			var anmcoords = [];
 		    mapObjTexture2AnimTexture[0] = { idxAnimatedTexture:this.sc.data.animatedTextures.length, pos:0 };
 			for (var i = 0; i < numSprites; ++i) {
-				sprite = this.trlevel.spriteTextures[spriteIndex + i];
-				if (this.trlevel.atlas.make && i != 0) {
-					row = Math.floor(sprite.tile / this.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.trlevel.atlas.numColPerRow;
+				sprite = this.sc.data.trlevel.spriteTextures[spriteIndex + i];
+				if (this.sc.data.trlevel.atlas.make && i != 0) {
+					row = Math.floor(sprite.tile / this.sc.data.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.sc.data.trlevel.atlas.numColPerRow;
 					sprite.tile = 0;
 				}
-			    anmcoords.push({ minU:(sprite.x + col * 256 + 0.5)/this.trlevel.atlas.width, minV:(sprite.y + row * 256 + 0.5)/this.trlevel.atlas.height, texture:"texture" + sprite.tile});
+			    anmcoords.push({ minU:(sprite.x + col * 256 + 0.5)/this.sc.data.trlevel.atlas.width, minV:(sprite.y + row * 256 + 0.5)/this.sc.data.trlevel.atlas.height, texture:"texture" + sprite.tile});
 			}
 			this.sc.data.animatedTextures.push({
 				"animcoords": anmcoords,
@@ -200,24 +200,24 @@ TRN.SceneConverter.prototype = {
 	// generate the rooms + static meshes + sprites in the room
 	createRooms : function () {
 		// flag the alternate rooms
-		for (var m = 0; m < this.trlevel.rooms.length; ++m) {
-			this.trlevel.rooms[m].isAlternate = false;
+		for (var m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
+			this.sc.data.trlevel.rooms[m].isAlternate = false;
         }
         
-		for (var m = 0; m < this.trlevel.rooms.length; ++m) {
-			var room = this.trlevel.rooms[m];
+		for (var m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
+			var room = this.sc.data.trlevel.rooms[m];
             var alternate = room.alternateRoom;
             if (alternate != -1) {
-                this.trlevel.rooms[alternate].isAlternate = true;
+                this.sc.data.trlevel.rooms[alternate].isAlternate = true;
             }
 		}
 		
 		var maxLightsInRoom = 0, roomL = -1;
 
 		// generate the rooms
-		for (var m = 0; m < this.trlevel.rooms.length; ++m) {
+		for (var m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
 			//if (m != 10) continue;
-			var room = this.trlevel.rooms[m];
+			var room = this.sc.data.trlevel.rooms[m];
 			var info = room.info, rdata = room.roomData, rflags = room.flags, lightMode = room.lightMode;
 			var isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
             
@@ -248,7 +248,7 @@ TRN.SceneConverter.prototype = {
 			}
 
 			var ambientColor = glMatrix.vec3.create();
-			if (this.trlevel.rversion != 'TR4') {
+			if (this.sc.data.trlevel.rversion != 'TR4') {
 				var ambient1 = 1.0 - room.ambientIntensity1/0x2000;
 				glMatrix.vec3.set(ambientColor, ambient1, ambient1, ambient1);
 			} else {
@@ -264,7 +264,7 @@ TRN.SceneConverter.prototype = {
 				var px = light.x, py = -light.y, pz = -light.z;
 				var fadeIn = 0, fadeOut = 0;
 				var plight = { type:'point' };
-				switch(this.trlevel.rversion) {
+				switch(this.sc.data.trlevel.rversion) {
 					case 'TR1':
 					case 'TR2':
 						var intensity = light.intensity1;
@@ -367,7 +367,7 @@ TRN.SceneConverter.prototype = {
 			}
 
 			// create the tri/quad faces
-			this.makeFaces(roomJSON, [rdata.rectangles, rdata.triangles], tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, 0);
+			this.makeFaces(roomJSON, [rdata.rectangles, rdata.triangles], tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, 0);
             
 			// add the room to the scene
 			this.sc.embeds['room' + m] = roomJSON;
@@ -477,8 +477,8 @@ TRN.SceneConverter.prototype = {
 	createAnimations : function () {
 		var animTracks = [];
 
-		for (var anm = 0; anm < this.trlevel.animations.length; ++anm) {
-			var anim = this.trlevel.animations[anm];
+		for (var anm = 0; anm < this.sc.data.trlevel.animations.length; ++anm) {
+			var anim = this.sc.data.trlevel.animations[anm];
 
 			var frameOffset = anim.frameOffset / 2;
 			var frameStep   = anim.frameSize;
@@ -495,8 +495,8 @@ TRN.SceneConverter.prototype = {
 				animLength = 1.0;
 			}
 
-			if (this.trlevel.rversion == 'TR1') {
-				frameStep = this.trlevel.frames[frameOffset + 9] * 2 + 10;
+			if (this.sc.data.trlevel.rversion == 'TR1') {
+				frameStep = this.sc.data.trlevel.frames[frameOffset + 9] * 2 + 10;
 			}
 
 			var animKeys = [];
@@ -504,15 +504,15 @@ TRN.SceneConverter.prototype = {
 			for (var key = 0; key < animNumKeys; key++)	{
 				var frame = frameOffset + key * frameStep, sframe = frame;
 
-				var BBLoX =  this.trlevel.frames[frame++], BBHiX =  this.trlevel.frames[frame++];
-				var BBLoY = -this.trlevel.frames[frame++], BBHiY = -this.trlevel.frames[frame++];
-				var BBLoZ = -this.trlevel.frames[frame++], BBHiZ = -this.trlevel.frames[frame++];
+				var BBLoX =  this.sc.data.trlevel.frames[frame++], BBHiX =  this.sc.data.trlevel.frames[frame++];
+				var BBLoY = -this.sc.data.trlevel.frames[frame++], BBHiY = -this.sc.data.trlevel.frames[frame++];
+				var BBLoZ = -this.sc.data.trlevel.frames[frame++], BBHiZ = -this.sc.data.trlevel.frames[frame++];
 
-				var transX = this.trlevel.frames[frame++], transY = -this.trlevel.frames[frame++], transZ = -this.trlevel.frames[frame++];
+				var transX = this.sc.data.trlevel.frames[frame++], transY = -this.sc.data.trlevel.frames[frame++], transZ = -this.sc.data.trlevel.frames[frame++];
 
 				var numAnimatedMeshesUnknown = 99999, numAnimatedMeshes = numAnimatedMeshesUnknown;
-				if (this.trlevel.rversion == 'TR1') {
-					numAnimatedMeshes = this.trlevel.frames[frame++];
+				if (this.sc.data.trlevel.rversion == 'TR1') {
+					numAnimatedMeshes = this.sc.data.trlevel.frames[frame++];
 				}
 
 				var mesh = 0, keyData = [];
@@ -522,11 +522,11 @@ TRN.SceneConverter.prototype = {
 
 					if (numAnimatedMeshes == numAnimatedMeshesUnknown && (frame-sframe) >= frameStep) break;
 
-				    var frameData = this.trlevel.frames[frame++];
+				    var frameData = this.sc.data.trlevel.frames[frame++];
 				    if (frameData < 0) frameData += 65536;
 
-				    if ((frameData & 0xC000) && (this.trlevel.rversion != 'TR1')) { // single axis of rotation
-				        var angle = this.trlevel.rversion == 'TR4' ? (frameData & 0xFFF) >> 2 : frameData & 0x3FF;
+				    if ((frameData & 0xC000) && (this.sc.data.trlevel.rversion != 'TR1')) { // single axis of rotation
+				        var angle = this.sc.data.trlevel.rversion == 'TR4' ? (frameData & 0xFFF) >> 2 : frameData & 0x3FF;
 
 						angle *= 360.0 / 1024.0;
 
@@ -544,10 +544,10 @@ TRN.SceneConverter.prototype = {
 			        } else { // 3 axis of rotation
 						if (numAnimatedMeshes == numAnimatedMeshesUnknown && (frame-sframe) >= frameStep) break;
 
-				        var frameData2 = this.trlevel.frames[frame++];
+				        var frameData2 = this.sc.data.trlevel.frames[frame++];
 					    if (frameData2 < 0) frameData2 += 65536;
 
-				        if (this.trlevel.rversion == 'TR1') {
+				        if (this.sc.data.trlevel.rversion == 'TR1') {
 				            var temp = frameData;
 				            frameData = frameData2;
 				            frameData2 = temp;
@@ -600,7 +600,7 @@ TRN.SceneConverter.prototype = {
 			if (numAnimCommands < 0x100) {
 				var aco = anim.animCommand;
 				for (var ac = 0; ac < numAnimCommands; ++ac) {
-					var cmd = this.trlevel.animCommands[aco++].value, numParams = TRN.Animation.Commands.numParams[cmd];
+					var cmd = this.sc.data.trlevel.animCommands[aco++].value, numParams = TRN.Animation.Commands.numParams[cmd];
 
 					var command = {
 						"cmd": cmd,
@@ -608,7 +608,7 @@ TRN.SceneConverter.prototype = {
 					};
 
 					while (numParams-- > 0) {
-						command.params.push(this.trlevel.animCommands[aco++].value);
+						command.params.push(this.sc.data.trlevel.animCommands[aco++].value);
 					}
 					
 					animCommands.push(command);
@@ -617,7 +617,7 @@ TRN.SceneConverter.prototype = {
 				console.log('Invalid num anim commands (' + numAnimCommands + ') ! ', anim);
 			}
 
-			if (this.trlevel.animations[anim.nextAnimation] != undefined) // to avoid bugging for lost artifact TR3 levels
+			if (this.sc.data.trlevel.animations[anim.nextAnimation] != undefined) // to avoid bugging for lost artifact TR3 levels
 				animTracks.push({
 					"name": 			"anim" + anm,
 					"numKeys":  		animNumKeys,
@@ -625,7 +625,7 @@ TRN.SceneConverter.prototype = {
 					"frameRate": 		anim.frameRate,
 					"fps":  			animFPS,
 					"nextTrack":  		anim.nextAnimation,
-					"nextTrackFrame": 	anim.nextFrame - this.trlevel.animations[anim.nextAnimation].frameStart,
+					"nextTrackFrame": 	anim.nextFrame - this.sc.data.trlevel.animations[anim.nextAnimation].frameStart,
 					"keys":  			animKeys,
 					"commands":     	animCommands,
 					"frameStart":    	anim.frameStart
@@ -639,15 +639,22 @@ TRN.SceneConverter.prototype = {
 
 	createMoveables : function () {
 
-		var startObjIdAnim  = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'rendering > scrolling_moveable > start_id', true, 0);
-		var endObjIdAnim    =  startObjIdAnim + this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'rendering > scrolling_moveable > num', true, 0) - 1;
+		var objIdAnim  = this.confMgr.levelParam(this.sc.data.levelShortFileName, 'behaviour[name="ScrollTexture"]', true, true);
+        var lstIdAnim  =  {};
+        
+        if (objIdAnim) {
+            for (var i = 0; i < objIdAnim.size(); ++i) {
+                var node = objIdAnim[i];
+                lstIdAnim[parseInt(node.getAttribute("objectid"))] = true;
+            }
+        }
 
 		var numMoveables = 0;
-		for (var m = 0; m < this.trlevel.moveables.length; ++m) {
-			var moveable = this.trlevel.moveables[m];
+		for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+			var moveable = this.sc.data.trlevel.moveables[m];
 
 			var numMeshes = moveable.numMeshes, meshIndex = moveable.startingMesh, meshTree = moveable.meshTree;
-			var isDummy = numMeshes == 1 && this.trlevel.meshes[meshIndex].dummy && !moveable.objectID == this.laraObjectID;
+			var isDummy = numMeshes == 1 && this.sc.data.trlevel.meshes[meshIndex].dummy && !moveable.objectID == this.laraObjectID;
 
 			if (this.sc.geometries['moveable' + moveable.objectID] || isDummy) continue;
 
@@ -659,17 +666,16 @@ TRN.SceneConverter.prototype = {
 			var stackIdx = 0, stack = [], parent = -1;
 			var px = 0, py = 0, pz = 0, ofsvert = 0, bones = [], skinIndices = [], skinWeights = [];
 
-            meshJSON.moveableIndex = m;
 			meshJSON.attributes = attributes;
-			meshJSON.objHasScrollAnim = moveable.objectID >= startObjIdAnim && moveable.objectID <= endObjIdAnim;
+			meshJSON.objHasScrollAnim = moveable.objectID in lstIdAnim;
 
 			var moveableIsExternallyLit = false;
 			for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
 				if (idx != 0) {
-					var sflag = this.trlevel.meshTrees[meshTree++].coord;
-					px = this.trlevel.meshTrees[meshTree++].coord;
-					py = this.trlevel.meshTrees[meshTree++].coord;
-					pz = this.trlevel.meshTrees[meshTree++].coord;
+					var sflag = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+					px = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+					py = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+					pz = this.sc.data.trlevel.meshTrees[meshTree++].coord;
 					if (sflag & 1) {
                         if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
                         parent = stack[--stackIdx];
@@ -679,12 +685,12 @@ TRN.SceneConverter.prototype = {
 					}
 				}
 
-				var mesh = this.trlevel.meshes[meshIndex];
+				var mesh = this.sc.data.trlevel.meshes[meshIndex];
 
-                if ((mesh.dummy && this.trlevel.rversion == 'TR4') || (idx == 0 && this.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints)) {
+                if ((mesh.dummy && this.sc.data.trlevel.rversion == 'TR4') || (idx == 0 && this.sc.data.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints)) {
                     // hack to remove bad data from joint #0 of Lara joints in TR4
                 } else {
-                    var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.trlevel.objectTextures, this.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
+                    var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
                     
                     moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
 
@@ -722,8 +728,8 @@ TRN.SceneConverter.prototype = {
 	},
 
     createAllMoveableInstances : function() {
-        for (var m = 0; m < this.trlevel.moveables.length; ++m) {
-            var moveable = this.trlevel.moveables[m];
+        for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+            var moveable = this.sc.data.trlevel.moveables[m];
 
             this.createMoveableInstance(-1, -1, 0, 0, 0, 0, [0, 0, 0, 1], moveable, undefined, false);
         }
@@ -754,11 +760,9 @@ TRN.SceneConverter.prototype = {
 			"type"   				: 'moveable',
             "raw"                   : moveable,
             "has_anims"				: true,
-            "numAnimations"         : hasGeometry ? this.numAnimationsForMoveable(this.sc.embeds["moveable" + objIDForVisu].moveableIndex) : 0,
+            "numAnimations"         : hasGeometry ? moveable.numAnimations : 0,
 			"roomIndex"				: roomIndex,
 			"animationStartIndex"	: moveable.animation,
-			"_animationStartIndex"	: moveable.animation, // this one won't change, whereas animationStartIndex can be changed before starting, for Lara for eg, to set the "standing" anim
-			"hasScrollAnim"			: hasGeometry ? hasGeometry.objHasScrollAnim : false,
             "objectid"              : moveable.objectID,
             "visible"  				: room ? room.visible && visible : visible,
             "bonesStartingPos"      : hasGeometry ? hasGeometry.bones : null,
@@ -819,8 +823,8 @@ TRN.SceneConverter.prototype = {
 
 		var laraMoveable = null;
 		var numMoveableInstances = 0, numSpriteSeqInstances = 0;
-		for (var i = 0; i < this.trlevel.items.length; ++i) {
-			var item = this.trlevel.items[i];
+		for (var i = 0; i < this.sc.data.trlevel.items.length; ++i) {
+			var item = this.sc.data.trlevel.items[i];
 
 			var roomIndex = item.room, lighting = item.intensity1, q = glMatrix.quat.create();
 
@@ -828,30 +832,26 @@ TRN.SceneConverter.prototype = {
 
 			var m = this.movObjID2Index[item.objectID];
 			if (m == null) {
-				this.createSpriteSeqInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.spriteSequences[this.sprObjID2Index[item.objectID]]);
+				this.createSpriteSeqInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.sc.data.trlevel.spriteSequences[this.sprObjID2Index[item.objectID]]);
 				numSpriteSeqInstances++;
 			} else {
-                var mvb = this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.trlevel.moveables[m]);
+                var mvb = this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.sc.data.trlevel.moveables[m]);
 				if (item.objectID == this.laraObjectID) {
 					laraMoveable = mvb;
 				}
 				numMoveableInstances++;
-                var startAnim = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'moveable[id="' + item.objectID + '"] > startanim', true, -1);
-                if (this.sc.data.cutScene.frames == null && startAnim >= 0) {
-                    this.sc.data.objects[mvb.objID].animationStartIndex = this.sc.data.objects[mvb.objID]._animationStartIndex + startAnim;
-                }
             }
 		}
 
         this.laraMoveable = laraMoveable;
 
 		// specific handling of the skydome (TR4 only)
-		if (this.trlevel.rversion == 'TR4') {
+		if (this.sc.data.trlevel.rversion == 'TR4') {
 			var materials = [
 				{
 					"material": this.getMaterial("skydome"),
 					"uniforms": {
-						"map" :             { type: "t",    value: "" + (this.trlevel.textile.length-1) },
+						"map" :             { type: "t",    value: "" + (this.sc.data.trlevel.textile.length-1) },
 						"offsetRepeat" :    { type: "f4",   value: [0, 0, 1, 1] },
 						"tintColor" :       { type: "f3",   value: null }
 					},
@@ -1126,7 +1126,7 @@ TRN.SceneConverter.prototype = {
         var f = 0, faces = joints.faces;
         while (f < faces.length) {
             let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 14 : 18;
-            faces[f+1+numVert] += this.trlevel.atlas.make ? 0 : laraMoveable.material.length;
+            faces[f+1+numVert] += this.sc.data.trlevel.atlas.make ? 0 : laraMoveable.material.length;
             for (let v = 0; v < numVert; ++v) {
                 faces[f+1+v] += mainVertices.length/3; // position
                 faces[f+2+numVert+v] += main.uvs[0].length/2; // uvs
@@ -1145,7 +1145,7 @@ TRN.SceneConverter.prototype = {
         main.uvs[0] = main.uvs[0].concat(joints.uvs[0]);
         main.vertices = main.vertices.concat(joints.vertices);
 
-        if (!this.trlevel.atlas.make) {
+        if (!this.sc.data.trlevel.atlas.make) {
             laraMoveable.material = laraMoveable.material.concat(this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints]._materials);
         }
 
@@ -1207,8 +1207,6 @@ TRN.SceneConverter.prototype = {
 	convert : function (trlevel, callback_created) {
 		glMatrix.glMatrix.setMatrixArrayType(Array);
 
-		this.trlevel = trlevel;
-
 		this.sc =  {
 			"metadata": {
 				"formatVersion": 3.2,
@@ -1236,95 +1234,47 @@ TRN.SceneConverter.prototype = {
                 "objects": {
                 },
 
-                "cutScene": {
-                    "origin" : {},
-                    "curFrame" : 0,
-                    "frames" : null,
-                    "sound" : null,
-                    "animminid" : 0,
-                    "animmaxid" : 0
-                },
+                "trlevel": trlevel
             }
 		};
 
-		this.sc.data.levelFileName = this.trlevel.filename;
+		this.sc.data.levelFileName = this.sc.data.trlevel.filename;
 		this.sc.data.levelShortFileName = this.sc.data.levelFileName;
 		this.sc.data.levelShortFileNameNoExt = this.sc.data.levelShortFileName.substring(0, this.sc.data.levelShortFileName.indexOf('.'));
 		this.sc.data.waterColor = {
 			"in" : this.confMgr.globalColor('water > colorin'),
 			"out" : this.confMgr.globalColor('water > colorout')
         };
-		this.sc.data.rversion = this.trlevel.rversion;
+		this.sc.data.rversion = this.sc.data.trlevel.rversion;
 		this.sc.data.soundPath = "TRN/sound/" + this.sc.data.rversion.toLowerCase() + "/";
-        this.sc.data.useUVRotate = this.confMgr.levelBoolean(this.sc.data.levelShortFileName, 'uvrotate', true, false);
 
         this.laraObjectID = this.confMgr.levelNumber(this.sc.data.levelShortFileName, 'lara > id', true, 0);
 
 		this.movObjID2Index = {};
 
-		for (var m = 0; m < this.trlevel.moveables.length; ++m) {
-			var moveable = this.trlevel.moveables[m];
+        if (this.sc.data.levelShortFileNameNoExt.toLowerCase() != 'angkor1') {
+            this.sc.data.trlevel.animatedTexturesUVCount = 0;
+        }
+
+		for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+			var moveable = this.sc.data.trlevel.moveables[m];
 			this.movObjID2Index[moveable.objectID] = m;
 		}
 
 		this.sprObjID2Index = {};
 
-		for (var sq = 0; sq < this.trlevel.spriteSequences.length; ++sq) {
-			var spriteSeq = this.trlevel.spriteSequences[sq];
+		for (var sq = 0; sq < this.sc.data.trlevel.spriteSequences.length; ++sq) {
+			var spriteSeq = this.sc.data.trlevel.spriteSequences[sq];
 			this.sprObjID2Index[spriteSeq.objectID] = sq;
 		}
 
-		// get Lara's position => camera starting point
-		var laraPos = { x:0, y:0, z:0, rotY:0 };
-		for (var i = 0; i < this.trlevel.items.length; ++i) {
-			var item = this.trlevel.items[i];
-			if (item.objectID == this.laraObjectID) {
-				laraPos.x =  item.x;
-				laraPos.y = -item.y;
-				laraPos.z = -item.z;
-				laraPos.rotY = -(item.angle >> 14) * 90;
-				break;
-			}
-		}
-
-		var laraAngle = this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'moveables > moveable[id="' + this.laraObjectID + '"] > angle');
-		if (laraAngle != undefined) {
-			laraPos.rotY = laraAngle;
-		}
-
-		var isCutScene = this.confMgr.levelParam(this.sc.data.levelShortFileName, '', false, true).attr('type') == 'cutscene';
-		if (this.trlevel.numCinematicFrames > 0 && isCutScene) {
-			this.sc.data.cutScene.frames = this.trlevel.cinematicFrames;
-			this.sc.data.cutScene.origin = laraPos;
-		}	
-
-		var camPos = { x:laraPos.x, y:laraPos.y, z:laraPos.z, rotY:laraPos.rotY }
-		if (!this.sc.data.cutScene.frames) {
-			var ofstDir = this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'behaviour[name="Lara"] > dirdist', true, 0.0);
-			var ofstUp = this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'behaviour[name="Lara"] > updist', true, 0.0);
-
-			var v3 = [0, ofstUp, ofstDir];
-			var q = glMatrix.quat.create();
-
-			glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraPos.rotY));
-			glMatrix.vec3.transformQuat(v3, v3, q);
-
-			camPos.x += v3[0];
-			camPos.y += v3[1];
-			camPos.z += v3[2];
-		}
-
-		var q = glMatrix.quat.create();
-
-		glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraPos.rotY));
-		
 		this.sc.objects.camera1 = {
 			"type"      : "PerspectiveCamera",
 			"fov"       : this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'camera > fov', true, 50),
 			"near"      : this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'camera > neardist', true, 50),
 			"far"       : this.confMgr.levelFloat(this.sc.data.levelShortFileName, 'camera > fardist', true, 10000),
-			"position"  : [ camPos.x, camPos.y, camPos.z ],
-            "quaternion": q
+			"position"  : [ 0, 0, 0 ],
+            "quaternion": [ 0, 0, 0, 1 ]
 		}
 
         this.sc.data.objects['camera1'] = {
@@ -1333,7 +1283,14 @@ TRN.SceneConverter.prototype = {
             "roomIndex" : -1,
             "visible"   : false
         }
-        
+
+        // get the number of animations for each moveable
+        for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+            var moveable = this.sc.data.trlevel.moveables[m];
+
+            moveable.numAnimations = this.numAnimationsForMoveable(m);
+        }
+
 		this.createTextures();
 
 		this.createAnimatedTextures();
@@ -1354,7 +1311,7 @@ TRN.SceneConverter.prototype = {
 
         this.createVertexNormals();
 
-        if (this.trlevel.rversion == 'TR4') {
+        if (this.sc.data.trlevel.rversion == 'TR4') {
             this.makeSkinnedLara();
         }
         
@@ -1364,7 +1321,6 @@ TRN.SceneConverter.prototype = {
 
             delete embed._materials;
             delete embed.objHasScrollAnim;
-            delete embed.moveableIndex;
             delete embed.moveableIsInternallyLit;
         }
         
