@@ -162,6 +162,9 @@
             <behaviour name="BasicControl" objectid="0" objecttype="camera">
                 <scale><move>6000</move><rotation>100</rotation><mouserotation>10</mouserotation></scale>
             </behaviour>
+            <behaviour name="Sky">
+                <id>254</id>
+            </behaviour>
             <moveable id="0">
                 <behaviour name="Lara">
                     <startanim>103</startanim>
@@ -182,9 +185,6 @@
                     <blink>true</blink>
                     <objects_only>no</objects_only>
                     <global>true</global>
-                </behaviour>
-                <behaviour name="Sky">
-                    <id>254</id>
                 </behaviour>
             </moveable>
             <moveable id="253">
@@ -321,6 +321,11 @@
             <behaviour name="BasicControl" objectid="0" objecttype="camera">
                 <scale><move>6000</move><rotation>100</rotation><mouserotation>10</mouserotation></scale>
             </behaviour>
+            <behaviour name="Sky">
+                <id>355</id>
+                <removepoly><start>16</start><num>16</num></removepoly>
+                <noanim>true</noanim>
+            </behaviour>
             <moveable id="0">
                 <visuid>315</visuid>
                 <behaviour name="Lara">
@@ -342,11 +347,6 @@
                     <blink>true</blink>
                     <objects_only>no</objects_only>
                     <global>true</global>
-                </behaviour>
-                <behaviour name="Sky">
-                    <id>355</id>
-                    <removepoly><start>16</start><num>16</num></removepoly>
-                    <noanim>true</noanim>
                 </behaviour>
             </moveable>
 			<cutscene>
@@ -478,6 +478,13 @@
             <behaviour name="ScrollTexture" objectid="423"/>
             <behaviour name="ScrollTexture" objectid="424"/>
             <behaviour name="ScrollTexture" objectid="425"/>
+            <behaviour name="Skydome">
+                <color><r>255</r><g>255</g><b>255</b></color>
+            </behaviour>
+            <behaviour name="Sky">
+                <id>459</id>
+                <noanim>true</noanim>
+            </behaviour>
             <moveable id="0">
                 <visuid>8</visuid>
                 <behaviour name="Pick"/>
@@ -500,13 +507,6 @@
                     <blink>true</blink>
                     <objects_only>no</objects_only>
                     <global>true</global>
-                </behaviour>
-                <behaviour name="Skydome">
-                    <color><r>255</r><g>255</g><b>255</b></color>
-                </behaviour>
-                <behaviour name="Sky">
-                    <id>459</id>
-                    <noanim>true</noanim>
                 </behaviour>
             </moveable>
             <moveable id="144">
