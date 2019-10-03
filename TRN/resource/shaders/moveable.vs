@@ -27,6 +27,8 @@ attribute vec4 _flags;
 
 varying vec2 vUv;
 varying vec3 vColor;
+varying vec4 vwPos;
+varying vec3 vwCamPos;
 
 const vec3 vec3Unit = vec3(1.0, 1.0, 1.0);
 
@@ -142,6 +144,8 @@ float punctualLightIntensityToIrradianceFactor( const in float lightDistance, co
 #endif
 
 void main() {
+    vwCamPos = cameraPosition;
+    
 	mat4 boneMatX = getBoneMatrix( skinIndex.x );
 	mat4 boneMatY = getBoneMatrix( skinIndex.y );
 
@@ -166,6 +170,8 @@ void main() {
 	pos.x += mix(0.0, 8.0 * sin(sum * 10.0 + time), _flags.z);
 	pos.y -= mix(0.0, 8.0 * sin(sum * 10.0 + time), _flags.z);
 	pos.z -= mix(0.0, 8.0 * sin(sum * 10.0 + time), _flags.z);
+
+    vwPos = modelMatrix * pos;
 
 	vec4 mvPosition;
 	mvPosition = modelViewMatrix * pos;

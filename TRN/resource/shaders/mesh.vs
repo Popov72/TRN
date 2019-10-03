@@ -11,10 +11,14 @@ attribute vec4 _flags;
 
 varying vec2 vUv;
 varying vec3 vColor;
+varying vec4 vwPos;
+varying vec3 vwCamPos;
 
 const vec3 vec3Unit = vec3(1.0, 1.0, 1.0);
 
 void main() {
+    vwCamPos = cameraPosition;
+    
 	vec3 pos = position;
 
 	vUv = uv * offsetRepeat.zw + offsetRepeat.xy;
@@ -37,6 +41,8 @@ void main() {
 	pos.x += mix(0.0, 8.0 * sin(sum * 10.0 + time), _flags.z);
 	pos.y -= mix(0.0, 8.0 * sin(sum * 10.0 + time), _flags.z);
 	pos.z -= mix(0.0, 8.0 * sin(sum * 10.0 + time), _flags.z);
+
+    vwPos = modelMatrix * vec4(pos, 1.0);
 
 	vec4 mvPosition;
 	mvPosition = modelViewMatrix * vec4( pos, 1.0 );
