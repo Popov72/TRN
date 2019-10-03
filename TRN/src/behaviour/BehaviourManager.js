@@ -154,13 +154,13 @@ TRN.Behaviours.BehaviourManager.prototype = {
                 if (!nbhv.parentNode) continue;
     
                 objectid = nbhv.parentNode.getAttribute("id");
-                objecttype = nbhv.parentNode.nodeName;
+                objecttype = objectid ? nbhv.parentNode.nodeName : null;
             }
     
             // get overriden data from the level (if any)
-            // look first for a <behaviour> tag with the ssame objectid and objecttype as the current one
-            var bhvLevel = jQuery(this.confMgr.param('behaviour[name="' + name + '"][objectid="' + objectid + '"]', false, true));
-            if (bhvLevel.size() > 0 && bhvLevel[0] !== nbhv) {
+            // look first for a <behaviour> tag with the same objectid and objecttype as the current one
+            var bhvLevel = objectid ? jQuery(this.confMgr.param('behaviour[name="' + name + '"][objectid="' + objectid + '"]', false, true)) : null;
+            if (bhvLevel && bhvLevel.size() > 0 && bhvLevel[0] !== nbhv) {
                 var tp = bhvLevel[0].getAttribute("objecttype") || "moveable";
                 if (tp != objecttype) {
                     bhvLevel = null;
