@@ -50,6 +50,9 @@ TRN.extend(TRN.SceneConverter.prototype, {
                     mat.parameters.skinning = true;
                     mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('sky');
                     break;
+                case 'skydome':
+                    mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('skydome');
+                    break;
             }
 			mat.parameters.vertexShader   = mat.parameters.vertexShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
 			mat.parameters.fragmentShader = mat.parameters.fragmentShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
