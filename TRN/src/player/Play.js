@@ -28,6 +28,8 @@ TRN.Play = function (container) {
         "unitVec3" : [1.0, 1.0, 1.0],
         "globalTintColor":  null,
 
+        "fps": 0,
+
         "needWebGLInit": false
     };
 
@@ -111,14 +113,6 @@ TRN.Play.prototype = {
             moveables[objID].forEach( (obj) => this.gameData.matMgr.createLightUniformsForObject(obj) );
         }
     
-        this.gameData.sceneRender.traverse( (obj) => {
-            var data = this.gameData.sceneData.objects[obj.name];
-
-            if (!data || data.roomIndex < 0) return;
-
-            this.gameData.matMgr.setUniformsFromRoom(obj, data.roomIndex);
-        });
-
         // create behaviours
         var allPromises = this.gameData.bhvMgr.loadBehaviours();
 
@@ -130,6 +124,14 @@ TRN.Play.prototype = {
         }
 
         await Promise.all(allPromises);
+
+        this.gameData.sceneRender.traverse( (obj) => {
+            var data = this.gameData.sceneData.objects[obj.name];
+
+            if (!data || data.roomIndex < 0) return;
+
+            this.gameData.matMgr.setUniformsFromRoom(obj, data.roomIndex);
+        });
 
 		this.gameData.panel.show();
         this.gameData.panel.updateFromParent();
@@ -161,7 +163,9 @@ TRN.Play.prototype = {
 
 		curTime = curTime - this.gameData.startTime;
 
-		if (delta > 0.1) delta = 0.1;
+        if (delta > 0.1) delta = 0.1;
+        
+        this.gameData.fps = delta ? 1/delta : 60;
 
         this.gameData.bhvMgr.frameStarted(curTime, delta);
 
