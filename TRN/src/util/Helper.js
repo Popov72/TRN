@@ -168,17 +168,6 @@ TRN.Helper = {
         }
 
         return children;
-    },
-
-    findRoom : function(pos, roomList, sceneData) {
-        for (var r in roomList) {
-            var obj = roomList[r], data = sceneData.objects[obj.name];
-            if (data.isAlternateRoom) continue;
-            if (obj && obj.geometry.boundingBox.containsPoint(pos)) {
-                return parseInt(r);
-            }
-        }
-        return -1;
     }
 
 }

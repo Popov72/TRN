@@ -165,7 +165,7 @@ TRN.Behaviours.CutScene.prototype = {
                 pos.y += obj.bones[0].position.y;
                 pos.z += obj.bones[0].position.z;
 
-                const roomObj = TRN.Helper.findRoom(pos, this.objMgr.objectList['room'], this.sceneData);
+                const roomObj = this.objMgr.getRoomByPos(pos);
 
                 if (roomObj >= 0 && roomObj != data.roomIndex) {
                     const dataCurRoom = this.sceneData.objects['room' + data.roomIndex], 
