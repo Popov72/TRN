@@ -26,29 +26,30 @@ TRN.Behaviours.BehaviourManager.prototype = {
 
     removeBehaviours : function(obj) {
         if (obj.__behaviours) {
-            obj.__behaviours.forEach( (bhv) => {
-
-                var idx = this.behaviours.indexOf(bhv);
-                if (idx !== -1) {
-                    this.behaviours.splice(idx, 1);
-                }
-
-                var lst = this.behavioursByName[bhv.__name];
-                if (lst) {
-                    idx = lst.indexOf(bhv);
-                    if (idx !== -1) {
-                        lst.splice(idx, 1);
-                    }
-                }
-            })
+            obj.__behaviours.forEach( (bhv) => this.removeBehaviour(bhv) );
 
             delete obj.__behaviours;
         };
     },
 
+    removeBehaviour : function(bhv) {
+        let idx = this.behaviours.indexOf(bhv);
+        if (idx !== -1) {
+            this.behaviours.splice(idx, 1);
+        }
+
+        const lst = this.behavioursByName[bhv.__name];
+        if (lst) {
+            idx = lst.indexOf(bhv);
+            if (idx !== -1) {
+                lst.splice(idx, 1);
+            }
+        }
+    },
+
     callFunction : function(funcname, params) {
-        for (var i = 0; i < this.behaviours.length; ++i) {
-            var bhv = this.behaviours[i];
+        for (let i = 0; i < this.behaviours.length; ++i) {
+            const bhv = this.behaviours[i];
 
             if (bhv[funcname]) bhv[funcname].apply(bhv, params);
         }
@@ -71,7 +72,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
     },
 
     addBehaviour : function(name, params, objectid, objecttype, _lstObjs) {
-        var lstObjs;
+        let lstObjs;
 
         if (_lstObjs !== undefined) {
             lstObjs = _lstObjs;
@@ -90,7 +91,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
             }
         }
 
-        var obhv = new TRN.Behaviours[name](params, this.gameData, objectid, objecttype);
+        const obhv = new TRN.Behaviours[name](params, this.gameData, objectid, objecttype);
 
         obhv.__name = name;
 
@@ -102,7 +103,7 @@ TRN.Behaviours.BehaviourManager.prototype = {
     
                 if (lstObjs) {
                     lstObjs.forEach( (obj) => {
-                        var lbhv = obj.__behaviours;
+                        let lbhv = obj.__behaviours;
                         if (!lbhv) {
                             lbhv = [];
                             obj.__behaviours = lbhv;
@@ -111,14 +112,12 @@ TRN.Behaviours.BehaviourManager.prototype = {
                     });
                 }
     
-                var blst = this.behavioursByName[name];
+                let blst = this.behavioursByName[name];
                 if (!blst) {
                     blst = [];
                     this.behavioursByName[name] = blst;
                 }
                 blst.push(obhv);
-            } else {
-                obhv = null;
             }
         });
     },
@@ -127,9 +126,8 @@ TRN.Behaviours.BehaviourManager.prototype = {
         this.behaviours = [];
         this.behavioursByName = {};
 
-        var behaviours = jQuery(this.confMgr.globalParam('behaviour', true));
-
-        var allPromises = this.loadBehavioursSub(behaviours);
+        let behaviours = jQuery(this.confMgr.globalParam('behaviour', true)),
+            allPromises = this.loadBehavioursSub(behaviours);
 
         behaviours = jQuery(this.confMgr.param('behaviour', false, true));
         
@@ -139,16 +137,19 @@ TRN.Behaviours.BehaviourManager.prototype = {
     },
 
     loadBehavioursSub : function(behaviours) {
-        var promises = [];
+        const promises = [];
 
-        for (var bhv = 0; bhv < behaviours.size(); ++bhv) {
-            var nbhv = behaviours[bhv], name = nbhv.getAttribute("name"), cutsceneOnly = nbhv.getAttribute("cutsceneonly");
+        for (let bhv = 0; bhv < behaviours.size(); ++bhv) {
+            let nbhv = behaviours[bhv], 
+                name = nbhv.getAttribute("name"), 
+                cutsceneOnly = nbhv.getAttribute("cutsceneonly");
     
             if (nbhv.__consumed || !TRN.Behaviours[name]) continue;
             if (cutsceneOnly && cutsceneOnly == "true" && !this.gameData.isCutscene) continue;
     
             // get the type and id of the object to apply the behaviour to
-            var objectid = nbhv.getAttribute('objectid'), objecttype = nbhv.getAttribute('objecttype') || "moveable";
+            let objectid = nbhv.getAttribute('objectid'), 
+                objecttype = nbhv.getAttribute('objecttype') || "moveable";
             
             if (objectid == "" || objectid == null) {
                 if (!nbhv.parentNode) continue;
@@ -159,9 +160,9 @@ TRN.Behaviours.BehaviourManager.prototype = {
     
             // get overriden data from the level (if any)
             // look first for a <behaviour> tag with the same objectid and objecttype as the current one
-            var bhvLevel = objectid ? jQuery(this.confMgr.param('behaviour[name="' + name + '"][objectid="' + objectid + '"]', false, true)) : null;
+            let bhvLevel = objectid ? jQuery(this.confMgr.param('behaviour[name="' + name + '"][objectid="' + objectid + '"]', false, true)) : null;
             if (bhvLevel && bhvLevel.size() > 0 && bhvLevel[0] !== nbhv) {
-                var tp = bhvLevel[0].getAttribute("objecttype") || "moveable";
+                const tp = bhvLevel[0].getAttribute("objecttype") || "moveable";
                 if (tp != objecttype) {
                     bhvLevel = null;
                 }

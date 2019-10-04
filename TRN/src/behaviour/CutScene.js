@@ -19,7 +19,8 @@ TRN.Behaviours.CutScene.prototype = {
     constructor : TRN.Behaviours.CutScene,
 
     init : async function(lstObjs, resolve) {
-        var useAddLights = this.nbhv.useadditionallights === 'true' || this.nbhv.useadditionallights === true, index = this.nbhv.index || 0;
+        const useAddLights = this.nbhv.useadditionallights === 'true' || this.nbhv.useadditionallights === true, 
+              index = this.nbhv.index || 0;
 
         this.matMgr.useAdditionalLights = useAddLights;
         this.cutscene = {
@@ -28,15 +29,15 @@ TRN.Behaviours.CutScene.prototype = {
         };
 
         // set cutscene origin
-        var lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara][0];
+        const lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara][0];
 
         this.cutscene.frames = this.sceneData.trlevel.cinematicFrames;
         this.cutscene.position = lara.position;
 
-        var laraQuat = lara.quaternion;
-		var laraAngle = this.confMgr.float('behaviour[name="Lara"] > angle');
+        const laraQuat = lara.quaternion,
+		      laraAngle = this.confMgr.float('behaviour[name="Lara"] > angle');
 		if (laraAngle != undefined) {
-			var q = glMatrix.quat.create();
+			const q = glMatrix.quat.create();
             glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(laraAngle));
             laraQuat.x = q[0];
             laraQuat.y = q[1];
@@ -47,14 +48,14 @@ TRN.Behaviours.CutScene.prototype = {
         this.cutscene.quaternion = laraQuat;
 
         // update position/quaternion for some specific items when we play a cut scene
-        var min = this.confMgr.number('cutscene > animminid', true, -1);
-        var max = this.confMgr.number('cutscene > animmaxid', true, -1);
-        var moveables = this.objMgr.objectList['moveable'];
-        for (var objID in moveables) {
-            var lstObj = moveables[objID];
+        const min = this.confMgr.number('cutscene > animminid', true, -1),
+              max = this.confMgr.number('cutscene > animmaxid', true, -1),
+              moveables = this.objMgr.objectList['moveable'];
+        for (let objID in moveables) {
+            const lstObj = moveables[objID];
             
             lstObj.forEach( (obj) => {
-                var data = this.sceneData.objects[obj.name];
+                const data = this.sceneData.objects[obj.name];
 
                 if (data.objectid == TRN.ObjectID.Lara || data.objectid >= min && data.objectid <= max) {
                     obj.position.set(this.cutscene.position.x, this.cutscene.position.y, this.cutscene.position.z);
@@ -63,26 +64,12 @@ TRN.Behaviours.CutScene.prototype = {
             });
         }
 
-        var promiseSound = Promise.resolve(null);
+        let promiseSound = Promise.resolve(null);
 
         if (index > 0) {
             promiseSound = this.makeTR4Cutscene(parseInt(index));
         } else {
             promiseSound = TRN.Helper.loadSoundAsync(this.sceneData.soundPath + this.sceneData.levelShortFileNameNoExt.toUpperCase());
-        }
-
-        var moveables = this.objMgr.objectList['moveable'];
-        for (var objID in moveables) {
-            var lstObj = moveables[objID];
-
-            for (var i = 0; i < lstObj.length; ++i) {
-                var obj = lstObj[i],
-                    data = this.gameData.sceneData.objects[obj.name];
-
-                if (!data || data.roomIndex < 0) continue;
-
-                this.matMgr.setUniformsFromRoom(obj, data.roomIndex);
-            }
         }
 
         this.makeObjectList();
@@ -101,14 +88,14 @@ TRN.Behaviours.CutScene.prototype = {
     },
 
     makeObjectList : function() {
-        var moveables = this.objMgr.objectList['moveable'];
+        const moveables = this.objMgr.objectList['moveable'];
 
         this.objects = {};
-        for (var objID in moveables) {
-            var lstObj = moveables[objID];
-            for (var i = 0; i < lstObj.length; ++i) {
-                var obj = lstObj[i];
-                var data = this.sceneData.objects[obj.name];
+        for (let objID in moveables) {
+            const lstObj = moveables[objID];
+            for (let i = 0; i < lstObj.length; ++i) {
+                const obj = lstObj[i],
+                      data = this.sceneData.objects[obj.name];
 
                 if (data.dummy || !(obj instanceof THREE.SkinnedMesh) || !data.has_anims || !data.visible) continue;
 
@@ -119,17 +106,21 @@ TRN.Behaviours.CutScene.prototype = {
 
     // register all animations we will need in the cut scene
     registerAnimations : function() {
-        for (var objID in this.objects) {
-            var obj = this.objects[objID], data = this.sceneData.objects[obj.name];
-            var registered = {}, anmIndex = data.animationStartIndex, allTrackInstances = {};
+        for (let objID in this.objects) {
+            const obj = this.objects[objID], 
+                  data = this.sceneData.objects[obj.name],
+                  registered = {},
+                  allTrackInstances = {};
+            
+            let anmIndex = data.animationStartIndex;
 
             while (true) {
                 if (registered[anmIndex]) break;
                 
                 registered[anmIndex] = true;
 
-                var track = this.sceneData.animTracks[anmIndex];
-                var trackInstance = new TRN.Animation.TrackInstance(track, obj, data.bonesStartingPos);
+                const track = this.sceneData.animTracks[anmIndex],
+                      trackInstance = new TRN.Animation.TrackInstance(track, obj, data.bonesStartingPos);
 
                 allTrackInstances[anmIndex] = trackInstance;
 
@@ -138,7 +129,7 @@ TRN.Behaviours.CutScene.prototype = {
 
             data.allTrackInstances = allTrackInstances;
 
-            var trackInstance = allTrackInstances[data.animationStartIndex];
+            const trackInstance = allTrackInstances[data.animationStartIndex];
 
             trackInstance.setNextTrackInstance(data.allTrackInstances[trackInstance.track.nextTrack], trackInstance.track.nextTrackFrame);
             trackInstance.setNoInterpolationToNextTrack = true;
@@ -164,16 +155,17 @@ TRN.Behaviours.CutScene.prototype = {
     frameStarted : function(curTime, delta) {
         // Update object lights (only in TR4 cutscenes)
         if (this.cutscene.index > 0) {
-            for (var objID in this.objects) {
-                var obj = this.objects[objID], data = this.sceneData.objects[obj.name];
+            for (let objID in this.objects) {
+                const obj = this.objects[objID], 
+                      data = this.sceneData.objects[obj.name];
 
-                var pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
+                const pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
 
                 pos.x += obj.bones[0].position.x;
                 pos.y += obj.bones[0].position.y;
                 pos.z += obj.bones[0].position.z;
 
-                var roomObj = TRN.Helper.findRoom(pos, this.objMgr.objectList['room'], this.sceneData);
+                const roomObj = TRN.Helper.findRoom(pos, this.objMgr.objectList['room'], this.sceneData);
 
                 if (roomObj >= 0 && roomObj != data.roomIndex) {
                     data.roomIndex = roomObj;
@@ -190,24 +182,27 @@ TRN.Behaviours.CutScene.prototype = {
 		this.cutscene.curFrame += TRN.baseFrameRate * delta;
 
         // Update camera
-		var t = this.cutscene.curFrame - Math.floor(this.cutscene.curFrame);
-		var cfrmA = Math.min(Math.floor(this.cutscene.curFrame), this.cutscene.frames.length-3);
-		var cfrmB = Math.min(cfrmA+1, this.cutscene.frames.length-3);
+		const t = this.cutscene.curFrame - Math.floor(this.cutscene.curFrame),
+		      cfrmA = Math.min(Math.floor(this.cutscene.curFrame), this.cutscene.frames.length-3),
+		      cfrmB = Math.min(cfrmA+1, this.cutscene.frames.length-3);
 
 		if (cfrmA < this.cutscene.frames.length-3) {
-            var bhvCtrl = this.bhvMgr.getBehaviour("BasicControl")[0];
+            const bhvCtrl = this.bhvMgr.getBehaviour("BasicControl")[0];
 			if (!bhvCtrl.captureMouse) {
-				var frm1 = this.cutscene.frames[cfrmA];
-				var frm2 = this.cutscene.frames[cfrmB];
-				var maxDelta = 512.0 * 512.0, fovMult = 60.0 / 16384.0, rollMult = -90.0 / 16384.0;
+				const frm1 = this.cutscene.frames[cfrmA],
+				      frm2 = this.cutscene.frames[cfrmB],
+                      maxDelta = 512.0 * 512.0, 
+                      fovMult = 60.0 / 16384.0, 
+                      rollMult = -90.0 / 16384.0;
 
-                var dp = (new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ)).sub(new THREE.Vector3(frm2.posX, -frm2.posY, -frm1.posZ)).lengthSq();
-                var dt = (new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ)).sub(new THREE.Vector3(frm2.targetX, -frm2.targetY, -frm1.targetZ)).lengthSq();
+                const dp = (new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ)).sub(new THREE.Vector3(frm2.posX, -frm2.posY, -frm1.posZ)).lengthSq(),
+                      dt = (new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ)).sub(new THREE.Vector3(frm2.targetX, -frm2.targetY, -frm1.targetZ)).lengthSq();
                 
-                var eyePos = new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ);
-                var lkat = new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ);
-                var fov = frm1.fov * fovMult;
-				var roll = frm1.roll * rollMult;
+                const eyePos = new THREE.Vector3(frm1.posX, -frm1.posY, -frm1.posZ),
+                      lkat = new THREE.Vector3(frm1.targetX, -frm1.targetY, -frm1.targetZ);
+                
+                let fov = frm1.fov * fovMult,
+				    roll = frm1.roll * rollMult;
 
                 if (dp <= maxDelta && dt <= maxDelta) {
                     eyePos.lerp(new THREE.Vector3(frm2.posX, -frm2.posY, -frm2.posZ), t);
@@ -216,7 +211,7 @@ TRN.Behaviours.CutScene.prototype = {
                     roll = TRN.Helper.lerp(frm1.roll * rollMult, frm2.roll * rollMult, t);
                 }
 
-				var q = this.cutscene.quaternion.clone();
+				const q = this.cutscene.quaternion.clone();
 
 				lkat.applyQuaternion(q);
 
