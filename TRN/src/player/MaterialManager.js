@@ -151,6 +151,15 @@ TRN.MaterialManager.prototype = {
                 this.setLightUniformsForObject(lstObj[i]);
             }
         }
+    },
+
+    getFirstDirectionalLight : function(lights) {
+        for (let i = 0; i < lights.length; ++i) {
+            if (lights[i].type == 'directional') {
+                return i;
+            }
+        }
+        return -1;
     }
 
 }

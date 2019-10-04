@@ -168,9 +168,31 @@ TRN.Behaviours.CutScene.prototype = {
                 const roomObj = TRN.Helper.findRoom(pos, this.objMgr.objectList['room'], this.sceneData);
 
                 if (roomObj >= 0 && roomObj != data.roomIndex) {
+                    const dataCurRoom = this.sceneData.objects['room' + data.roomIndex], 
+                          curRoomLights = this.matMgr.useAdditionalLights ? dataCurRoom.lightsExt : dataCurRoom.lights,
+                          curLIdx = this.matMgr.getFirstDirectionalLight(curRoomLights);
+                    const dataNewRoom = this.sceneData.objects['room' + roomObj],
+                          newRoomLights = this.matMgr.useAdditionalLights ? dataNewRoom.lightsExt : dataNewRoom.lights,
+                          newLIdx = this.matMgr.getFirstDirectionalLight(newRoomLights);
+
                     data.roomIndex = roomObj;
 
                     this.matMgr.setUniformsFromRoom(obj, roomObj);
+
+                    if (curLIdx >= 0 && newLIdx >= 0) {
+                        const uniforms = [];
+                        for (let i = 0; i < obj.material.materials.length; ++i) {
+                            const material = obj.material.materials[i];
+                            uniforms.push({ a:material.uniforms.directionalLight_color.value, i:0 });
+                        }
+                        this.bhvMgr.addBehaviour('FadeUniformColor', 
+                            { 
+                                "colorStart":   curRoomLights[curLIdx].color.slice(0), 
+                                "colorEnd":     newRoomLights[newLIdx].color.slice(0), 
+                                "duration":     1.0,
+                                "uniforms":     uniforms
+                            });
+                    }
                 }
             }
         }
