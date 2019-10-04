@@ -46,7 +46,8 @@ TRN.Animation.Commands.Misc = {
 	ANIMCMD_MISC_PLAYSTEPSOUND:                     32,
 	ANIMCMD_MISC_GETWATERSKIN:                      43,
 	ANIMCMD_MISC_PUTBACKWATERSKIN:                  44,
-	ANIMCMD_MISC_ADDITIONALSOUND2:                  16416
+    ANIMCMD_MISC_ADDITIONALSOUND2:                  16416,
+    ANIMCMD_MISC_CUSTOMFUNCTION:                    50000
 };
 
 TRN.Animation.addTrack = function(trackJSON, animTracks) {

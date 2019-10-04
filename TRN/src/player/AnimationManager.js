@@ -194,7 +194,12 @@ TRN.AnimationManager.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT: {
 							obj.visible = true;
 							break;
-						}
+                        }
+                        
+                        case TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION: {
+                            command.params[2]();
+                            break;
+                        }
 					}
 
 					break;
