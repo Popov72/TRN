@@ -2,6 +2,7 @@ TRN.ObjectManager = function(gameData) {
     this.gameData = gameData;
     this.sceneRender = gameData.sceneRender;
     this.sceneData = gameData.sceneData;
+    this.trlvl = gameData.trlvl;
 
     this.matMgr = gameData.matMgr;
 
@@ -184,6 +185,7 @@ TRN.ObjectManager.prototype = {
             // Test camera room membership
 			if (data.type == 'room') {
 				if (obj.geometry.boundingBox.containsPoint(this.gameData.camera.position) && !data.isAlternateRoom) {
+                //if (!data.isAlternateRoom && this.trlvl.isPointInRoom(this.gameData.camera.position, data.roomIndex)) {
 					this.gameData.curRoom = data.roomIndex;
 				}
 			}
@@ -226,36 +228,19 @@ TRN.ObjectManager.prototype = {
 			}
         });
     },
-    
-    getRoomByPos : function(pos) {
-        const trlevel = this.sceneData.trlevel,
-              x = Math.floor(pos.x),
-              y = -Math.floor(pos.y),
-              z = -Math.floor(pos.z);
 
-        for (let r = 0; r < trlevel.rooms.length; ++r) {
-            const room = trlevel.rooms[r];
-            if (room.isAlternate) {
+    getRoomByPos : function(pos) {
+        const roomList = this.objectList['room'];
+        for (var r in roomList) {
+            var obj = roomList[r], data = this.sceneData.objects[obj.name];
+            if (data.isAlternateRoom) {
                 continue;
             }
-            const mx = room.info.x + room.numXsectors * 1024;
-            const mz = room.info.z + room.numZsectors * 1024;
-            if (x >= room.info.x && x < mx && z >= room.info.z && z < mz && y >= room.info.yTop && y < room.info.yBottom) {
-                return r;
-            }
-        }
-        return -1;
-    }
-
-    /*findRoom : function(pos, roomList, sceneData) {
-        for (var r in roomList) {
-            var obj = roomList[r], data = sceneData.objects[obj.name];
-            if (data.isAlternateRoom) continue;
-            if (obj && obj.geometry.boundingBox.containsPoint(pos)) {
+            if (obj.geometry.boundingBox.containsPoint(pos)) {
                 return parseInt(r);
             }
         }
         return -1;
-    }*/
-
+    }
+    
 }
