@@ -7,6 +7,7 @@ TRN.Behaviours.CutScene = function(nbhv, gameData) {
     this.confMgr = gameData.confMgr;
     this.matMgr = gameData.matMgr;
     this.objMgr = gameData.objMgr;
+    this.trlvl = gameData.trlvl;
     this.scene = gameData.sceneRender;
     this.sceneData = gameData.sceneData;
     this.camera = gameData.camera;
@@ -31,7 +32,7 @@ TRN.Behaviours.CutScene.prototype = {
         // set cutscene origin
         const lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara][0];
 
-        this.cutscene.frames = this.sceneData.trlevel.cinematicFrames;
+        this.cutscene.frames = this.trlvl.cinematicFrames;
         this.cutscene.position = lara.position;
 
         const laraQuat = lara.quaternion,
@@ -153,50 +154,6 @@ TRN.Behaviours.CutScene.prototype = {
     },
 
     frameStarted : function(curTime, delta) {
-        // Update object lights (only in TR4 cutscenes)
-        if (this.cutscene.index > 0) {
-            for (let objID in this.objects) {
-                const obj = this.objects[objID], 
-                      data = this.sceneData.objects[obj.name];
-
-                const pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
-
-                pos.x += obj.bones[0].position.x;
-                pos.y += obj.bones[0].position.y;
-                pos.z += obj.bones[0].position.z;
-
-                const roomObj = this.objMgr.getRoomByPos(pos);
-
-                if (roomObj >= 0 && roomObj != data.roomIndex) {
-                    const dataCurRoom = this.sceneData.objects['room' + data.roomIndex], 
-                          curRoomLights = this.matMgr.useAdditionalLights ? dataCurRoom.lightsExt : dataCurRoom.lights,
-                          curLIdx = this.matMgr.getFirstDirectionalLight(curRoomLights);
-                    const dataNewRoom = this.sceneData.objects['room' + roomObj],
-                          newRoomLights = this.matMgr.useAdditionalLights ? dataNewRoom.lightsExt : dataNewRoom.lights,
-                          newLIdx = this.matMgr.getFirstDirectionalLight(newRoomLights);
-
-                    data.roomIndex = roomObj;
-
-                    this.matMgr.setUniformsFromRoom(obj, roomObj);
-
-                    if (curLIdx >= 0 && newLIdx >= 0) {
-                        const uniforms = [];
-                        for (let i = 0; i < obj.material.materials.length; ++i) {
-                            const material = obj.material.materials[i];
-                            uniforms.push({ a:material.uniforms.directionalLight_color.value, i:0 });
-                        }
-                        this.bhvMgr.addBehaviour('FadeUniformColor', 
-                            { 
-                                "colorStart":   curRoomLights[curLIdx].color.slice(0), 
-                                "colorEnd":     newRoomLights[newLIdx].color.slice(0), 
-                                "duration":     1.0,
-                                "uniforms":     uniforms
-                            });
-                    }
-                }
-            }
-        }
-        
         if (this.cutSceneEnded) {
             return;
         }
@@ -249,6 +206,54 @@ TRN.Behaviours.CutScene.prototype = {
 		} else {
 			this.cutSceneEnded = true;
 		}
-    }
+    },
 
+    frameEnded : function(curTime, delta) {
+        // Update object lights (only in TR4 cutscenes)
+        if (this.cutscene.index <= 0) {
+            return;
+        }
+
+        for (let objID in this.objects) {
+            const obj = this.objects[objID], 
+                    data = this.sceneData.objects[obj.name];
+
+            const pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
+
+            pos.x += obj.bones[0].position.x;
+            pos.y += obj.bones[0].position.y;
+            pos.z += obj.bones[0].position.z;
+
+            //const roomObj = this.trlvl.getRoomByPos(pos);
+            const roomObj = this.objMgr.getRoomByPos(pos);
+
+            if (roomObj >= 0 && roomObj != data.roomIndex) {
+                const dataCurRoom = this.sceneData.objects['room' + data.roomIndex], 
+                        curRoomLights = this.matMgr.useAdditionalLights ? dataCurRoom.lightsExt : dataCurRoom.lights,
+                        curLIdx = this.matMgr.getFirstDirectionalLight(curRoomLights);
+                const dataNewRoom = this.sceneData.objects['room' + roomObj],
+                        newRoomLights = this.matMgr.useAdditionalLights ? dataNewRoom.lightsExt : dataNewRoom.lights,
+                        newLIdx = this.matMgr.getFirstDirectionalLight(newRoomLights);
+
+                data.roomIndex = roomObj;
+
+                this.matMgr.setUniformsFromRoom(obj, roomObj);
+
+                if (curLIdx >= 0 && newLIdx >= 0) {
+                    const uniforms = [];
+                    for (let i = 0; i < obj.material.materials.length; ++i) {
+                        const material = obj.material.materials[i];
+                        uniforms.push({ a:material.uniforms.directionalLight_color.value, i:0 });
+                    }
+                    this.bhvMgr.addBehaviour('FadeUniformColor', 
+                        { 
+                            "colorStart":   curRoomLights[curLIdx].color.slice(0), 
+                            "colorEnd":     newRoomLights[newLIdx].color.slice(0), 
+                            "duration":     1.0,
+                            "uniforms":     uniforms
+                        });
+                }
+            }
+        }
+    }
 }
