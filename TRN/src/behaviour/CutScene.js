@@ -247,8 +247,8 @@ TRN.Behaviours.CutScene.prototype = {
                     }
                     this.bhvMgr.addBehaviour('FadeUniformColor', 
                         { 
-                            "colorStart":   curRoomLights[curLIdx].color.slice(0), 
-                            "colorEnd":     newRoomLights[newLIdx].color.slice(0), 
+                            "colorStart":   curRoomLights[curLIdx].color, 
+                            "colorEnd":     newRoomLights[newLIdx].color, 
                             "duration":     1.0,
                             "uniforms":     uniforms
                         });

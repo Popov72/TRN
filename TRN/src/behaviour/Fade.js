@@ -15,30 +15,28 @@ TRN.Behaviours.Fade.prototype = {
         this.colorStart = this.nbhv.colorStart;
         this.colorEnd = this.nbhv.colorEnd;
         this.duration = parseFloat(this.nbhv.duration);
-        this.numSteps = this.gameData.fps * this.duration;
-        this.curStep = 0;
-
-        this.step = [
-            (this.colorEnd[0] - this.colorStart[0]) / this.numSteps,
-            (this.colorEnd[1] - this.colorStart[1]) / this.numSteps,
-            (this.colorEnd[2] - this.colorStart[2]) / this.numSteps
-        ];
-
+        this.startTime = -1;
+        
         this.setColor(this.colorStart);
 
         resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     },
 
     frameStarted : function(curTime, delta) {
-        this.colorStart[0] += this.step[0];
-        this.colorStart[1] += this.step[1];
-        this.colorStart[2] += this.step[2];
-        
-        this.setColor(this.colorStart);
+        if (this.startTime < 0) {
+            this.startTime = curTime;
+        }
 
-        this.curStep++;
+        const ratio = (curTime - this.startTime) / this.duration;
+              color = [
+                this.colorStart[0] + (this.colorEnd[0] - this.colorStart[0]) * ratio,
+                this.colorStart[1] + (this.colorEnd[1] - this.colorStart[1]) * ratio,
+                this.colorStart[2] + (this.colorEnd[2] - this.colorStart[2]) * ratio
+              ];
 
-        if (this.curStep >= this.numSteps) {
+        this.setColor(color);
+
+        if (curTime - this.startTime >= this.duration) {
             this.setColor(this.colorEnd);
             this.bhvMgr.removeBehaviour(this);
         }
