@@ -1,7 +1,30 @@
 Object.assign( TRN.Behaviours.CutScene.prototype, {
 
-    prepareLevel : function(csIndex) {
+    prepareLevel : function(csIndex, actorMoveables) {
         switch(csIndex) {
+            case 9: {
+                // Add volumetric fog in the rooms / objects
+                const rooms  = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+                      shader = new TRN.ShaderMgr().getFragmentShader("volumetric_fog");
+
+                this.scene.traverse( (obj) => {
+                    const data = this.sceneData.objects[obj.name];
+
+                    if (data && rooms.has(data.roomIndex) || actorMoveables.indexOf(obj) >= 0) {
+                        const materials = obj.material.materials;
+                        for (let m = 0; m < materials.length; ++m) {
+                            const material = materials[m];
+
+                            material.fragmentShader = shader;
+                            material.uniforms.volFogCenter = { "type": "f3", "value": [52500.0, 3140.0, -49460.0] };
+                            material.uniforms.volFogRadius = { "type": "f",  "value": 6000 };
+                            material.uniforms.volFogColor =  { "type": "f3", "value": [0.1, 0.75, 0.3] };
+                        }
+                    }
+                });
+
+                break;
+            }
             case 10: {
                 // Scroll that Lara is reading is not well positionned at start - move and rotate it
                 const scroll = 'room22_staticmesh3', 

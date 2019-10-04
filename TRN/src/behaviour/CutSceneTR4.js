@@ -58,8 +58,6 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
             }
         }
 
-        this.prepareLevel(cutscene.index);
-
         const lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara][0],
               laraRoomIndex = this.sceneData.objects[lara.name].roomIndex;
 
@@ -159,6 +157,8 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
         }
 
         ocs.frames = frames;
+
+        this.prepareLevel(cutscene.index, actorMoveables);
     },
 
     makeAnimationForActor : function(cutscene, actor, animName) {
