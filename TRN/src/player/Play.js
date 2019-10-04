@@ -71,6 +71,7 @@ TRN.Play.prototype = {
 
         this.gameData.camera = oscene.scene.currentCamera;
 
+        this.gameData.trlvl   = new TRN.TRLevel(this.gameData.sceneData.trlevel);
         this.gameData.confMgr = this.gameData.sceneData.trlevel.confMgr;
         this.gameData.matMgr  = new TRN.MaterialManager(this.gameData);
         this.gameData.objMgr  = new TRN.ObjectManager(this.gameData);
@@ -79,6 +80,8 @@ TRN.Play.prototype = {
 
         this.gameData.objMgr.setBehaviourManager(this.gameData.bhvMgr);
         this.gameData.bhvMgr.setObjectManager(this.gameData.objMgr);
+
+        delete this.gameData.sceneData.trlevel;
 
         TRN.ObjectID.Lara  = this.gameData.confMgr.number('lara > id', true, 0);
 
