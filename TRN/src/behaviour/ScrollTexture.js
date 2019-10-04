@@ -24,7 +24,7 @@ TRN.Behaviours.ScrollTexture.prototype = {
             
             for (var m = 0; m < materials.length; ++m) {
                 var material = materials[m],
-                    pgr = curTime / (5*material.uniforms.map.value.image.height), 
+                    pgr = (curTime * 1000.0) / (5*material.uniforms.map.value.image.height), 
                     h = (TRN.Consts.moveableScrollAnimTileHeight/2.0)/material.uniforms.map.value.image.height;
 
                 pgr = pgr - h * Math.floor(pgr / h);

@@ -46,7 +46,7 @@ TRN.Behaviours.UVRotate.prototype = {
                 userData = material.userData,
                 animTexture = this.animatedTextures[userData.animatedTexture.idxAnimatedTexture],
                 coords = animTexture.animcoords[0],
-                pgr = curTime / (5*material.uniforms.map.value.image.height), 
+                pgr = (curTime * 1000.0) / (5*material.uniforms.map.value.image.height), 
                 h = (TRN.Consts.uvRotateTileHeight/2.0)/material.uniforms.map.value.image.height;
 
             pgr = pgr - h * Math.floor(pgr / h);

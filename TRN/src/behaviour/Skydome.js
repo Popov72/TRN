@@ -40,7 +40,7 @@ TRN.Behaviours.Skydome.prototype = {
 
         const material = this.objSky.material.materials[0];
 
-        let pgr = curTime / (50.0*1000.0);
+        let pgr = curTime / 50.0;
         
         material.uniforms.offsetRepeat.value[0] = pgr - Math.floor(pgr);
     },

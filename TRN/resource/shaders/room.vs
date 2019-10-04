@@ -23,7 +23,7 @@ void main() {
 	vColor = color * tintColor * mix(vec3Unit, flickerColor, step(0.5, rnd));
 
     float sum = (position[0] + position[1] + position[2]);
-    float time = curTime * 0.00157;
+    float time = curTime * 1.57;
 
     // perturb the vertex color (for underwater effect, for eg)
     float perturb = 0.5 * abs( sin(sum * 8.0 + time) ) + 0.5;

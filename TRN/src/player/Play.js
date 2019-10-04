@@ -20,7 +20,7 @@ TRN.Play = function (container) {
         "confMgr": null,
 
         "startTime": -1,
-        "quantum": 1000/TRN.baseFrameRate,
+        "quantum": 1/TRN.baseFrameRate,
         "quantumTime": -1,
         "quantumRnd": 0,
     
@@ -144,7 +144,7 @@ TRN.Play.prototype = {
 		this.renderer.initWebGLObjects(this.gameData.sceneRender);
         this.renderer.initWebGLObjects(this.gameData.sceneBackground);
 
-        this.gameData.startTime = this.gameData.quantumTime = (new Date()).getTime();
+        this.gameData.startTime = this.gameData.quantumTime = (new Date()).getTime() / 1000.0;
     
         this.gameData.bhvMgr.onBeforeRenderLoop();
 
@@ -157,7 +157,7 @@ TRN.Play.prototype = {
 		requestAnimationFrame( this.renderLoop.bind(this) );
 
 		var delta = this.clock.getDelta();
-		var curTime = (new Date()).getTime();
+		var curTime = (new Date()).getTime() / 1000.0;
 
 		if (curTime - this.gameData.quantumTime > this.gameData.quantum) {
 			this.gameData.quantumRnd = Math.random();
