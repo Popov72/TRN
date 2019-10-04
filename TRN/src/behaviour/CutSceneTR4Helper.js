@@ -20,11 +20,11 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
     },
 
     fadeOut : function(duration) {
-        this.bhvMgr.addBehaviour('Fade', { "colorStart": { r:1, g:1, b:1 }, "colorEnd": { r:0, g:0, b:0 }, "duration": duration });
+        this.bhvMgr.addBehaviour('Fade', { "colorStart": [1, 1, 1], "colorEnd": [0, 0, 0], "duration": duration });
     },
 
     fadeIn : function(duration) {
-        this.bhvMgr.addBehaviour('Fade', { "colorStart": { r:0, g:0, b:0 }, "colorEnd": { r:1, g:1, b:1 }, "duration": duration });
+        this.bhvMgr.addBehaviour('Fade', { "colorStart": [0, 0, 0], "colorEnd": [1, 1, 1], "duration": duration });
     },
 
     // Between cutscene 1 and 2, a hole should appear in the ground to reveal hidden entrance to pyramid
