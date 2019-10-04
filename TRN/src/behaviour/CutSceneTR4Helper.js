@@ -2,6 +2,8 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
     prepareLevel : function(csIndex, actorMoveables) {
         switch(csIndex) {
+            case 7:
+            case 8:
             case 9: {
                 // Add volumetric fog in the rooms / objects
                 const rooms  = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]),
@@ -25,6 +27,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
                 break;
             }
+
             case 10: {
                 // Scroll that Lara is reading is not well positionned at start - move and rotate it
                 const scroll = 'room22_staticmesh3', 
@@ -37,6 +40,25 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                 oscroll.position.x += 850;
 
                 oscroll.updateMatrix();
+                break;
+            }
+
+            case 15: {
+                /*const uniforms = [];
+                for (let a = 0; a < actorMoveables.length; ++a) {
+                    const obj = actorMoveables[a];
+                    for (let i = 0; i < obj.material.materials.length; ++i) {
+                        const material = obj.material.materials[i];
+                        uniforms.push({ a:material.uniforms.tintColor.value, i:0 });
+                    }
+                }
+                this.bhvMgr.addBehaviour('FadeUniformColor', 
+                    { 
+                        "colorStart":   [1,1,1], 
+                        "colorEnd":     [3.5,3.5,3.5], 
+                        "duration":     3.0,
+                        "uniforms":     uniforms
+                    });*/
                 break;
             }
         }
