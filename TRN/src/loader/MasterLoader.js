@@ -88,25 +88,6 @@ TRN.MasterLoader = {
 
 		var this_ = this;
 
-        if (false) {
-            var gltf = new TRNUtil.GLTFConverter(trlevel, sceneJSON);
-            gltf.convert();
-            TRN.saveData = function() {
-                var blob = new Blob([JSON.stringify(gltf.data, undefined, 4)], {
-                    type: "text/plain;charset=utf-8"
-                });
-                var url = URL.createObjectURL(blob)
-                var a = document.createElement('a');
-                a.href = url;
-                a.target = '_blank';
-                a.download = 'test.gltf';
-                a.click();
-                setTimeout(function () { URL.revokeObjectURL(url) }, 4E4) // 40s
-
-            }
-            jQuery('body').prepend('<span style="color:white;cursor:pointer;position:absolute;left:0;top:0" onclick="TRN.saveData()">Get .gltf file</span>');
-        }
-
 		var loader = new THREE.SceneLoader();
 
 		loader.callbackProgress = function (progress, result) {
