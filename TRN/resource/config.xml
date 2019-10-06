@@ -58,7 +58,7 @@
 			<level id="level2.phd"		type="normal"	name="City of Vilcabamba"/>
 			<level id="level3a.phd"		type="normal"	name="The Lost Valley">
                 <behaviour name="Zbias" objectid="68" objecttype="moveable">
-                    <polygoneoffset factor="-40" unit="-40"/>
+                    <polygoneoffset><factor>-40</factor><unit>-40</unit></polygoneoffset>
                 </behaviour>
             </level>
 			<level id="level3b.phd"		type="normal"	name="Tomb of Qualopec"/>
