@@ -30,9 +30,8 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
             case 10: {
                 // Scroll that Lara is reading is not well positionned at start - move and rotate it
-                const scroll = 'room22_staticmesh3', 
-                    oscroll = this.scene.getObjectByName(scroll);
-                    q = glMatrix.quat.create();
+                const oscroll = this.objMgr.objectList['staticmesh']['20'][2],
+                      q = glMatrix.quat.create();
 
                 glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(60));
 
