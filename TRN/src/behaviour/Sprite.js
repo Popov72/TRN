@@ -15,7 +15,7 @@ TRN.Behaviours.Sprite.prototype = {
         // make sure the object is always facing the camera
         var cameraRot = this.camera;
 
-        var objects = this.objMgr.objectList['sprite'];
+        var objects = Object.assign({}, this.objMgr.objectList['sprite'], this.objMgr.objectList['spriteseq']);
 
         for (var objID in objects) {
             var lstObj = objects[objID];
