@@ -218,6 +218,7 @@ TRN.TRLevel.prototype = {
                 if (obj != null) {
                     obj.visible = !data.isAlternateRoom;
                     obj.position.set(x, y, z);
+                    obj.quaternion.set(q[0], q[1], q[2], q[3]);
                     obj.updateMatrix();
                 }
             }
