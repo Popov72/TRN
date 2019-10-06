@@ -70,6 +70,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
             let mvb;
             if (id != TRN.ObjectID.Lara) {
                 mvb = this.objMgr.createMoveable(id, laraRoomIndex, undefined, true, false);
+                this.sceneData.objects[mvb.name].has_anims = true; // could be false because of animation optimization in scene converter
             } else {
                 mvb = lara;
                 if (cutscene.index in { 1:1, 2:1, 21:1 }) {
