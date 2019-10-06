@@ -6,7 +6,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
             case 8:
             case 9: {
                 // Add volumetric fog in the rooms / objects
-                const rooms  = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+                const rooms  = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 110, 111, 112, 113, 114, 115, 116, 117, 122, 123]),
                       shader = this.shdMgr.getFragmentShader("volumetric_fog");
 
                 this.scene.traverse( (obj) => {
