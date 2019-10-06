@@ -3,7 +3,7 @@
 */
 TRN.SceneConverter = function() {
 
-	this.shaderMgr = new TRN.ShaderMgr();
+	this.shaderMgr = new TRN.ShaderManager();
 
 	return this;
 };
@@ -61,9 +61,39 @@ TRN.SceneConverter.prototype = {
 		this.sc.data.trlevel.mapObjTexture2AnimTexture = mapObjTexture2AnimTexture; // => to know for each objTexture if it is part of an animated texture, and if yes which is its starting position in the sequence
 	},
 
+    createAllStaticMeshes : function() {
+		for (let s = 0; s < this.sc.data.trlevel.staticMeshes.length; ++s) {
+            const smesh = this.sc.data.trlevel.staticMeshes[s],
+                  mindex = smesh.mesh,
+                  objectID = smesh.objectID,
+                  flags = smesh.flags;
+
+            this.createMesh(mindex);
+
+            const meshid = 'staticmesh' + objectID;
+
+            this.sc.objects[meshid] = {
+                "geometry" 		: 'mesh' + mindex,
+                "material" 		: this.sc.embeds['mesh' + mindex]._materials,
+                "position" 		: [ 0, 0, 0 ],
+                "quaternion" 	: [ 0, 0, 0, 1 ],
+                "scale"	   		: [ 1, 1, 1 ]
+            };
+            
+            this.sc.data.objects[meshid] = {
+                "type"			: 'staticmesh',
+                "raw"           : smesh,
+                "roomIndex"		: -1,
+                "objectid"      : objectID,
+                "visible"  		: false,
+                "attributes"    : this.sc.embeds['mesh' + mindex].attributes,
+                "flags"         : flags
+            };
+        }
+    },
+
 	// create one mesh
 	createMesh : function (meshIndex) {
-
 		if (this.sc.embeds['mesh' + meshIndex]) return -1; // mesh already created
 
 		var mesh = this.sc.data.trlevel.meshes[meshIndex];
@@ -88,8 +118,35 @@ TRN.SceneConverter.prototype = {
 		return internalLit ? 1 : 0;
 	},
 
+    createAllSprites : function() {
+        for (var s = 0; s < this.sc.data.trlevel.spriteTextures.length; ++s) {
+            var sprite = this.sc.data.trlevel.spriteTextures[s];
+
+            this.createSpriteSeq(s);
+
+            var spriteid = 'sprite' + s;
+
+            this.sc.objects[spriteid] = {
+                "geometry" 		: spriteid,
+                "material" 		: this.sc.embeds[spriteid]._materials,
+                "position" 		: [ 0, 0, 0 ],
+                "quaternion" 	: [ 0, 0, 0, 1 ],
+                "scale"	   		: [ 1, 1, 1 ]
+            };
+
+            this.sc.data.objects[spriteid] = {
+                "type"			: 'sprite',
+                "raw"           : sprite,
+                "roomIndex"		: -1,
+                "objectid"      : s,
+                "visible"  		: false
+            };
+        }
+
+    },
+
 	//  create a sprite sequence: if there's more than one sprite in the sequence, we create an animated texture
-	createSpriteSeq : function (spriteSeq, flag, color) {
+	createSpriteSeq : function (spriteSeq) {
 
 		var spriteIndex, numSprites = 1, spriteid;
 
@@ -99,8 +156,6 @@ TRN.SceneConverter.prototype = {
 			spriteIndex = spriteSeq;
 			spriteSeq = null;
 			spriteid = 'sprite' + spriteIndex;  
-
-			if (this.sc.embeds[spriteid]) return true; // sprite already created
 
 			if (spriteIndex >= this.sc.data.trlevel.spriteTextures.length) {
 				console.log('spriteindex', spriteIndex, 'is too big: only', this.sc.data.trlevel.spriteTextures.length, 'sprites in this.sc.data.trlevel.spriteTextures !');
@@ -113,29 +168,17 @@ TRN.SceneConverter.prototype = {
 			spriteIndex = spriteSeq.offset;
 			numSprites = -spriteSeq.negativeLength;
 			spriteid = 'spriteseq' + spriteSeq.objectID;
-
-			if (this.sc.embeds[spriteid]) return true; // sprite sequence already created
 		}
 
 
 		var sprite = this.sc.data.trlevel.spriteTextures[spriteIndex];
 		var meshJSON = this.createNewJSONEmbed();
-		var attributes = {
-			_flags: { type:"f4", value:[] }
-		};
 		var tiles2material = {};
-
-		meshJSON.attributes = attributes;
 
 		meshJSON.vertices.push(sprite.leftSide,  -sprite.topSide,       0);
 		meshJSON.vertices.push(sprite.leftSide,  -sprite.bottomSide,    0);
 		meshJSON.vertices.push(sprite.rightSide, -sprite.bottomSide,    0);
 		meshJSON.vertices.push(sprite.rightSide, -sprite.topSide,       0);
-
-		for (var i = 0; i < 4; ++i) {
-			meshJSON.colors.push(color);
-			attributes._flags.value.push(flag);
-		}
 
 		var texturedRectangles = [
 			{
@@ -145,16 +188,16 @@ TRN.SceneConverter.prototype = {
 		];
 		var width = (sprite.width-255)/256;
 		var height = (sprite.height-255)/256;
-		var row = 0, col = 0;
+		var row = 0, col = 0, tile = sprite.tile;
 		if (this.sc.data.trlevel.atlas.make) {
-			row = Math.floor(sprite.tile / this.sc.data.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.sc.data.trlevel.atlas.numColPerRow;
-			sprite.tile = 0;
+			row = Math.floor(tile / this.sc.data.trlevel.atlas.numColPerRow), col = tile - row * this.sc.data.trlevel.atlas.numColPerRow;
+			tile = 0;
 		}
 		var objectTextures = [
 			{
 				attributes: 0,
-                tile: sprite.tile,
-                origTile: sprite.tile,
+                tile: tile,
+                origTile: tile,
 				vertices: [
 					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y + row * 256 },
 					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y+height-1 + row * 256 },
@@ -170,12 +213,13 @@ TRN.SceneConverter.prototype = {
 			var anmcoords = [];
 		    mapObjTexture2AnimTexture[0] = { idxAnimatedTexture:this.sc.data.animatedTextures.length, pos:0 };
 			for (var i = 0; i < numSprites; ++i) {
-				sprite = this.sc.data.trlevel.spriteTextures[spriteIndex + i];
-				if (this.sc.data.trlevel.atlas.make && i != 0) {
-					row = Math.floor(sprite.tile / this.sc.data.trlevel.atlas.numColPerRow), col = sprite.tile - row * this.sc.data.trlevel.atlas.numColPerRow;
-					sprite.tile = 0;
+                sprite = this.sc.data.trlevel.spriteTextures[spriteIndex + i];
+                tile = sprite.tile;
+				if (this.sc.data.trlevel.atlas.make) {
+					row = Math.floor(tile / this.sc.data.trlevel.atlas.numColPerRow), col = tile - row * this.sc.data.trlevel.atlas.numColPerRow;
+					tile = 0;
 				}
-			    anmcoords.push({ minU:(sprite.x + col * 256 + 0.5)/this.sc.data.trlevel.atlas.width, minV:(sprite.y + row * 256 + 0.5)/this.sc.data.trlevel.atlas.height, texture:"texture" + sprite.tile});
+			    anmcoords.push({ minU:(sprite.x + col * 256 + 0.5)/this.sc.data.trlevel.atlas.width, minV:(sprite.y + row * 256 + 0.5)/this.sc.data.trlevel.atlas.height, texture:"texture" + tile});
 			}
 			this.sc.data.animatedTextures.push({
 				"animcoords": anmcoords,
@@ -185,7 +229,7 @@ TRN.SceneConverter.prototype = {
 
 		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
-		meshJSON._materials = this.makeMaterialList(tiles2material, 'room');
+		meshJSON._materials = this.makeMaterialList(tiles2material, 'sprite');
 
 		this.sc.embeds[spriteid] = meshJSON;
 		this.sc.geometries[spriteid] = {
@@ -394,80 +438,6 @@ TRN.SceneConverter.prototype = {
             }
             
 			roomData.portals = portals;
-
-			// static meshes in the room
-			for (var s = 0; s < room.staticMeshes.length; ++s) {
-				var staticMesh = room.staticMeshes[s];
-				var x = staticMesh.x, y = -staticMesh.y, z = -staticMesh.z, rot = staticMesh.rotation;
-				var objectID = staticMesh.objectID;
-
-				var gstaticMesh = this.findStatichMeshByID(objectID);
-				if (gstaticMesh == null) continue;
-
-				var mindex = gstaticMesh.mesh, mflags = gstaticMesh.flags;
-				var nonCollisionable = (mflags & 1) != 0, visible = (mflags & 2) != 0;
-
-				if (!visible) continue;
-
-				var q = glMatrix.quat.create();
-				rot = ((rot & 0xC000) >> 14) * 90;
-				glMatrix.quat.setAxisAngle( q, [0,1,0], glMatrix.glMatrix.toRadian(-rot) );
-
-				var internalLit = this.createMesh(mindex);
-
-				if (internalLit == 0) {
-					console.log('Static mesh objID=', objectID, ', meshIndex=', mindex, 'in room ', m, 'is externally lit.')
-				}
-
-				this.sc.objects['room' + m + '_staticmesh' + s] = {
-					"geometry" 		: "mesh" + mindex,
-					"material" 		: this.sc.embeds['mesh' + mindex]._materials,
-					"position" 		: [ x, y, z ],
-					"quaternion" 	: q,
-					"scale"	   		: [ 1, 1, 1 ]
-                };
-                
-                if (this.sc.data.objects['room' + m + '_staticmesh' + s]) {
-                    console.log('!error, staticmesh with id#' + objectID + ' already handled.', statichmesh);
-                }
-
-                this.sc.data.objects['room' + m + '_staticmesh' + s] = {
-                    "raw"           : staticMesh,
-					"type"			: 'staticmesh',
-					"roomIndex"		: m,
-                    "lighting"      : this.convertIntensity(staticMesh.intensity1),
-                    "objectid"      : objectID,
-                    "visible"  		: !room.isAlternate,
-                    "attributes"    : this.sc.embeds['mesh' + mindex].attributes
-                };
-
-			}
-
-			// sprites in the room
-			for (var s = 0; s < rdata.sprites.length; ++s) {
-				var sprite = rdata.sprites[s], spriteIndex = sprite.texture;
-				var rvertex = rdata.vertices[sprite.vertex];
-				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater);
-
-				if (!this.createSpriteSeq(spriteIndex, vertexInfo.flag, vertexInfo.color)) continue;
-
-				this.sc.objects['room' + m + '_sprite' + s] = {
-					"geometry" 		: "sprite" + spriteIndex,
-					"material" 		: this.sc.embeds['sprite' + spriteIndex]._materials,
-					"position" 		: [ vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z ],
-					"quaternion" 	: [ 0, 0, 0, 1 ],
-                    "scale"	   		: [ 1, 1, 1 ]
-                };
-
-                this.sc.data.objects['room' + m + '_sprite' + s] = {
-					"type"			: 'sprite',
-                    "raw"           : sprite,
-					"roomIndex"		: m,
-                    "objectid"      : s,
-                    "visible"  		: !room.isAlternate,
-                    "attributes"    : this.sc.embeds['sprite' + spriteIndex].attributes
-                };
-			}
 		}
 
 		console.log('num max lights in a single room=' + maxLightsInRoom + '. room=' + roomL)
@@ -727,19 +697,17 @@ TRN.SceneConverter.prototype = {
 	},
 
     createAllMoveableInstances : function() {
+        this.createMoveables();
+
         for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
             var moveable = this.sc.data.trlevel.moveables[m];
 
-            this.createMoveableInstance(-1, -1, 0, 0, 0, 0, [0, 0, 0, 1], moveable, undefined, false);
+            this.createMoveableInstance(moveable);
         }
     },
 
-	createMoveableInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, moveable, jsonid, visible) {
-
-		if (typeof(jsonid) == 'undefined') jsonid = 'moveable' + moveable.objectID + (itemIndex >= 0 ? '_' + itemIndex : '');
-		if (typeof(visible) == 'undefined') visible = true;
-
-		var room = this.sc.data.objects['room' + roomIndex];
+	createMoveableInstance : function(moveable) {
+		var jsonid = 'moveable' + moveable.objectID;
 
 		var objIDForVisu = this.confMgr.number('moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
 
@@ -748,8 +716,8 @@ TRN.SceneConverter.prototype = {
 		this.sc.objects[jsonid] = {
 			"geometry" 				: hasGeometry ? "moveable" + objIDForVisu : null,
 			"material" 				: hasGeometry ? hasGeometry._materials : null,
-			"position" 				: [ x, y, z ],
-			"quaternion" 			: rotation,
+			"position" 				: [ 0, 0, 0 ],
+			"quaternion" 			: [ 0, 0, 0, 1 ],
 			"scale"	   				: [ 1, 1, 1 ],
 			"skin"					: true,
 			"use_vertex_texture" 	: true
@@ -758,93 +726,46 @@ TRN.SceneConverter.prototype = {
         this.sc.data.objects[jsonid] = {
 			"type"   				: 'moveable',
             "raw"                   : moveable,
-            "has_anims"				: true,
+            "has_anims"				: hasGeometry ? true : false,
             "numAnimations"         : hasGeometry ? moveable.numAnimations : 0,
-			"roomIndex"				: roomIndex,
+			"roomIndex"				: -1,
 			"animationStartIndex"	: moveable.animation,
             "objectid"              : moveable.objectID,
-            "visible"  				: room ? room.visible && visible : visible,
+            "visible"  				: false,
             "bonesStartingPos"      : hasGeometry ? hasGeometry.bones : null,
             "attributes"            : hasGeometry ? hasGeometry.attributes : null,
-            "internallyLit"         : hasGeometry ? hasGeometry.moveableIsInternallyLit || lighting != -1 : false,
-            "lighting"              : lighting == -1 ? 0 : this.convertIntensity(lighting)
+            "internallyLit"         : hasGeometry ? hasGeometry.moveableIsInternallyLit : false
         }
-
-        if (itemIndex >= 0) {
-            var spriteSeqObjID = this.confMgr.number('moveable[id="' + moveable.objectID + '"] > spritesequence', true, -1);
-
-            if (spriteSeqObjID >= 0) {
-                var spriteSeq = this.findSpriteSequenceByID(spriteSeqObjID);
-                if (spriteSeq != null) {
-                    this.createSpriteSeqInstance(itemIndex, roomIndex, x, y, z, 0, null, spriteSeq);
-                }
-            }
-        }
-
-		return { obj: this.sc.objects[jsonid], objID: jsonid };
 	},
 
-	createSpriteSeqInstance : function(itemIndex, roomIndex, x, y, z, lighting, rotation, spriteSeq) {
- 		var room = this.sc.data.objects['room' + roomIndex];
-		var spriteIndex = spriteSeq.offset;
+    createAllSpriteSequences : function() {
+        for (let s = 0; s < this.sc.data.trlevel.spriteSequences.length; ++s) {
+            const spriteSeq = this.sc.data.trlevel.spriteSequences[s];
 
-		var rvertex = {
-			vertex: { x:x, y:-y, z:-z },
-			attribute: 0,
-			lighting1: lighting,
-			lighting2: lighting
-		};
-		var vertexInfo = this.processRoomVertex(rvertex, room.filledWithWater);
+            this.createSpriteSeqInstance(spriteSeq);
+        }
+    },
 
-		if (this.createSpriteSeq(spriteSeq, vertexInfo.flag, vertexInfo.color)) {
-			var spriteid = 'spriteseq' + spriteSeq.objectID;
+	createSpriteSeqInstance : function(spriteSeq) {
+            this.createSpriteSeq(spriteSeq);
+        
+            var spriteid = 'spriteseq' + spriteSeq.objectID;
 
-			this.sc.objects[spriteid + '_' + itemIndex] = {
+			this.sc.objects[spriteid] = {
 				"geometry" 	    : spriteid,
 				"material" 	    : this.sc.embeds[spriteid]._materials,
-				"position" 	    : [ vertexInfo.x, vertexInfo.y, vertexInfo.z ],
+				"position" 	    : [ 0, 0, 0 ],
 				"quaternion"    : [ 0, 0, 0, 1 ],
 				"scale"	   	    : [ 1, 1, 1 ]
             };
             
-            this.sc.data.objects[spriteid + '_' + itemIndex] = {
-				"type" 	        : 'sprite',
+            this.sc.data.objects[spriteid] = {
+				"type" 	        : 'spriteseq',
                 "raw"           : spriteSeq,
-				"roomIndex"	    : roomIndex,
+				"roomIndex"	    : -1,
                 "objectid"      : spriteSeq.objectID,
-                "visible"  	    : room.visible,
-                "attributes"    : this.sc.embeds[spriteid].attributes
+                "visible"  	    : false
             }    
-		}
-	},
-
-	createItems : function () {
-
-		var laraMoveable = null;
-		var numMoveableInstances = 0, numSpriteSeqInstances = 0;
-		for (var i = 0; i < this.sc.data.trlevel.items.length; ++i) {
-			var item = this.sc.data.trlevel.items[i];
-
-			var roomIndex = item.room, lighting = item.intensity1, q = glMatrix.quat.create();
-
-			glMatrix.quat.setAxisAngle(q, [0,1,0], glMatrix.glMatrix.toRadian(-(item.angle >> 14) * 90) );
-
-			var m = this.movObjID2Index[item.objectID];
-			if (m == null) {
-				this.createSpriteSeqInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.sc.data.trlevel.spriteSequences[this.sprObjID2Index[item.objectID]]);
-				numSpriteSeqInstances++;
-			} else {
-                var mvb = this.createMoveableInstance(i, roomIndex, item.x, -item.y, -item.z, lighting, q, this.sc.data.trlevel.moveables[m]);
-				if (item.objectID == this.laraObjectID) {
-					laraMoveable = mvb;
-				}
-				numMoveableInstances++;
-            }
-		}
-
-        this.laraMoveable = laraMoveable;
-
-		console.log('Num moveable instances=', numMoveableInstances, '. Num sprite sequence instances=', numSpriteSeqInstances);
 	},
 
     // remove animations for moveables that have a single animation with a single keyframe
@@ -854,17 +775,17 @@ TRN.SceneConverter.prototype = {
 
         for (var objID in this.sc.objects) {
 
-            var objJSON = this.sc.objects[objID];
+            var objJSON = this.sc.objects[objID], data = this.sc.data.objects[objID];
 
-            if (!objJSON.has_anims) continue;
+            if (!data.has_anims) continue;
 
-            var track = this.sc.data.animTracks[objJSON.animationStartIndex];
+            var track = this.sc.data.animTracks[data.animationStartIndex];
 
-            if (!track || track.nextTrack != objJSON.animationStartIndex) { // the moveables has more than one anim
+            if (!track || track.nextTrack != data.animationStartIndex) { // the moveables has more than one anim
                 continue;
             }
 
-            if (track.commands.length == 0 && track.numFrames == 1 && track.keys.length == 1 && track.keys[0].data.length == 1 && objJSON.numAnimations == 1) {
+            if (track.commands.length == 0 && track.numFrames == 1 && track.keys.length == 1 && track.keys[0].data.length == 1 && data.numAnimations == 1) {
                 var qobj = objJSON.quaternion;
                 var qanim = [track.keys[0].data[0].quaternion.x, track.keys[0].data[0].quaternion.y, track.keys[0].data[0].quaternion.z, track.keys[0].data[0].quaternion.w];
                 var trans = [track.keys[0].data[0].position.x, track.keys[0].data[0].position.y, track.keys[0].data[0].position.z];
@@ -883,9 +804,11 @@ TRN.SceneConverter.prototype = {
 
                 objJSON.quaternion = qobj;
 
-                objJSON.has_anims = false;
+                data.has_anims = false;
 
                 numOptimized++;
+
+                //console.log('Anim for object', objID, ' optimized');
             }
 
         }
@@ -983,10 +906,11 @@ TRN.SceneConverter.prototype = {
     },
     
     makeSkinnedLara : function() {
-        var laraMoveable = this.laraMoveable.obj;
+        var laraIDForVisu = this.confMgr.number('moveable[id="' + this.laraObjectID + '"] > visuid', true, this.laraObjectID);
+        
         var joints = this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints];
         var jointsVertices = joints.vertices;
-        var main = this.sc.embeds[this.sc.geometries[laraMoveable.geometry].id];
+        var main = this.sc.embeds['moveable' + laraIDForVisu];
         var mainVertices = main.vertices;
 
         var bones = main.bones;
@@ -1038,7 +962,7 @@ TRN.SceneConverter.prototype = {
         var f = 0, faces = joints.faces;
         while (f < faces.length) {
             let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 14 : 18;
-            faces[f+1+numVert] += this.sc.data.trlevel.atlas.make ? 0 : laraMoveable.material.length;
+            faces[f+1+numVert] += this.sc.data.trlevel.atlas.make ? 0 : main._materials.length;
             for (let v = 0; v < numVert; ++v) {
                 faces[f+1+v] += mainVertices.length/3; // position
                 faces[f+2+numVert+v] += main.uvs[0].length/2; // uvs
@@ -1058,7 +982,7 @@ TRN.SceneConverter.prototype = {
         main.vertices = main.vertices.concat(joints.vertices);
 
         if (!this.sc.data.trlevel.atlas.make) {
-            laraMoveable.material = laraMoveable.material.concat(this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints]._materials);
+            joints._materials.forEach( (m) => main._materials.push(m) );
         }
 
         delete this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints];
@@ -1164,23 +1088,9 @@ TRN.SceneConverter.prototype = {
 
         this.laraObjectID = this.confMgr.number('lara > id', true, 0);
 
-		this.movObjID2Index = {};
-
         if (this.sc.data.levelShortFileNameNoExt.toLowerCase() != 'angkor1') {
             this.sc.data.trlevel.animatedTexturesUVCount = 0;
         }
-
-		for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
-			var moveable = this.sc.data.trlevel.moveables[m];
-			this.movObjID2Index[moveable.objectID] = m;
-		}
-
-		this.sprObjID2Index = {};
-
-		for (var sq = 0; sq < this.sc.data.trlevel.spriteSequences.length; ++sq) {
-			var spriteSeq = this.sc.data.trlevel.spriteSequences[sq];
-			this.sprObjID2Index[spriteSeq.objectID] = sq;
-		}
 
 		this.sc.objects.camera1 = {
 			"type"      : "PerspectiveCamera",
@@ -1213,14 +1123,16 @@ TRN.SceneConverter.prototype = {
         
         this.collectLightsExt();
 
-        this.createMoveables();
-        
+        this.createAllStaticMeshes();
+
         this.createAllMoveableInstances();
+
+        this.createAllSprites();
+
+        this.createAllSpriteSequences();
 
 		this.createAnimations();
 
-        this.createItems();
-        
         this.optimizeAnimations();
 
         this.createVertexNormals();

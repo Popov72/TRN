@@ -132,7 +132,6 @@ TRN.MasterLoader = {
 	*/
 	_postProcessLevel : function (progressbar, callbackLevelLoaded, oscene) {
 		var sceneData = oscene.sceneJSON.data, sceneRender = oscene.scene.scene;
-		var shaderMgr = new TRN.ShaderMgr();
 
         sceneData.textures = oscene.scene.textures;
 
@@ -158,7 +157,7 @@ TRN.MasterLoader = {
             var data = sceneData.objects[obj.name];
 
             if (data) {
-                if (data.type == 'moveable' && data.roomIndex < 0) {
+                if ((data.type == 'moveable' || data.type == 'spriteseq' || data.type == 'sprite' || data.type == 'staticmesh') && data.roomIndex < 0) {
                     data.liveObj = obj;
                     objToRemoveFromScene.push(obj);
                 }
@@ -179,46 +178,6 @@ TRN.MasterLoader = {
 				obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
 			}
 
-			if (data.type == "room") {
-				var portals = data.portals, meshPortals = [];
-				data.meshPortals = meshPortals;
-				for (var p = 0; p < portals.length; ++p) {
-					var portal = portals[p], geom = new THREE.Geometry();
-					geom.vertices.push(
-						new THREE.Vector3(portal.vertices[0].x, portal.vertices[0].y, portal.vertices[0].z),
-						new THREE.Vector3(portal.vertices[1].x, portal.vertices[1].y, portal.vertices[1].z),
-						new THREE.Vector3(portal.vertices[2].x, portal.vertices[2].y, portal.vertices[2].z),
-						new THREE.Vector3(portal.vertices[3].x, portal.vertices[3].y, portal.vertices[3].z)
-					);
-					geom.colors.push(
-						new THREE.Color(0xff0000),
-						new THREE.Color(0x00ff00),
-						new THREE.Color(0x0000ff),
-						new THREE.Color(0xffffff)
-					);
-					geom.faces.push(new THREE.Face3(0, 1, 2, undefined, [geom.colors[0], geom.colors[1], geom.colors[2]]));
-					geom.faces.push(new THREE.Face3(0, 2, 3, undefined, [geom.colors[0], geom.colors[2], geom.colors[3]]));
-					var mesh = new THREE.Mesh(geom, new THREE.ShaderMaterial( {
-						uniforms: {
-						},
-						vertexShader: shaderMgr.getVertexShader('portal'),
-						fragmentShader: shaderMgr.getFragmentShader('portal'),
-						depthTest: true,
-						depthWrite: false,
-						fog: false,
-						vertexColors: THREE.VertexColors,
-						transparent: true
-					}));
-					mesh.name = obj.name + '_portal' + p;
-					mesh.position.x = mesh.position.y = mesh.position.z = 0;
-					mesh.updateMatrix();
-					mesh.matrixAutoUpdate = false;
-					mesh.visible = false;
-					meshPortals.push(mesh);
-					sceneRender.add(mesh);
-				}
-			}
-
 			obj.frustumCulled = true;
 
 			var material = new THREE.MeshFaceMaterial();
@@ -233,7 +192,7 @@ TRN.MasterLoader = {
                 var elem = obj.material[mt_];
                 
                 material.materials[mt_] = oscene.scene.materials[elem.material].clone();
-                material.materials[mt_].uniforms = jQuery.extend(true, {}, elem.uniforms);
+                material.materials[mt_].uniforms = THREE.UniformsUtils.clone(elem.uniforms);/*jQuery.extend(true, {}, elem.uniforms);*/
                 material.materials[mt_].attributes = attributes;
 
 				for (var mkey in elem) {

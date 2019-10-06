@@ -45,13 +45,19 @@ TRN.extend(TRN.SceneConverter.prototype, {
             switch(objType) {
                 case 'moveable':
                     mat.parameters.skinning = true;
+                    mat.parameters.vertexColors = false;
+                    break;
+                case 'sprite':
+                    mat.parameters.vertexColors = false;
                     break;
                 case 'sky':
                     mat.parameters.skinning = true;
+                    mat.parameters.vertexColors = false;
                     mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('sky');
                     break;
                 case 'skydome':
                     mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('skydome');
+                    mat.parameters.vertexColors = false;
                     break;
             }
 			mat.parameters.vertexShader   = mat.parameters.vertexShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
@@ -59,17 +65,6 @@ TRN.extend(TRN.SceneConverter.prototype, {
         }
 
 		return matName;
-	},
-
-	convertIntensity : function(intensity) {
-		var l = [intensity/8192.0, intensity/8192.0, intensity/8192.0];
-
-		if (this.sc.data.trlevel.rversion == 'TR3' || this.sc.data.trlevel.rversion == 'TR4') {
-			var b = ((intensity & 0x7C00) >> 10) << 3, g = ((intensity & 0x03E0) >> 5) << 3, r = (intensity & 0x001F) << 3;
-			l = [r/255, g/255, b/255];
-		}
-
-		return l;
 	},
 
 	getBoundingBox : function(vertices) {
@@ -312,24 +307,6 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return lstMat;
 	},
 
-	findStatichMeshByID : function (objectID) {
-		for (var sg = 0; sg < this.sc.data.trlevel.staticMeshes.length; ++sg) {
-			if (this.sc.data.trlevel.staticMeshes[sg].objectID == objectID) {
-				return this.sc.data.trlevel.staticMeshes[sg];
-			}
-		}
-		return null;
-	},
-
-	findSpriteSequenceByID : function(objectID) {
-		for (var sq = 0; sq < this.sc.data.trlevel.spriteSequences.length; ++sq) {
-			if (this.sc.data.trlevel.spriteSequences[sq].objectID == objectID) {
-				return this.sc.data.trlevel.spriteSequences[sq];
-			}
-		}
-		return null;
-    },
-    
     numAnimationsForMoveable : function(moveableIdx) {
         var curr_moveable = this.sc.data.trlevel.moveables[moveableIdx];
 

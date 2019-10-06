@@ -1,27 +1,32 @@
-TRN.ObjectManager = function(gameData) {
-    this.gameData = gameData;
-    this.sceneRender = gameData.sceneRender;
-    this.sceneData = gameData.sceneData;
-    this.trlvl = gameData.trlvl;
-
-    this.matMgr = gameData.matMgr;
-
+TRN.ObjectManager = function() {
     this.objectList = null;
     this.count = 0;
-
-    this.buildLists();
 }
 
 TRN.ObjectManager.prototype = {
 
     constructor : TRN.ObjectManager,
 
-    setBehaviourManager : function(bhvMgr) {
-        this.bhvMgr = bhvMgr;
+    initialize : function(gameData) {
+        this.gameData = gameData;
+        this.sceneRender = gameData.sceneRender;
+        this.sceneData = gameData.sceneData;
+        this.matMgr = gameData.matMgr;
+        this.bhvMgr = gameData.bhvMgr;
+        this.anmMgr = gameData.anmMgr;
+    
+        this.buildLists();
     },
 
     buildLists : function() {
-        this.objectList = {};
+        this.objectList = {
+            "moveable": {},
+            "room": {},
+            "camera": {},
+            "staticmesh": {},
+            "sprite": {},
+            "spriteseq": {}
+        };
 
         this.sceneRender.traverse( (obj) => {
             var data = this.sceneData.objects[obj.name];
@@ -63,37 +68,163 @@ TRN.ObjectManager.prototype = {
         } );
     },
 
-    createMoveable : function(moveableID, roomIndex, addToScene) {
+    createSprite : function(spriteID, roomIndex, color, addToScene) {
         if (addToScene === undefined) {
             addToScene = true;
         }
 
-        var data = this.sceneData.objects['moveable' + moveableID];
+        const data = this.sceneData.objects[spriteID < 0 ? 'spriteseq' + (-spriteID) : 'sprite' + spriteID];
+
+        if (spriteID < 0) {
+            spriteID = -spriteID;
+        }
 
         if (!data || !data.liveObj) {
             return null;
         }
 
-        mvb = data.liveObj.clone();
+        let obj = data.liveObj.clone();
 
-        mvb.name = 'moveable' + moveableID + '_dyncreate_' + (this.count++);
-        mvb.visible = true;
-        mvb.matrixAutoUpdate = true;
+        // copy material
+        const newMaterial = new THREE.MeshFaceMaterial();
 
-        var newData = {
+        for (let m = 0; m < obj.material.materials.length; ++m) {
+            const material = obj.material.materials[m];
+            
+            newMaterial.materials[m] = material.clone();
+            newMaterial.materials[m].userData = material.userData;
+            newMaterial.materials[m].uniforms.lighting.value = color;
+        }
+
+        obj.material = newMaterial;
+        obj.name = data.type + spriteID + '_room' + roomIndex + '_dyncreate_' + (this.count++);
+        obj.visible = true;
+
+        const newData = {
+            "type"   	            : data.type,
+            "roomIndex"             : roomIndex,
+            "has_anims"				: false,
+            "objectid"              : data.objectid,
+            "visible"  				: true
+        };
+
+        this.sceneData.objects[obj.name] = newData;
+
+        let lst = this.objectList[data.type][spriteID];
+        if (!lst) {
+            lst = [];
+            this.objectList[data.type][spriteID] = lst;
+        }
+
+        lst.push(obj);
+
+        if (addToScene) {
+            this.sceneRender.add(obj);
+        }
+
+        return obj;
+    },
+
+    createStaticMesh : function(staticmeshID, roomIndex, color, addToScene) {
+        if (addToScene === undefined) {
+            addToScene = true;
+        }
+
+        const data = this.sceneData.objects['staticmesh' + staticmeshID];
+
+        if (!data || !data.liveObj) {
+            return null;
+        }
+
+        let obj = data.liveObj.clone();
+
+        // copy material
+        const newMaterial = new THREE.MeshFaceMaterial();
+
+        for (let m = 0; m < obj.material.materials.length; ++m) {
+            const material = obj.material.materials[m];
+            
+            newMaterial.materials[m] = material.clone();
+            newMaterial.materials[m].userData = material.userData;
+            newMaterial.materials[m].uniforms.lighting.value = color;
+        }
+
+        obj.material = newMaterial;
+        obj.name = 'staticmesh' + staticmeshID + '_room' + roomIndex + '_dyncreate_' + (this.count++);
+        obj.visible = true;
+
+        const newData = {
+            "type"   	            : 'staticmesh',
+            "roomIndex"             : roomIndex,
+            "has_anims"				: false,
+            "objectid"              : data.objectid,
+            "visible"  				: true
+        };
+
+        this.sceneData.objects[obj.name] = newData;
+
+        let lst = this.objectList[data.type][staticmeshID];
+        if (!lst) {
+            lst = [];
+            this.objectList[data.type][staticmeshID] = lst;
+        }
+
+        lst.push(obj);
+
+        if (addToScene) {
+            this.sceneRender.add(obj);
+        }
+
+        return obj;
+    },
+
+    createMoveable : function(moveableID, roomIndex, extrnColor, addToScene, setAnimation) {
+        if (addToScene === undefined) {
+            addToScene = true;
+        }
+
+        if (setAnimation === undefined) {
+            setAnimation = true;
+        }
+
+        const data = this.sceneData.objects['moveable' + moveableID];
+
+        if (!data || !data.liveObj) {
+            return null;
+        }
+
+        let obj = data.liveObj.clone();
+
+        // copy material
+        const newMaterial = new THREE.MeshFaceMaterial();
+
+        for (let m = 0; m < obj.material.materials.length; ++m) {
+            const material = obj.material.materials[m];
+            
+            newMaterial.materials[m] = material.clone();
+            newMaterial.materials[m].userData = material.userData;
+
+            if (extrnColor) {
+                newMaterial.materials[m].uniforms.ambientColor.value = extrnColor;
+            }
+        }
+
+        obj.material = newMaterial;
+        obj.name = 'moveable' + moveableID + '_room' + roomIndex + '_dyncreate_' + (this.count++);
+        obj.visible = true;
+        obj.matrixAutoUpdate = true;
+
+        const newData = {
             "type"   	            : 'moveable',
             "roomIndex"             : roomIndex,
             "has_anims"				: data.has_anims,
-            "hasScrollAnim"			: data.hasScrollAnim,
             "objectid"              : data.objectid,
             "visible"  				: true,
             "bonesStartingPos"      : data.bonesStartingPos,
-            "attributes"            : data.attributes,
-            "internallyLit"         : data.internallyLit,
-            "lighting"              : data.lighting
+            "internallyLit"         : extrnColor != undefined/*data.internallyLit*/
         };
 
-        this.sceneData.objects[mvb.name] = newData;
+        this.sceneData.objects[obj.name] = newData;
 
         if (newData.has_anims) {
             newData.animationStartIndex = data.animationStartIndex;
@@ -106,15 +237,19 @@ TRN.ObjectManager.prototype = {
             this.objectList['moveable'][moveableID] = lst;
         }
 
-        lst.push(mvb);
+        lst.push(obj);
 
-        this.matMgr.createLightUniformsForObject(mvb);
+        this.matMgr.createLightUniformsForObject(obj);
 
         if (addToScene) {
-            this.sceneRender.add(mvb);
+            this.sceneRender.add(obj);
         }
 
-        return mvb;
+        if (setAnimation && data.has_anims) {
+            this.anmMgr.setAnimation(obj, data.animationStartIndex, false);
+        }
+
+        return obj;
     },
 
     removeObjectFromScene : function(obj, removeBehaviours) {
@@ -169,6 +304,8 @@ TRN.ObjectManager.prototype = {
         
         objs = objs.concat(this.collectObjectsWithAnimatedTextures_(this.objectList['sprite']));
 
+        objs = objs.concat(this.collectObjectsWithAnimatedTextures_(this.objectList['spriteseq']));
+
         return objs;
     },
 
@@ -185,7 +322,7 @@ TRN.ObjectManager.prototype = {
             // Test camera room membership
 			if (data.type == 'room') {
 				if (obj.geometry.boundingBox.containsPoint(this.gameData.camera.position) && !data.isAlternateRoom) {
-                //if (!data.isAlternateRoom && this.trlvl.isPointInRoom(this.gameData.camera.position, data.roomIndex)) {
+                //if (!data.isAlternateRoom && this.gameData.trlvl.isPointInRoom(this.gameData.camera.position, data.roomIndex)) {
 					this.gameData.curRoom = data.roomIndex;
 				}
 			}
