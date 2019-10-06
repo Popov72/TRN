@@ -69,11 +69,11 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
             const id = cutscene.actors[ac].slotNumber;
             let mvb;
             if (id != TRN.ObjectID.Lara) {
-                mvb = this.objMgr.createMoveable(id, laraRoomIndex);
+                mvb = this.objMgr.createMoveable(id, laraRoomIndex, undefined, true, false);
             } else {
                 mvb = lara;
                 if (cutscene.index in { 1:1, 2:1, 21:1 }) {
-                    mshswap = this.objMgr.createMoveable(417, laraRoomIndex);
+                    mshswap = this.objMgr.createMoveable(417, laraRoomIndex, undefined, true, false);
                     mshswap.position.set(ocs.position.x, ocs.position.y, ocs.position.z);
                     mshswap.quaternion.set(0, 0, 0, 1);
                 }

@@ -66,7 +66,7 @@ TRN.Behaviours.Lara.prototype = {
         // create pistolanim object
         TRN.ObjectID.PistolAnim = parseInt(this.nbhv.pistol_anim.id);
 
-        var mvb = this.objMgr.createMoveable(TRN.ObjectID.PistolAnim, -1, false);
+        var mvb = this.objMgr.createMoveable(TRN.ObjectID.PistolAnim, -1, undefined, false, false);
         if (mvb) {
             this.sceneData.objects[mvb.name].visible = false;
             this.sceneData.objects[mvb.name].has_anims = false;
@@ -81,7 +81,7 @@ TRN.Behaviours.Lara.prototype = {
         for (var i = 0; i < meshSwapIds.length; ++i) {
             TRN.ObjectID['meshswap' + (i+1)] = meshSwapIds[i];
             if (TRN.ObjectID['meshswap' + (i+1)] > 0) {
-                var mvb = this.objMgr.createMoveable(TRN.ObjectID['meshswap' + (i+1)], -1, false);
+                var mvb = this.objMgr.createMoveable(TRN.ObjectID['meshswap' + (i+1)], -1, undefined, false, false);
                 if (mvb) {
                     this.sceneData.objects[mvb.name].visible = false;
                     this.sceneData.objects[mvb.name].has_anims = false;
