@@ -6,12 +6,7 @@ TRN.Consts.Behaviour = {
     "retDontKeepBehaviour" : 1
 }
 
-TRN.Behaviours.BehaviourManager = function(gameData) {
-    this.gameData = gameData;
-
-    this.sceneData = gameData.sceneData;
-    this.confMgr = gameData.confMgr;
-
+TRN.Behaviours.BehaviourManager = function() {
     this.behaviours = [];
     this.behavioursByName = {};
 }
@@ -20,8 +15,12 @@ TRN.Behaviours.BehaviourManager.prototype = {
 
     constructor : TRN.Behaviours.BehaviourManager,
 
-    setObjectManager : function(objMgr) {
-        this.objMgr = objMgr;
+    initialize : function(gameData) {
+        this.gameData = gameData;
+
+        this.sceneData = gameData.sceneData;
+        this.confMgr = gameData.confMgr;
+        this.objMgr = gameData.objMgr;
     },
 
     removeBehaviours : function(obj) {

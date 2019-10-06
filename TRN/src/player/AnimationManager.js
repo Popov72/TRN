@@ -1,17 +1,20 @@
-TRN.AnimationManager = function(gameData) {
-    this.gameData = gameData;
-    this.sceneData = gameData.sceneData;
-    this.matMgr = gameData.matMgr;
-    this.objMgr = gameData.objMgr;
-
-    this.initialize();
+TRN.AnimationManager = function() {
 }
 
 TRN.AnimationManager.prototype = {
 
     constructor : TRN.AnimationManager,
 
-    initialize : function() {
+    initialize : function(gameData) {
+        this.gameData = gameData;
+        this.sceneData = gameData.sceneData;
+        this.matMgr = gameData.matMgr;
+        this.objMgr = gameData.objMgr;
+    
+        this.makeTracks();
+    },
+
+    makeTracks : function() {
         var animTracks = [];
 
         // create one track per animation
@@ -20,19 +23,6 @@ TRN.AnimationManager.prototype = {
         }
 
         this.sceneData.animTracks = animTracks;
-
-        // instanciate the first track for each animated object
-        this.gameData.sceneRender.traverse( (obj) => {
-            var data = this.sceneData.objects[obj.name];
-
-            if (!data || !data.has_anims) {
-                return;
-            }
-
-            obj.traverse( (o) => o.matrixAutoUpdate = true );
-
-            this.setAnimation(obj, data.animationStartIndex, true);
-        });
     },
 
     setAnimation : function (obj, animIndex, desynchro) {

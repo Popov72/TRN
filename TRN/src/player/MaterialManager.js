@@ -1,11 +1,14 @@
-TRN.MaterialManager = function(gameData) {
-    this.sceneData = gameData.sceneData;
+TRN.MaterialManager = function() {
     this.useAdditionalLights = false;
 }
 
 TRN.MaterialManager.prototype = {
 
     constructor : TRN.MaterialManager,
+
+    initialize : function(gameData) {
+        this.sceneData = gameData.sceneData;
+    },
 
     createLightUniformsForObject : function(obj) {
         var materials = obj.material ? obj.material.materials : null;
@@ -45,18 +48,12 @@ TRN.MaterialManager.prototype = {
         for (var mat = 0; mat < materials.length; ++mat) {
             var material = materials[mat];
 
-            material.uniforms.ambientColor.value = roomData.ambientColor;
+            if (data.type != 'moveable' || !data.internallyLit) {
+                material.uniforms.ambientColor.value = roomData.ambientColor;
+            }
 
-            if (data.type == 'staticmesh') {
-                material.uniforms.lighting.value = data.lighting;
-            } else if (data.type == 'moveable') {
-				if (data.moveableIsInternallyLit) {
-					// item is internally lit
-					// todo: for TR3/TR4, need to change to a shader that uses vertex color (like the shader mesh2, but for moveable)
-                    material.uniforms.ambientColor.value = data.lighting;
-				} else {
-                    this.setLightUniformsForMaterial(roomData, material, false);
-                }
+            if (data.type == 'moveable' && !data.internallyLit) {
+                this.setLightUniformsForMaterial(roomData, material, false);
             }
 
             if (!roomData.flickering)      material.uniforms.flickerColor.value = [1, 1, 1];

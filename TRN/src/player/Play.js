@@ -71,18 +71,23 @@ TRN.Play.prototype = {
 
         this.gameData.camera = oscene.scene.currentCamera;
 
-        this.gameData.trlvl   = new TRN.TRLevel(this.gameData.sceneData.trlevel);
         this.gameData.confMgr = this.gameData.sceneData.trlevel.confMgr;
-        this.gameData.matMgr  = new TRN.MaterialManager(this.gameData);
-        this.gameData.objMgr  = new TRN.ObjectManager(this.gameData);
-        this.gameData.bhvMgr  = new TRN.Behaviours.BehaviourManager(this.gameData);
-        this.gameData.anmMgr  = new TRN.AnimationManager(this.gameData);
+        this.gameData.bhvMgr  = new TRN.Behaviours.BehaviourManager();
+        this.gameData.matMgr  = new TRN.MaterialManager();
+        this.gameData.objMgr  = new TRN.ObjectManager();
+        this.gameData.trlvl   = new TRN.TRLevel();
+        this.gameData.anmMgr  = new TRN.AnimationManager();
+        this.gameData.shdMgr  = new TRN.ShaderManager();
 
-        this.gameData.objMgr.setBehaviourManager(this.gameData.bhvMgr);
-        this.gameData.bhvMgr.setObjectManager(this.gameData.objMgr);
+        this.gameData.bhvMgr.initialize(this.gameData);
+        this.gameData.matMgr.initialize(this.gameData);
+        this.gameData.objMgr.initialize(this.gameData);
+        this.gameData.trlvl.initialize(this.gameData);
+        this.gameData.anmMgr.initialize(this.gameData);
 
+        delete this.gameData.sceneData.trlevel.confMgr;
         delete this.gameData.sceneData.trlevel;
-
+        
         TRN.ObjectID.Lara  = this.gameData.confMgr.number('lara > id', true, 0);
 
 		var isCutScene = this.gameData.confMgr.param('', false, true).attr('type') == 'cutscene';
@@ -110,12 +115,8 @@ TRN.Play.prototype = {
 			this.gameData.camera.quaternion.set(parseFloat(vals[0]), parseFloat(vals[1]), parseFloat(vals[2]), parseFloat(vals[3]));
 		}
 
-        // create and set uniforms on objects
-        var moveables = this.gameData.objMgr.objectList['moveable'];
-        for (var objID in moveables) {
-            moveables[objID].forEach( (obj) => this.gameData.matMgr.createLightUniformsForObject(obj) );
-        }
-    
+        this.gameData.trlvl.createObjectsInLevel();
+
         // create behaviours
         var allPromises = this.gameData.bhvMgr.loadBehaviours();
 
@@ -128,6 +129,7 @@ TRN.Play.prototype = {
 
         await Promise.all(allPromises);
 
+        // set uniforms on objects
         this.gameData.sceneRender.traverse( (obj) => {
             var data = this.gameData.sceneData.objects[obj.name];
 
