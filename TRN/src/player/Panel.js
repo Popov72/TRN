@@ -178,7 +178,7 @@ TRN.Panel.prototype = {
 		});
 
 		this.elem.find('#noobjecttexture').on('click', function() {
-			var shaderMgr = new TRN.ShaderMgr();
+			var shaderMgr = this_.parent.shdMgr;
 			var scene = this_.parent.sceneRender;
 			var shader = shaderMgr.getFragmentShader('uniformcolor');
 			scene.traverse( (obj) => {

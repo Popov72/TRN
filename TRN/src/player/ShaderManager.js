@@ -1,11 +1,11 @@
-TRN.ShaderMgr = function() {
+TRN.ShaderManager = function() {
 	this.fpath = 'TRN/resource/shaders/';
 	this.fileCache = {};
 }
 
-TRN.ShaderMgr.prototype = {
+TRN.ShaderManager.prototype = {
 
-	constructor : TRN.ShaderMgr,
+	constructor : TRN.ShaderManager,
 
 	getShader : function(ptype, name) {
 		return this._getFile(name + (ptype == 'vertex' ? '.vs' : '.fs'));

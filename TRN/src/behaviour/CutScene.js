@@ -8,6 +8,7 @@ TRN.Behaviours.CutScene = function(nbhv, gameData) {
     this.matMgr = gameData.matMgr;
     this.objMgr = gameData.objMgr;
     this.trlvl = gameData.trlvl;
+    this.shdMgr = gameData.shdMgr;
     this.scene = gameData.sceneRender;
     this.sceneData = gameData.sceneData;
     this.camera = gameData.camera;
@@ -32,7 +33,7 @@ TRN.Behaviours.CutScene.prototype = {
         // set cutscene origin
         const lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara][0];
 
-        this.cutscene.frames = this.trlvl.cinematicFrames;
+        this.cutscene.frames = this.trlvl.trlevel.cinematicFrames;
         this.cutscene.position = lara.position;
 
         const laraQuat = lara.quaternion,

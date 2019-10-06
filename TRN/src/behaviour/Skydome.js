@@ -3,6 +3,7 @@ TRN.Behaviours.Skydome = function(nbhv, gameData) {
     this.sceneData = gameData.sceneData;
     this.sceneBackground = gameData.sceneBackground;
     this.objMgr = gameData.objMgr;
+    this.shdMgr = gameData.shdMgr;
     this.camera = gameData.camera;
 
     this.createSkyDome();
@@ -96,8 +97,6 @@ TRN.Behaviours.Skydome.prototype = {
             geom.faceVertexUvs[0].push(uvs);
         }
 
-        const shaderMgr = new TRN.ShaderMgr();
-
         let materials = new THREE.MeshFaceMaterial();
         
         const skyTexture = this.sceneData.textures["texture" + (TRN.Helper.objSize(this.sceneData.textures)-1)];
@@ -105,8 +104,8 @@ TRN.Behaviours.Skydome.prototype = {
         skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
 
         let material = new THREE.ShaderMaterial({
-            "fragmentShader": shaderMgr.getFragmentShader("skydome"),
-            "vertexShader": shaderMgr.getVertexShader("skydome"),
+            "fragmentShader": this.shdMgr.getFragmentShader("skydome"),
+            "vertexShader": this.shdMgr.getVertexShader("skydome"),
             "uniforms": {
                 "map" :             { type: "t",    value: skyTexture },
                 "offsetRepeat" :    { type: "f4",   value: [0, 0, 1, 1] },

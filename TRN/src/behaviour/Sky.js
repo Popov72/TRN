@@ -5,6 +5,7 @@ TRN.Behaviours.Sky = function(nbhv, gameData) {
     this.sceneBackground = gameData.sceneBackground;
     this.objMgr = gameData.objMgr;
     this.anmMgr = gameData.anmMgr;
+    this.shdMgr = gameData.shdMgr;
     this.camera = gameData.camera;
 }
 
@@ -22,7 +23,7 @@ TRN.Behaviours.Sky.prototype = {
             return;
         }
 
-        this.objSky = this.objMgr.createMoveable(id, -1, false);
+        this.objSky = this.objMgr.createMoveable(id, -1, undefined, false, false);
 
         if (this.objSky == null) {
             resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
@@ -42,15 +43,13 @@ TRN.Behaviours.Sky.prototype = {
 
         this.sceneBackground.add(this.objSky);
 
-        var shaderMgr = new TRN.ShaderMgr();
-
         var materials = this.objSky.material.materials;
         for (var mat = 0; mat < materials.length; ++mat) {
             var material = materials[mat];
             
             material.depthWrite = false;
-            material.fragmentShader = shaderMgr.getFragmentShader('sky');
-            material.vertexShader = shaderMgr.getVertexShader('sky');
+            material.fragmentShader = this.shdMgr.getFragmentShader('sky');
+            material.vertexShader = this.shdMgr.getVertexShader('sky');
             //material.depthTest = false;
         }
 
