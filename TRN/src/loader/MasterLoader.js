@@ -25,13 +25,10 @@ TRN.MasterLoader = {
 
 		} else {
 
-			var isZip = trlevel.indexOf('.zip') >= 0;
-			var isBin = trlevel.indexOf('.') >= 0 && !isZip; // we assume that if the file has no extension, it is a JSON converted level, else it is either a zip of a JSON (see line above) or an original binary level
-
 		    var request = new XMLHttpRequest();
 
 		    request.open("GET", trlevel, true);
-		    request.responseType = isZip || isBin ? "arraybuffer" : "text";
+		    request.responseType = "arraybuffer";
 
 		    request.onerror = function() {
 		        console.log('Read level: XHR error', request.status, request.statusText);
@@ -56,23 +53,10 @@ TRN.MasterLoader = {
 			   		console.log('Could not read the level', trlevel, request.status, request.statusText);
 		        } else {
 		        	progressbar.progress(1);
-		        	var sc;
-		        	if (isZip) {
-			        	console.log('Level', trlevel, 'loaded. Unzipping...');
-			    		var zip = new JSZip();
-			    		zip.load(request.response);
-			    		var f = zip.file('level');
-			    		sc = JSON.parse(f.asText());
-			    		console.log('Level unzipped.');
-			    	} else if (isBin) {
-						var rs = TRN.Loader.loadRawLevel(request.response, trlevel);
-						var converter = new TRN.SceneConverter();
-						converter.convert(rs.json, this_._parseLevel.bind(this_, trlevel, progressbar, callbackLevelLoaded));
-						return;
-			    	} else {
-			    		sc = JSON.parse(request.response);
-			    	}
-		    		this_._parseLevel(trlevel, progressbar, callbackLevelLoaded, sc);
+                    var rs = TRN.Loader.loadRawLevel(request.response, trlevel);
+                    var converter = new TRN.SceneConverter();
+                    converter.convert(rs.json, this_._parseLevel.bind(this_, trlevel, progressbar, callbackLevelLoaded));
+                    return;
 		        }
 		    }
 
@@ -88,7 +72,7 @@ TRN.MasterLoader = {
 
 		var this_ = this;
 
-		var loader = new THREE.SceneLoader();
+		var loader = new THREE.ObjectLoader();
 
 		loader.callbackProgress = function (progress, result) {
 
@@ -104,6 +88,9 @@ TRN.MasterLoader = {
 		};
 
 		loader.parse(sceneJSON, function(scene) {
+
+            console.log(sceneJSON)
+            console.log(scene);
 
 		    window.setTimeout(function() {
 
@@ -131,9 +118,9 @@ TRN.MasterLoader = {
 		We now make additional setup in the scene created by ThreeJS
 	*/
 	_postProcessLevel : function (progressbar, callbackLevelLoaded, oscene) {
-		var sceneData = oscene.sceneJSON.data, sceneRender = oscene.scene.scene;
+		var sceneData = oscene.sceneJSON.data, sceneRender = oscene.scene;
 
-        sceneData.textures = oscene.scene.textures;
+        sceneData.textures = sceneRender.__textures;
 
         // Set all objects as auto update=false
         // Camera, skies, animated objects will have their matrixAutoUpdate set to true later
@@ -141,14 +128,6 @@ TRN.MasterLoader = {
             obj.updateMatrix();
             obj.matrixAutoUpdate = false;
 		});
-
-        // don't flip Y coordinates in textures
-		for (var texture in sceneData.textures) {
-
-			if (!sceneData.textures.hasOwnProperty(texture)) continue;
-
-			sceneData.textures[texture].flipY = false;
-		}
 
 		// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
         var objToRemoveFromScene = [];
@@ -161,6 +140,7 @@ TRN.MasterLoader = {
                     data.liveObj = obj;
                     objToRemoveFromScene.push(obj);
                 }
+                //!if (data.type == 'room') objToRemoveFromScene.push(obj);
 
                 if (data.visible == undefined) {
                     console.log('Object has no visible property!', obj);
@@ -173,27 +153,20 @@ TRN.MasterLoader = {
                 return;
             }
 
-			if (!data.has_anims) {
+			//!if (!data.has_anims) {
 				obj.geometry.computeBoundingBox();
-				obj.geometry.boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
-			}
+				obj.geometry.computeBoundingSphere();
+			//!}
 
 			obj.frustumCulled = true;
 
-			var material = new THREE.MeshFaceMaterial();
-
-			var attributes = data.attributes;
-
-			if (attributes) {
-				attributes._flags.needsUpdate = true;
-			}
+			/*var material = [];
 
 			for (var mt_ = 0; mt_ < obj.material.length; ++mt_) {
                 var elem = obj.material[mt_];
                 
                 material.materials[mt_] = oscene.scene.materials[elem.material].clone();
-                material.materials[mt_].uniforms = THREE.UniformsUtils.clone(elem.uniforms);/*jQuery.extend(true, {}, elem.uniforms);*/
-                material.materials[mt_].attributes = attributes;
+                material.materials[mt_].uniforms = THREE.UniformsUtils.clone(elem.uniforms);
 
 				for (var mkey in elem) {
 					if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
@@ -201,9 +174,9 @@ TRN.MasterLoader = {
 				}
 			}
 
-            obj.material = material;
+            obj.material = material;*/
             
-			var materials = material.materials;
+			var materials = obj.material;
 
 			if (!materials || !materials.length) {
                 return;
@@ -212,15 +185,14 @@ TRN.MasterLoader = {
 			for (var i = 0; i < materials.length; ++i) {
 				var material = materials[i];
 
-				if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
+				/*if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
 					material.uniforms.map.value = sceneData.textures['texture' + material.uniforms.map.value];
 				}
 				if (material.uniforms.mapBump && typeof(material.uniforms.mapBump.value) == 'string' && material.uniforms.mapBump.value) {
 					material.uniforms.mapBump.value = sceneData.textures['texture' + material.uniforms.mapBump.value];
-				}
+				}*/
 
-				if (material.hasAlpha) {
-					material.transparent = true;
+				if (material.transparent) {
 					material.blending = THREE.AdditiveBlending;
 					material.blendSrc = THREE.OneFactor;
 					material.blendDst = THREE.OneMinusSrcColorFactor;

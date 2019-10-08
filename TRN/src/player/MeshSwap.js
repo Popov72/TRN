@@ -17,7 +17,7 @@ TRN.MeshSwap.prototype = {
 	constructor : TRN.MeshSwap,
 
 	swap : function (meshIndices) {
-
+return;
 		for (var i = 0; i < meshIndices.length; ++i) {
 			// remove the data from the obj1 and obj2
 			var data1 = this.removeData(this.geometry, this.attributes, meshIndices[i]);
@@ -37,6 +37,7 @@ TRN.MeshSwap.prototype = {
 	},
 
 	swapall : function() {
+return;
 		var g = this.obj1.geometry, m = this.obj1.material;
 
 		this.obj1.geometry = this.obj2.geometry;

@@ -29,7 +29,7 @@ TRN.Behaviours.Skydome.prototype = {
         this.sceneBackground.add(this.objSky);
 
         const skyColor = [this.nbhv.color.r/255.0, this.nbhv.color.g/255.0, this.nbhv.color.b/255.0],
-              material = this.objSky.material.materials[0];
+              material = this.objSky.material[0];
 
         material.uniforms.tintColor.value = skyColor;
 
@@ -37,9 +37,9 @@ TRN.Behaviours.Skydome.prototype = {
     },
 
     frameEnded : function(curTime) {
-        this.objSky.position = this.camera.position;
+        this.objSky.position.set(this.camera.position.x, this.camera.position.y, this.camera.position.z);
 
-        const material = this.objSky.material.materials[0];
+        const material = this.objSky.material[0];
 
         let pgr = curTime / 50.0;
         
@@ -97,7 +97,7 @@ TRN.Behaviours.Skydome.prototype = {
             geom.faceVertexUvs[0].push(uvs);
         }
 
-        let materials = new THREE.MeshFaceMaterial();
+        let materials = [];
         
         const skyTexture = this.sceneData.textures["texture" + (TRN.Helper.objSize(this.sceneData.textures)-1)];
 
@@ -114,7 +114,7 @@ TRN.Behaviours.Skydome.prototype = {
             "depthWrite": false
         });
 
-        materials.materials.push(material);
+        materials.push(material);
 
         let sky = new THREE.Mesh(geom, materials);
 

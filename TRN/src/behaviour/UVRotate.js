@@ -17,7 +17,7 @@ TRN.Behaviours.UVRotate.prototype = {
 
         for (var i = 0; i < lstObjs.length; ++i) {
             var obj = lstObjs[i],
-                materials = obj.material.materials;
+                materials = obj.material;
             
             for (var m = 0; m < materials.length; ++m) {
                 var material = materials[m],

@@ -136,6 +136,7 @@ TRN.TRLevel.prototype = {
                 if (obj != null) {
                     obj.position.set(item.x, -item.y, -item.z);
                     obj.quaternion.set(q[0], q[1], q[2], q[3]);
+                    //this.sceneRender.add(new THREE.BoxHelper(obj, new THREE.Color(1,1,1)));
                 } else {
                     // moveable is a placeholder with no geometry
                     const spriteSeqObjID = this.confMgr.number('moveable[id="' + item.objectID + '"] > spritesequence', true, -1);
@@ -192,6 +193,8 @@ TRN.TRLevel.prototype = {
                 mesh.updateMatrix();
                 mesh.matrixAutoUpdate = false;
                 mesh.visible = false;
+				mesh.geometry.computeBoundingBox();
+				mesh.geometry.computeBoundingSphere();
                 meshPortals.push(mesh);
                 this.sceneRender.add(mesh);
             }
@@ -220,6 +223,7 @@ TRN.TRLevel.prototype = {
                     obj.position.set(x, y, z);
                     obj.quaternion.set(q[0], q[1], q[2], q[3]);
                     obj.updateMatrix();
+                    //this.sceneRender.add(new THREE.BoxHelper(obj, new THREE.Color(1,1,1)));
                 }
             }
             
@@ -236,6 +240,7 @@ TRN.TRLevel.prototype = {
                     obj.visible = !data.isAlternateRoom;
                     obj.position.set(rvertex.vertex.x + info.x, -rvertex.vertex.y, -rvertex.vertex.z - info.z);
                     obj.updateMatrix();
+                    //this.sceneRender.add(new THREE.BoxHelper(obj, new THREE.Color(1,1,1)));
                 }
 			}
         }

@@ -43,7 +43,7 @@ TRN.Behaviours.Sky.prototype = {
 
         this.sceneBackground.add(this.objSky);
 
-        var materials = this.objSky.material.materials;
+        var materials = this.objSky.material;
         for (var mat = 0; mat < materials.length; ++mat) {
             var material = materials[mat];
             
@@ -57,7 +57,7 @@ TRN.Behaviours.Sky.prototype = {
     },
 
     frameEnded : function() {
-        this.objSky.position = this.camera.position;
+        this.objSky.position.set(this.camera.position.x, this.camera.position.y, this.camera.position.z);
     }
 
 }

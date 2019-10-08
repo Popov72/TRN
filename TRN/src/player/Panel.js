@@ -39,14 +39,14 @@ TRN.Panel.prototype = {
 	showInfo : function() {
 		var sceneData = this.parent.sceneData, camera = this.parent.camera, renderer = this.renderer;
 
-		var numObj = this.parent.sceneRender.__objects.length;
+		var numObj = this.parent.sceneRender.children.length;
 
 		this.elem.find('#currentroom').html(this.parent.curRoom);
 		this.elem.find('#numlights').html(this.parent.curRoom != -1 ? (this.parent.matMgr.useAdditionalLights ? sceneData.objects['room'+this.parent.curRoom].lightsExt.length : sceneData.objects['room'+this.parent.curRoom].lights.length) : '');
 		this.elem.find('#camerapos').html(camera.position.x.toFixed(5)+','+camera.position.y.toFixed(5)+','+camera.position.z.toFixed(5));
 		this.elem.find('#camerarot').html(camera.quaternion.x.toFixed(5)+','+camera.quaternion.y.toFixed(5)+','+camera.quaternion.z.toFixed(5)+','+camera.quaternion.w.toFixed(5));
-		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.vertices + ' / ' + renderer.info.render.faces + ' / ' + numObj);
-		this.elem.find('#memoryinfo').html(renderer.info.memory.geometries + ' / ' + renderer.info.memory.programs + ' / ' + renderer.info.memory.textures);
+		this.elem.find('#renderinfo').html(renderer.info.render.calls + ' / ' + renderer.info.render.triangles + ' / ' + numObj);
+		this.elem.find('#memoryinfo').html(renderer.info.memory.geometries + ' / ' + renderer.info.programs.length + ' / ' + renderer.info.memory.textures);
 	},
 
     updateFromParent : function() {
@@ -69,7 +69,7 @@ TRN.Panel.prototype = {
 			scene.traverse( (obj) => {
                 if (!(obj instanceof THREE.Mesh)) return;
 
-				var materials = obj.material.materials;
+				var materials = obj.material;
 				if (!materials || !materials.length) return;
 
 				for (var i = 0; i < materials.length; ++i) {
@@ -84,7 +84,7 @@ TRN.Panel.prototype = {
 			scene.traverse( (obj) => {
                 if (!(obj instanceof THREE.Mesh)) return;
                 
-				var materials = obj.material ? obj.material.materials : null;
+				var materials = obj.material;
 				if (!materials || !materials.length) return;
 
 				for (var i = 0; i < materials.length; ++i) {
@@ -100,7 +100,7 @@ TRN.Panel.prototype = {
 			scene.traverse( (obj) => {
                 if (!(obj instanceof THREE.Mesh)) return;
 
-				var materials = obj.material ? obj.material.materials : null;
+				var materials = obj.material;
 				if (!materials || !materials.length) return;
 
 				for (var i = 0; i < materials.length; ++i) {
@@ -123,18 +123,17 @@ TRN.Panel.prototype = {
 				if (!(obj instanceof THREE.Mesh)) return;
 
 				if (this.checked) {
-					obj.boxHelper = new THREE.BoxHelper();
-					obj.boxHelper.update(obj);
-					scene.add(obj.boxHelper);
+                    obj.boxHelper = new THREE.Box3Helper(obj.geometry.boundingBox);
+                    obj.boxHelper.name = obj.name + '_box';
+                    obj.add(obj.boxHelper);
 				} else {
 					toBeRemoved.push(obj.boxHelper);
 				}
             });
             toBeRemoved.forEach( (obj) => {
-                scene.remove(obj);
+                obj.parent.remove(obj);
                 delete obj.boxHelper;
             });
-            this_.parent.needWebGLInit = true;
 		});
 
 		this.elem.find('#showportals').on('click', function() {
@@ -185,7 +184,7 @@ TRN.Panel.prototype = {
 				if (!(obj instanceof THREE.Mesh)) return;
 				if (obj.name.match(/moveable|sprite|staticmesh/) == null) return;
 
-				var materials = obj.material.materials;
+				var materials = obj.material;
 				if (!materials || !materials.length) return;
 
 				for (var i = 0; i < materials.length; ++i) {
@@ -207,7 +206,7 @@ TRN.Panel.prototype = {
                 
 				if (!(obj instanceof THREE.Mesh) || !data || data.type != "room") return;
 
-				var materials = obj.material.materials;
+				var materials = obj.material;
 				if (!materials || !materials.length) return;
  
 				for (var i = 0; i < materials.length; ++i) {

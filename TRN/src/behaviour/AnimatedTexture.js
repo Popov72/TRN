@@ -25,7 +25,7 @@ TRN.Behaviours.AnimatedTexture.prototype = {
 
         for (let i = 0; i < lstObjs.length; ++i) {
             const obj = lstObjs[i],
-                  materials = obj.material.materials;
+                  materials = obj.material;
             
             for (let m = 0; m < materials.length; ++m) {
                 const material = materials[m],

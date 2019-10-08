@@ -21,7 +21,6 @@ TRN.Behaviours.BasicControl.prototype = {
         this.captureMouse = false;
         
         object.matrixAutoUpdate = true;
-        object.useQuaternion = true;
     
         this.states = { 
             16: {state:this.STATES.FASTER,   on:false}, // SHIFT

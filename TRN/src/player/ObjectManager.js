@@ -86,14 +86,16 @@ TRN.ObjectManager.prototype = {
         let obj = data.liveObj.clone();
 
         // copy material
-        const newMaterial = new THREE.MeshFaceMaterial();
+        const newMaterial = [];
 
-        for (let m = 0; m < obj.material.materials.length; ++m) {
-            const material = obj.material.materials[m];
+        for (let m = 0; m < obj.material.length; ++m) {
+            const material = obj.material[m];
             
-            newMaterial.materials[m] = material.clone();
-            newMaterial.materials[m].userData = material.userData;
-            newMaterial.materials[m].uniforms.lighting.value = color;
+            newMaterial[m] = material.clone();
+            newMaterial[m].userData = material.userData;
+            newMaterial[m].uniforms.lighting.value = color;
+            newMaterial[m].uniforms.map.value = material.uniforms.map.value;
+            newMaterial[m].uniforms.mapBump.value = material.uniforms.mapBump.value;
         }
 
         obj.material = newMaterial;
@@ -139,14 +141,16 @@ TRN.ObjectManager.prototype = {
         let obj = data.liveObj.clone();
 
         // copy material
-        const newMaterial = new THREE.MeshFaceMaterial();
+        const newMaterial = [];
 
-        for (let m = 0; m < obj.material.materials.length; ++m) {
-            const material = obj.material.materials[m];
+        for (let m = 0; m < obj.material.length; ++m) {
+            const material = obj.material[m];
             
-            newMaterial.materials[m] = material.clone();
-            newMaterial.materials[m].userData = material.userData;
-            newMaterial.materials[m].uniforms.lighting.value = color;
+            newMaterial[m] = material.clone();
+            newMaterial[m].userData = material.userData;
+            newMaterial[m].uniforms.lighting.value = color;
+            newMaterial[m].uniforms.map.value = material.uniforms.map.value;
+            newMaterial[m].uniforms.mapBump.value = material.uniforms.mapBump.value;
         }
 
         obj.material = newMaterial;
@@ -196,16 +200,21 @@ TRN.ObjectManager.prototype = {
         let obj = data.liveObj.clone();
 
         // copy material
-        const newMaterial = new THREE.MeshFaceMaterial();
+        const newMaterial = [];
 
-        for (let m = 0; m < obj.material.materials.length; ++m) {
-            const material = obj.material.materials[m];
+        const skeleton = new TRN.Skeleton(data.bonesStartingPos);
+
+        for (let m = 0; m < obj.material.length; ++m) {
+            const material = obj.material[m];
             
-            newMaterial.materials[m] = material.clone();
-            newMaterial.materials[m].userData = material.userData;
+            newMaterial[m] = material.clone();
+            newMaterial[m].userData = material.userData;
+            newMaterial[m].uniforms.map.value = material.uniforms.map.value;
+            newMaterial[m].uniforms.mapBump.value = material.uniforms.mapBump.value;
+            newMaterial[m].uniforms.boneMatrices = { "type":"m4v", "value":skeleton.getBoneMatrices() };
 
             if (extrnColor) {
-                newMaterial.materials[m].uniforms.ambientColor.value = extrnColor;
+                newMaterial[m].uniforms.ambientColor.value = extrnColor;
             }
         }
 
@@ -220,8 +229,8 @@ TRN.ObjectManager.prototype = {
             "has_anims"				: data.has_anims,
             "objectid"              : data.objectid,
             "visible"  				: true,
-            "bonesStartingPos"      : data.bonesStartingPos,
-            "internallyLit"         : extrnColor != undefined/*data.internallyLit*/
+            "internallyLit"         : extrnColor != undefined,/*data.internallyLit*/
+            "skeleton"              : skeleton
         };
 
         this.sceneData.objects[obj.name] = newData;
@@ -276,7 +285,7 @@ TRN.ObjectManager.prototype = {
 
             for (var i = 0; i < lstObjs.length; ++i) {
                 var obj = lstObjs[i],
-                    materials = obj.material.materials;
+                    materials = obj.material;
             
                 for (var m = 0; m < materials.length; ++m) {
                     var material = materials[m],
@@ -344,7 +353,7 @@ TRN.ObjectManager.prototype = {
             }
 
             // Update material uniforms
-            var materials = obj.material.materials,
+            var materials = obj.material,
                 room = this.sceneData.objects['room' + data.roomIndex];
             
 			if (!materials || !materials.length || !room) {

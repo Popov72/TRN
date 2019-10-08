@@ -8,10 +8,11 @@ TRN.MaterialManager.prototype = {
 
     initialize : function(gameData) {
         this.sceneData = gameData.sceneData;
+        this.rversion = gameData.trlvl.rversion;
     },
 
     createLightUniformsForObject : function(obj) {
-        var materials = obj.material ? obj.material.materials : null;
+        var materials = obj.material ? obj.material : null;
         if (materials) {
             for (var m = 0; m < materials.length; ++m) {
                 this.createLightUniformsForMaterial(materials[m]);
@@ -22,26 +23,26 @@ TRN.MaterialManager.prototype = {
     createLightUniformsForMaterial : function(material) {
         var u = material.uniforms;
 
-        u.numDirectionalLight           = { type: "i", value: 0 };
-        u.directionalLight_direction    = { type: "fv"  };
-        u.directionalLight_color        = { type: "fv"  };
+        u.numDirectionalLight           = { type: "i",   value: 0 };
+        u.directionalLight_direction    = { type: "fv",  value: [0, 0, 0]  };
+        u.directionalLight_color        = { type: "fv",  value: [0, 0, 0]  };
 
-        u.numPointLight                 = { type: "i", value: -1 }; // -1 here means the object is internally lit
-        u.pointLight_position           = { type: "fv"  };
-        u.pointLight_color              = { type: "fv"  };
-        u.pointLight_distance           = { type: "fv1" };
+        u.numPointLight                 = { type: "i",   value: -1 }; // -1 here means the object is internally lit
+        u.pointLight_position           = { type: "fv",  value: [0, 0, 0]  };
+        u.pointLight_color              = { type: "fv",  value: [0, 0, 0]  };
+        u.pointLight_distance           = { type: "fv1", value: [0] };
 
-        u.numSpotLight                  = { type: "i", value: 0 };
-        u.spotLight_position            = { type: "fv"  };
-        u.spotLight_color               = { type: "fv"  };
-        u.spotLight_distance            = { type: "fv1" };
-        u.spotLight_direction           = { type: "fv"  };
-        u.spotLight_coneCos             = { type: "fv1" };
-        u.spotLight_penumbraCos         = { type: "fv1" };
+        u.numSpotLight                  = { type: "i",   value: 0 };
+        u.spotLight_position            = { type: "fv",  value: [0 ,0, 0]  };
+        u.spotLight_color               = { type: "fv",  value: [0 ,0, 0]  };
+        u.spotLight_distance            = { type: "fv1", value: [0] };
+        u.spotLight_direction           = { type: "fv",  value: [0 ,0, 0]  };
+        u.spotLight_coneCos             = { type: "fv1", value: [0] };
+        u.spotLight_penumbraCos         = { type: "fv1", value: [0] };
     },
 
     setUniformsFromRoom : function(obj, roomIndex) {
-        var materials = obj.material.materials;
+        var materials = obj.material;
         var roomData = this.sceneData.objects['room' + roomIndex];
         var data = this.sceneData.objects[obj.name];
 
@@ -125,7 +126,7 @@ TRN.MaterialManager.prototype = {
     setLightUniformsForObject : function(obj) {
         var data = this.sceneData.objects[obj.name];
         if (data && data.roomIndex >= 0) {
-            var materials = obj.material ? obj.material.materials : null;
+            var materials = obj.material;
             if (!materials || !materials.length) {
                 return;
             }

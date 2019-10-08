@@ -11,7 +11,7 @@ TRN.Behaviours.Zbias.prototype = {
         if (params) {
             var factor = params.factor, unit = params.unit;
             lstObjs.forEach( (obj) => {
-                var materials = obj.material.materials;
+                var materials = obj.material;
                 for (var m = 0; m < materials.length; ++m) {
                     var material = materials[m];
                     material.polygonOffset = true;

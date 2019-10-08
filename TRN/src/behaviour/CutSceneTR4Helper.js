@@ -13,7 +13,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                     const data = this.sceneData.objects[obj.name];
 
                     if (data && rooms.has(data.roomIndex) || actorMoveables.indexOf(obj) >= 0) {
-                        const materials = obj.material.materials;
+                        const materials = obj.material;
                         for (let m = 0; m < materials.length; ++m) {
                             const material = materials[m];
 
@@ -46,8 +46,8 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                 /*const uniforms = [];
                 for (let a = 0; a < actorMoveables.length; ++a) {
                     const obj = actorMoveables[a];
-                    for (let i = 0; i < obj.material.materials.length; ++i) {
-                        const material = obj.material.materials[i];
+                    for (let i = 0; i < obj.material.length; ++i) {
+                        const material = obj.material[i];
                         uniforms.push({ a:material.uniforms.tintColor.value, i:0 });
                     }
                 }

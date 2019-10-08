@@ -48,7 +48,7 @@ TRN.Behaviours.Fade.prototype = {
                 return;
             }
 
-            const materials = obj.material.materials;
+            const materials = obj.material;
             
 			if (!materials || !materials.length) {
                 return;

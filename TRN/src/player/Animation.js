@@ -70,7 +70,8 @@ TRN.Animation.addTrack = function(trackJSON, animTracks) {
         var key = new TRN.Animation.Key(keyJSON.time, boundingBox);
 
         for (var d = 0; d < dataJSON.length; ++d) {
-            key.addData(dataJSON[d].position, dataJSON[d].quaternion);
+            const q = dataJSON[d].quaternion;
+            key.addData(dataJSON[d].position, new THREE.Quaternion(q.x, q.y, q.z, q.w));
         }
 
         track.addKey(key);
@@ -146,11 +147,10 @@ TRN.Animation.Track.prototype = {
 
 }
 
-TRN.Animation.TrackInstance = function(track, obj, bonesStartingPos) {
+TRN.Animation.TrackInstance = function(track, skeleton) {
 
 	this.track = track;
-	this.obj = obj;
-	this.bonesStartingPos = bonesStartingPos;
+	this.skeleton = skeleton;
 
 	this.overallSpeed = 1.0;
 	this.activateInterpolation = true;
@@ -275,13 +275,18 @@ TRN.Animation.TrackInstance.prototype = {
 	},
 
 	interpolate : function(buffer, detectRecursInfinite) {
+        this._interpolate(buffer, detectRecursInfinite);
+        this.skeleton.updateBoneMatrices();
+    },
+
+    _interpolate : function(buffer, detectRecursInfinite) {
 
 		if (!this.interpolatedData) this.makeCache();
 
     	var curKey = this.param.curKey;
     	var internalBuffer = buffer == null;
 
-    	if (internalBuffer) buffer = this.obj.bones;
+    	if (internalBuffer) buffer = this.skeleton.bones;
 
 	    if (this.param.nextKeyIsInCurrentTrack || this.track.numKeys == 1 || detectRecursInfinite) {
 	    	var nextKey = curKey + 1;
@@ -304,9 +309,9 @@ TRN.Animation.TrackInstance.prototype = {
 			    buffer[numData].position.z = dataCurKey.position.z + (dataNextKey.position.z - dataCurKey.position.z) * this.param.interpFactor;
 
 			    if (internalBuffer) {
-			    	buffer[numData].position.x += this.bonesStartingPos[numData].pos_init[0];
-			    	buffer[numData].position.y += this.bonesStartingPos[numData].pos_init[1];
-			    	buffer[numData].position.z += this.bonesStartingPos[numData].pos_init[2];
+			    	buffer[numData].position.x += this.skeleton.bonesStartingPos[numData].pos_init[0];
+			    	buffer[numData].position.y += this.skeleton.bonesStartingPos[numData].pos_init[1];
+			    	buffer[numData].position.z += this.skeleton.bonesStartingPos[numData].pos_init[2];
 			    }
 
 				THREE.Quaternion.slerp(dataCurKey.quaternion, dataNextKey.quaternion, buffer[numData].quaternion, this.param.interpFactor);
@@ -330,9 +335,9 @@ TRN.Animation.TrackInstance.prototype = {
 			    buffer[numData].position.z = dataCurKey.position.z + (dataNextKey.position.z - dataCurKey.position.z) * this.param.interpFactor;
 
 			    if (internalBuffer) {
-			    	buffer[numData].position.x += this.bonesStartingPos[numData].pos_init[0];
-			    	buffer[numData].position.y += this.bonesStartingPos[numData].pos_init[1];
-			    	buffer[numData].position.z += this.bonesStartingPos[numData].pos_init[2];
+			    	buffer[numData].position.x += this.skeleton.bonesStartingPos[numData].pos_init[0];
+			    	buffer[numData].position.y += this.skeleton.bonesStartingPos[numData].pos_init[1];
+			    	buffer[numData].position.z += this.skeleton.bonesStartingPos[numData].pos_init[2];
 			    }
 
 				THREE.Quaternion.slerp(dataCurKey.quaternion, dataNextKey.quaternion, buffer[numData].quaternion, this.param.interpFactor);

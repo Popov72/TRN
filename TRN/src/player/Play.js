@@ -63,13 +63,11 @@ TRN.Play.prototype = {
 	constructor : TRN.Play,
 
 	start : async function (oscene) {
-        this.dbg = oscene.scene;
-
         this.gameData.sceneData = oscene.sceneJSON.data;
-		this.gameData.sceneRender = oscene.scene.scene;
+		this.gameData.sceneRender = oscene.scene;
         this.gameData.sceneBackground = new THREE.Scene();
 
-        this.gameData.camera = oscene.scene.currentCamera;
+        this.gameData.camera = this.gameData.sceneRender.getObjectByName("camera1");
 
         this.gameData.confMgr = this.gameData.sceneData.trlevel.confMgr;
         this.gameData.bhvMgr  = new TRN.Behaviours.BehaviourManager();
@@ -143,8 +141,8 @@ TRN.Play.prototype = {
 
 		window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
-		this.renderer.initWebGLObjects(this.gameData.sceneRender);
-        this.renderer.initWebGLObjects(this.gameData.sceneBackground);
+		//!this.renderer.initWebGLObjects(this.gameData.sceneRender);
+        //!this.renderer.initWebGLObjects(this.gameData.sceneBackground);
 
         this.gameData.startTime = this.gameData.quantumTime = (new Date()).getTime() / 1000.0;
     
@@ -182,10 +180,10 @@ TRN.Play.prototype = {
 
         this.gameData.bhvMgr.frameEnded(curTime, delta);
 
-		if (this.gameData.needWebGLInit) {
+		/*!if (this.gameData.needWebGLInit) {
 			this.gameData.needWebGLInit = false;
 			this.renderer.initWebGLObjects(this.gameData.sceneRender);
-		}
+		}*/
 
 		this.render();
 	},

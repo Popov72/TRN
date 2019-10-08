@@ -58,13 +58,13 @@ TRN.Behaviours.Lara.prototype = {
 
         }
 
-		TRN.Consts.leftThighIndex = parseInt(this.nbhv.pistol_anim.left_thigh) - 1;
+		TRN.Consts.leftThighIndex = parseInt(this.nbhv.pistol_anim.left_dthigh) - 1;
 		TRN.Consts.rightThighIndex = parseInt(this.nbhv.pistol_anim.right_thigh) - 1;
 		TRN.Consts.leftHandIndex = parseInt(this.nbhv.pistol_anim.left_hand) - 1;
 		TRN.Consts.rightHandIndex = parseInt(this.nbhv.pistol_anim.right_hand) - 1;
 
         // create pistolanim object
-        TRN.ObjectID.PistolAnim = parseInt(this.nbhv.pistol_anim.id);
+        /*!TRN.ObjectID.PistolAnim = parseInt(this.nbhv.pistol_anim.id);
 
         var mvb = this.objMgr.createMoveable(TRN.ObjectID.PistolAnim, -1, undefined, false, false);
         if (mvb) {
@@ -97,7 +97,7 @@ TRN.Behaviours.Lara.prototype = {
 			var mswap = new TRN.MeshSwap(obj[0], lara[0]);
 
 			mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.rightThighIndex]);
-		}
+		}*/
 
         resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     },

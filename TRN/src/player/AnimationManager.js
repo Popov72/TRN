@@ -28,7 +28,7 @@ TRN.AnimationManager.prototype = {
     setAnimation : function (obj, animIndex, desynchro) {
         var data = this.sceneData.objects[obj.name],
             track = this.sceneData.animTracks[animIndex],
-            trackInstance = track ? new TRN.Animation.TrackInstance(track, obj, data.bonesStartingPos) : null;
+            trackInstance = track ? new TRN.Animation.TrackInstance(track, data.skeleton) : null;
 
         if (trackInstance) {
             trackInstance.setNextTrackInstance(trackInstance, track.nextTrackFrame);
@@ -98,8 +98,7 @@ TRN.AnimationManager.prototype = {
                     obj.geometry.boundingBox = boundingBox;
 
                     if (obj.boxHelper) {
-                        this.gameData.needWebGLInit = true;
-                        obj.boxHelper.update(obj);
+                        obj.boxHelper.box = boundingBox;
                     }
                 }
             }

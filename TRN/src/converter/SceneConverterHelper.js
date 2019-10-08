@@ -1,70 +1,100 @@
 TRN.extend(TRN.SceneConverter.prototype, {
 
-	createNewJSONEmbed : function () {
+	createNewGeometryData : function () {
 		return {
-			"metadata" : {
-                "formatVersion" : 3
-			},
-			"scale" : 1.0,
-			"vertices": [],
-			"morphTargets": [],
-			"normals": [],
-			"colors": [],
-			"uvs": [[]],
-            "faces": [],
-            "normals": []
+            "attributes": {
+                "position": {
+                    "itemSize": 3,
+                    "type": "Float32Array",
+                    "array": [],
+                    "normalized": false
+                },
+                "normal": {
+                    "itemSize": 3,
+                    "type": "Float32Array",
+                    "array": [],
+                    "normalized": false
+                },
+                "uv": {
+                    "itemSize": 2,
+                    "type": "Float32Array",
+                    "array": [],
+                    "normalized": false
+                },
+                "color": {
+                    "itemSize": 3,
+                    "type": "Float32Array",
+                    "array": [],
+                    "normalized": false
+                },
+                "_flags": {
+                    "itemSize": 4,
+                    "type": "Float32Array",
+                    "array": [],
+                    "normalized": false
+                }
+            },
+            "index": {
+                "type": "Uint16Array",
+                "array": []
+            },
+            "groups": null,
+
+            "indices": [],
+            "vertices": [],
+            "colors": [],
+            "_flags": []
 		};
 	},
 
-	getMaterial : function (objType) {
-        var matName = 'TR_' + objType;
-        var mat = this.sc.materials[matName];
+	createMaterial : function (objType) {
+        const matName = 'TR_' + objType;
 
-        if (!mat) {
-            mat = this.sc.materials[matName] = {
-                "type": "ShaderMaterial",
-                "parameters": {
-                    "uniforms": {
-                        "map":          { type: "t",  value: "" },
-                        "mapBump":      { type: "t",  value: "" },
-                        "offsetBump":   { type: "f4", value: [0.0, 0.0, 0.0, 0.0] },
-                        "ambientColor": { type: "f3", value: [0.0, 0.0, 0.0] },
-                        "tintColor":    { type: "f3", value: [1.0, 1.0, 1.0] },
-                        "flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
-                        "curTime":      { type: "f",  value: 0.0 },
-                        "rnd":          { type: "f",  value: 0.0 },
-                        "offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
-                        "useFog":       { type: "i",  value: 0 },
-                        "lighting":     { type: "f3", value: [0, 0, 0] }
-                    },
-                    "vertexShader": this.shaderMgr.getVertexShader(objType),
-                    "fragmentShader": this.shaderMgr.getFragmentShader('standard'),
-                    "vertexColors" : true
-                }
-            };
-            switch(objType) {
-                case 'moveable':
-                    mat.parameters.skinning = true;
-                    mat.parameters.vertexColors = false;
-                    break;
-                case 'sprite':
-                    mat.parameters.vertexColors = false;
-                    break;
-                case 'sky':
-                    mat.parameters.skinning = true;
-                    mat.parameters.vertexColors = false;
-                    mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('sky');
-                    break;
-                case 'skydome':
-                    mat.parameters.fragmentShader = this.shaderMgr.getFragmentShader('skydome');
-                    mat.parameters.vertexColors = false;
-                    break;
-            }
-			mat.parameters.vertexShader   = mat.parameters.vertexShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
-			mat.parameters.fragmentShader = mat.parameters.fragmentShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
+        const mat = {
+            "type": "ShaderMaterial",
+            "name": matName,
+            "uniforms": {
+                "map":          { type: "t",  value: "" },
+                "mapBump":      { type: "t",  value: "" },
+                "offsetBump":   { type: "f4", value: [0.0, 0.0, 0.0, 0.0] },
+                "ambientColor": { type: "f3", value: [0.0, 0.0, 0.0] },
+                "tintColor":    { type: "f3", value: [1.0, 1.0, 1.0] },
+                "flickerColor": { type: "f3", value: [1.2, 1.2, 1.2] },
+                "curTime":      { type: "f",  value: 0.0 },
+                "rnd":          { type: "f",  value: 0.0 },
+                "offsetRepeat": { type: "f4", value: [0.0, 0.0, 1.0, 1.0] },
+                "useFog":       { type: "i",  value: 0 },
+                "lighting":     { type: "f3", value: [0, 0, 0] }
+            },
+            "vertexShader": this.shaderMgr.getVertexShader(objType),
+            "fragmentShader": this.shaderMgr.getFragmentShader('standard'),
+            "vertexColors": true,
+            "userData": {}
+        };
+
+        switch(objType) {
+            case 'moveable':
+                //mat.skinning = true;
+                mat.vertexColors = false;
+                break;
+            case 'sprite':
+                mat.vertexColors = false;
+                break;
+            case 'sky':
+                //mat.skinning = true;
+                mat.vertexColors = false;
+                mat.fragmentShader = this.shaderMgr.getFragmentShader('sky');
+                break;
+            case 'skydome':
+                mat.fragmentShader = this.shaderMgr.getFragmentShader('skydome');
+                mat.vertexColors = false;
+                break;
         }
 
-		return matName;
+        mat.vertexShader   = mat.vertexShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
+        mat.fragmentShader = mat.fragmentShader.replace(/##tr_version##/g, this.sc.data.trlevel.rversion.substr(2));
+
+        return mat;
 	},
 
 	getBoundingBox : function(vertices) {
@@ -125,23 +155,17 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		return {
 			x: vertex.x, y: -vertex.y, z: -vertex.z,
 			flag: [moveLight, 0, moveVertex, -strengthEffect],
-			color: lighting
+            color: lighting,
+            color2: [((lighting & 0xFF0000) >> 16)/255.0, ((lighting & 0xFF00) >> 8)/255.0, (lighting & 0xFF)/255.0]
 		};
 	},
 
-	makeFace : function (obj, oface, tiles2material, tex, ofstvert, mapObjTexture2AnimTexture, fidx) {
+	makeFace : function (obj, oface, tiles2material, tex, mapObjTexture2AnimTexture, fidx) {
         var vertices = oface.vertices, texture = oface.texture & 0x7FFF, isQuad = vertices.length == 4, tile = tex.tile & 0x7FFF, origTile = tex.origTile;
         
         if (origTile == undefined) {
             origTile = tile;
         }
-
-		obj.faces.push(isQuad ? 1+2+8+32+128 : 2+8+32+128); // 1=quad / 2=has material / 8=has vertex uv / 32=has vertex normal / 128=has vertex color
-
-		// vertex indices
-		for (var v = 0; v < vertices.length; ++v) {
-			obj.faces.push(vertices[fidx(v)] + ofstvert);
-		}
 
 		var minU = 0, minV = 0, maxV = 0;
         minU = minV = 1;
@@ -192,74 +216,102 @@ TRN.extend(TRN.SceneConverter.prototype, {
                 imat = imat.imat;
             }
 		}
-		obj.faces.push(imat); // index of material
 
-		// texture coords
+        if (!obj.indices[imat]) {
+            obj.indices[imat] = [];
+        }
+
 		var isAnimatedObject = obj.objHasScrollAnim;
-
-		var numUVs = parseInt(obj.uvs[0].length / 2);
+        
+        var posIdx = obj.attributes.position.array.length/3;
 		for (var tv = 0; tv < vertices.length; ++tv) {
-			obj.faces.push(numUVs++);
+            obj.attributes.position.array.push(obj.vertices[vertices[fidx(tv)]*3+0], obj.vertices[vertices[fidx(tv)]*3+1], obj.vertices[vertices[fidx(tv)]*3+2]);
+
 			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.sc.data.trlevel.atlas.width;
-			var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.sc.data.trlevel.atlas.height;
+            var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.sc.data.trlevel.atlas.height;
+            
 			if (!isAnimatedObject) {
-				obj.uvs[0].push(u, v);
+				obj.attributes.uv.array.push(u, v);
 			} else if (v != maxV) {
-				obj.uvs[0].push(u, v);
+				obj.attributes.uv.array.push(u, v);
 			} else {
-				obj.uvs[0].push(u, minV + (maxV - minV) / 2);
-			}
-		}
+				obj.attributes.uv.array.push(u, minV + (maxV - minV) / 2);
+            }
+            
+            if (obj.attributes.color) {
+                obj.attributes.color.array.push(obj.colors[vertices[fidx(tv)]*3+0], obj.colors[vertices[fidx(tv)]*3+1], obj.colors[vertices[fidx(tv)]*3+2]);
+            }
 
-        // vertex normals
-		for (var v = 0; v < vertices.length; ++v) {
-			obj.faces.push(vertices[fidx(v)] + ofstvert);
-		}
+            if (obj.attributes._flags) {
+                obj.attributes._flags.array.push(obj._flags[vertices[fidx(tv)]*4+0], obj._flags[vertices[fidx(tv)]*4+1], obj._flags[vertices[fidx(tv)]*4+2], obj._flags[vertices[fidx(tv)]*4+3]);
+            }
 
-		// vertex colors
-		for (var v = 0; v < vertices.length; ++v) {
-			obj.faces.push(vertices[fidx(v)] + ofstvert);
-		}
+            if (obj.attributes.skinIndex) {
+                obj.attributes.skinIndex.array.push(obj.skinIndices[vertices[fidx(tv)]*4+0], obj.skinIndices[vertices[fidx(tv)]*4+1], obj.skinIndices[vertices[fidx(tv)]*4+2], obj.skinIndices[vertices[fidx(tv)]*4+3]);
+            }
+            if (obj.attributes.skinWeight) {
+                obj.attributes.skinWeight.array.push(obj.skinWeights[vertices[fidx(tv)]*4+0], obj.skinWeights[vertices[fidx(tv)]*4+1], obj.skinWeights[vertices[fidx(tv)]*4+2], obj.skinWeights[vertices[fidx(tv)]*4+3]);
+            }
+        }
+
+        // faces
+        if (isQuad) {
+            obj.indices[imat].push(posIdx, posIdx + 1, posIdx + 3);
+            obj.indices[imat].push(posIdx + 1, posIdx + 2, posIdx + 3);
+        } else {
+            obj.indices[imat].push(posIdx, posIdx + 1, posIdx + 2);
+        }
 	},
 
-	makeFaces : function (obj, facearrays, tiles2material, objectTextures, mapObjTexture2AnimTexture, ofstvert) {
+	makeFaces : function (obj, facearrays, tiles2material, objectTextures, mapObjTexture2AnimTexture) {
 		for (var a = 0; a < facearrays.length; ++a) {
 			var lstface = facearrays[a];
 			for (var i = 0; i < lstface.length; ++i) {
 				var o = lstface[i];
 				var twoSided = (o.texture & 0x8000) != 0, tex = objectTextures[o.texture & 0x7FFF];
-				this.makeFace(obj, o, tiles2material, tex, ofstvert, mapObjTexture2AnimTexture, function(idx) { return o.vertices.length-1-idx; });
+				this.makeFace(obj, o, tiles2material, tex, mapObjTexture2AnimTexture, function(idx) { return o.vertices.length-1-idx; });
 				if (twoSided) {
-					this.makeFace(obj, o, tiles2material, tex, ofstvert, mapObjTexture2AnimTexture, function(idx) { return idx; });
+					this.makeFace(obj, o, tiles2material, tex, mapObjTexture2AnimTexture, function(idx) { return idx; });
 				}
 			}
 		}
 	},
 
-	makeMeshGeometry : function (mesh, meshnum, meshJSON, tiles2material, objectTextures, mapObjTexture2AnimTexture, ofstvert, attributes, skinidx, skinIndices, skinWeights) {
-		var internallyLit = mesh.lights.length > 0;
+	makeMeshGeometry : function (mesh, meshnum, meshJSON, tiles2material, objectTextures, mapObjTexture2AnimTexture, skinidx) {
+        var internallyLit = mesh.lights.length > 0;
+        const skinIndices = [], skinWeights = [];
 
+        meshJSON.skinIndices = skinIndices;
+        meshJSON.skinWeights = skinWeights;
+        
 		// push the vertices + vertex colors of the mesh
 		for (var v = 0; v < mesh.vertices.length; ++v) {
 			var vertex = mesh.vertices[v], lighting = internallyLit ? 1.0 - mesh.lights[v]/8192.0 : 1.0;
 
-			var vcolor = parseInt(lighting*255);
-
 			meshJSON.vertices.push(vertex.x, -vertex.y, -vertex.z);
-			meshJSON.colors.push(vcolor + (vcolor << 8) + (vcolor << 16)); 	// not used => a specific calculation is done in the vertex shader 
-																			// with the constant lighting for the mesh + the lighting at each vertex (passed to the shader via flags.w)
-
-			if (attributes)  attributes._flags.value.push([0, 0, 0, lighting]);
-			if (skinIndices) skinIndices.push(skinidx, skinidx);
-			if (skinWeights) skinWeights.push(1.0, 1.0);
+			meshJSON.colors.push(lighting, lighting, lighting); 	// not used => a specific calculation is done in the vertex shader 
+    																// with the constant lighting for the mesh + the lighting at each vertex (passed to the shader via flags.w)
+            meshJSON._flags.push(0, 0, 0, lighting);
+            
+			if (skinidx !== undefined) {
+                skinIndices.push(skinidx, skinidx, 0, 0);
+                skinWeights.push(0.5, 0.5, 0, 0);
+            }
 		}
 
-		this.makeFaces(meshJSON, [mesh.texturedRectangles, mesh.texturedTriangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, ofstvert);
+		this.makeFaces(meshJSON, [mesh.texturedRectangles, mesh.texturedTriangles], tiles2material, objectTextures, mapObjTexture2AnimTexture);
 
+        meshJSON.vertices = [];
+        meshJSON.colors = [];
+        meshJSON._flags = [];
+        
+        delete meshJSON.skinIndices;
+        delete meshJSON.skinWeights;
+        
 		return internallyLit;
 	},
 
-	makeMaterialList : function (tiles2material, matname) {
+	makeMaterialList : function (tiles2material, matname, id) {
 		if (!matname) matname = 'room';
 		var lstMat = [];
 		for (var tile in tiles2material) {
@@ -269,18 +321,15 @@ TRN.extend(TRN.SceneConverter.prototype, {
             var isBump = tile.substr(0, 4) == 'bump';
             if (isAlphaText) tile = tile.substr(5);
             if (isBump) tile = oimat.tile;
-			lstMat[imat] = {
-				"material": this.getMaterial(matname),
-				"uniforms": {},
-				"userData": {}
-            };
-            lstMat[imat].uniforms = jQuery.extend(true, {}, this.sc.materials[lstMat[imat].material].parameters.uniforms);
+
+            lstMat[imat] = this.createMaterial(matname);
+            lstMat[imat].uuid = id + '-' + imat;
             
 			if (isAnimText) {
                 var idxAnimText = parseInt(tile.split('_')[1]), pos = parseInt(tile.split('_')[2]);
 				isAlphaText = tile.substr(7, 5) == 'alpha';
-                lstMat[imat].uniforms.map.value = "" + oimat.tile;
-				lstMat[imat].uniforms.mapBump.value = "" + oimat.tile;
+                lstMat[imat].uniforms.map.value = "texture" + oimat.tile;
+				lstMat[imat].uniforms.mapBump.value = "texture" + oimat.tile;
 				lstMat[imat].userData.animatedTexture = {
 					"idxAnimatedTexture": idxAnimText,
                     "pos": pos,
@@ -288,20 +337,20 @@ TRN.extend(TRN.SceneConverter.prototype, {
                     "minV": oimat.minV
                 };
 			} else {
-				lstMat[imat].uniforms.map.value = "" + tile;
-				lstMat[imat].uniforms.mapBump.value = "" + tile;
+				lstMat[imat].uniforms.map.value = "texture" + tile;
+				lstMat[imat].uniforms.mapBump.value = "texture" + tile;
 				if (isBump) {
                     if (this.sc.data.trlevel.atlas.make) {
                         var row0 = Math.floor(origTile / this.sc.data.trlevel.atlas.numColPerRow), col0 = origTile - row0 * this.sc.data.trlevel.atlas.numColPerRow;
                         var row = Math.floor((origTile + this.sc.data.trlevel.numBumpTextiles/2) / this.sc.data.trlevel.atlas.numColPerRow), col = (origTile + this.sc.data.trlevel.numBumpTextiles/2) - row * this.sc.data.trlevel.atlas.numColPerRow;
-                        lstMat[imat].uniforms.mapBump.value = "" + tile;
+                        lstMat[imat].uniforms.mapBump.value = "texture" + tile;
                         lstMat[imat].uniforms.offsetBump.value = [(col-col0)*256.0/this.sc.data.trlevel.atlas.width, (row-row0)*256.0/this.sc.data.trlevel.atlas.height,0,1];
                     } else {
-                        lstMat[imat].uniforms.mapBump.value = "" + (Math.floor(origTile) + this.sc.data.trlevel.numBumpTextiles/2);
+                        lstMat[imat].uniforms.mapBump.value = "texture" + (Math.floor(origTile) + this.sc.data.trlevel.numBumpTextiles/2);
                     }
 				}
 			}
-			lstMat[imat].hasAlpha = isAlphaText;
+			lstMat[imat].transparent = isAlphaText;
 
 		}
 		return lstMat;

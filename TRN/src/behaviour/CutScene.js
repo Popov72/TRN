@@ -99,7 +99,7 @@ TRN.Behaviours.CutScene.prototype = {
                 const obj = lstObj[i],
                       data = this.sceneData.objects[obj.name];
 
-                if (data.dummy || !(obj instanceof THREE.SkinnedMesh) || !data.has_anims || !data.visible) continue;
+                if (data.dummy || !data.has_anims || !data.visible) continue;
 
                 this.objects[obj.name] = obj;
             }
@@ -122,7 +122,7 @@ TRN.Behaviours.CutScene.prototype = {
                 registered[anmIndex] = true;
 
                 const track = this.sceneData.animTracks[anmIndex],
-                      trackInstance = new TRN.Animation.TrackInstance(track, obj, data.bonesStartingPos);
+                      trackInstance = new TRN.Animation.TrackInstance(track, data.skeleton);
 
                 allTrackInstances[anmIndex] = trackInstance;
 
@@ -196,10 +196,10 @@ TRN.Behaviours.CutScene.prototype = {
 				lkat.applyQuaternion(q);
 
 				this.camera.fov = fov;
-				this.camera.position = eyePos;
+				this.camera.position.set(eyePos.x, eyePos.y, eyePos.z);
 				this.camera.position.applyQuaternion(q);
 				this.camera.lookAt(lkat);
-				this.camera.position.add(this.cutscene.position);
+                this.camera.position.add(this.cutscene.position);
 				this.camera.quaternion.multiplyQuaternions(q.setFromAxisAngle( {x:0,y:1,z:0}, THREE.Math.degToRad(roll) ), this.camera.quaternion);
 				this.camera.updateProjectionMatrix();
 			}
@@ -221,9 +221,9 @@ TRN.Behaviours.CutScene.prototype = {
 
             const pos = { x:obj.position.x, y:obj.position.y, z:obj.position.z };
 
-            pos.x += obj.bones[0].position.x;
-            pos.y += obj.bones[0].position.y;
-            pos.z += obj.bones[0].position.z;
+            pos.x += data.skeleton.bones[0].position.x;
+            pos.y += data.skeleton.bones[0].position.y;
+            pos.z += data.skeleton.bones[0].position.z;
 
             //const roomObj = this.trlvl.getRoomByPos(pos);
             const roomObj = this.objMgr.getRoomByPos(pos);
@@ -242,8 +242,8 @@ TRN.Behaviours.CutScene.prototype = {
 
                 if (curLIdx >= 0 && newLIdx >= 0) {
                     const uniforms = [];
-                    for (let i = 0; i < obj.material.materials.length; ++i) {
-                        const material = obj.material.materials[i];
+                    for (let i = 0; i < obj.material.length; ++i) {
+                        const material = obj.material[i];
                         uniforms.push({ a:material.uniforms.directionalLight_color.value, i:0 });
                     }
                     this.bhvMgr.addBehaviour('FadeUniformColor', 

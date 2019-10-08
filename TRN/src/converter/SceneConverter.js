@@ -18,10 +18,21 @@ TRN.SceneConverter.prototype = {
 		// create one texture per tile	
 		for (var i = 0; i < this.sc.data.trlevel.textile.length; ++i) {
 			var name = 'texture' + i;
-			this.sc.textures[name] = {
-				"url": this.sc.data.trlevel.textile[i],
-				"anisotropy": 16
-			};
+			this.sc.textures.push({
+                "uuid": name,
+                "name": name,
+                "anisotropy": 16,
+                "flipY": false,
+                "image": name,
+                "wrap": [1001, 1001], /* 1001=ClampToEdgeWrapping */
+                "minFilter": 1006, /* 1006=LinearFilter */
+                "magFilter": 1006
+            });
+
+			this.sc.images.push({
+                "uuid": name,
+				"url": this.sc.data.trlevel.textile[i]
+			});
 		}
 	},
 
@@ -64,21 +75,53 @@ TRN.SceneConverter.prototype = {
     createAllStaticMeshes : function() {
 		for (let s = 0; s < this.sc.data.trlevel.staticMeshes.length; ++s) {
             const smesh = this.sc.data.trlevel.staticMeshes[s],
-                  mindex = smesh.mesh,
+                  meshIndex = smesh.mesh,
                   objectID = smesh.objectID,
                   flags = smesh.flags;
 
-            this.createMesh(mindex);
+            const mesh = this.sc.data.trlevel.meshes[meshIndex];
+            const meshJSON = this.createNewGeometryData();
+            
+            var tiles2material = {};
+    
+            this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture);
+    
+            const materials = this.makeMaterialList(tiles2material, 'mesh', 'mesh' + meshIndex);
+            
+            meshJSON.groups = [];
+            
+            for (let i = 0, ofst = 0; i < meshJSON.indices.length; ++i) {
+                const indices = meshJSON.indices[i];
+                meshJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
+                ofst += indices.length;
+                meshJSON.index.array.push.apply(meshJSON.index.array, indices);
+            }
 
+            delete meshJSON.indices;
+            delete meshJSON.vertices;
+            delete meshJSON.colors;
+            delete meshJSON._flags;
+
+            this.sc.geometries.push({
+                "uuid": 'mesh' + meshIndex,
+                "type": "BufferGeometry",
+                "data": meshJSON
+            });
+    
             const meshid = 'staticmesh' + objectID;
 
-            this.sc.objects[meshid] = {
-                "geometry" 		: 'mesh' + mindex,
-                "material" 		: this.sc.embeds['mesh' + mindex]._materials,
+            this.sc.materials.push(...materials);
+
+            this.objects.push({
+                "uuid"          : meshid,
+                "type"          : "Mesh",
+                "name"          : meshid,
+                "geometry" 		: 'mesh' + meshIndex,
+                "material" 		: materials.map( (m) => m.uuid ),
                 "position" 		: [ 0, 0, 0 ],
                 "quaternion" 	: [ 0, 0, 0, 1 ],
                 "scale"	   		: [ 1, 1, 1 ]
-            };
+            });
             
             this.sc.data.objects[meshid] = {
                 "type"			: 'staticmesh',
@@ -86,53 +129,31 @@ TRN.SceneConverter.prototype = {
                 "roomIndex"		: -1,
                 "objectid"      : objectID,
                 "visible"  		: false,
-                "attributes"    : this.sc.embeds['mesh' + mindex].attributes,
                 "flags"         : flags
             };
         }
     },
 
-	// create one mesh
-	createMesh : function (meshIndex) {
-		if (this.sc.embeds['mesh' + meshIndex]) return -1; // mesh already created
-
-		var mesh = this.sc.data.trlevel.meshes[meshIndex];
-		var meshJSON = this.createNewJSONEmbed();
-		var attributes = {
-			_flags: { type:"f4", value:[] }
-		};
-		var tiles2material = {};
-
-		meshJSON.attributes = attributes;
-
-		var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, 0, attributes);
-
-		meshJSON._materials = this.makeMaterialList(tiles2material, 'mesh');
-
-		this.sc.embeds['mesh' + meshIndex] = meshJSON;
-		this.sc.geometries['mesh' + meshIndex] = {
-			"type": "embedded",
-			"id"  : "mesh" + meshIndex
-		};
-
-		return internalLit ? 1 : 0;
-	},
-
     createAllSprites : function() {
         for (var s = 0; s < this.sc.data.trlevel.spriteTextures.length; ++s) {
             var sprite = this.sc.data.trlevel.spriteTextures[s];
 
-            this.createSpriteSeq(s);
+            const geometry = this.createSpriteSeq(s);
 
-            var spriteid = 'sprite' + s;
+            const spriteid = 'sprite' + s;
 
-            this.sc.objects[spriteid] = {
-                "geometry" 		: spriteid,
-                "material" 		: this.sc.embeds[spriteid]._materials,
+            this.sc.materials.push(...geometry.materials);
+
+            this.objects.push({
+                "uuid"          : spriteid,
+                "type"          : "Mesh",
+                "name"          : spriteid,
+                "geometry" 		: geometry.uuid,
+                "material" 		: geometry.materials.map( (m) => m.uuid ),
                 "position" 		: [ 0, 0, 0 ],
                 "quaternion" 	: [ 0, 0, 0, 1 ],
                 "scale"	   		: [ 1, 1, 1 ]
-            };
+            });
 
             this.sc.data.objects[spriteid] = {
                 "type"			: 'sprite',
@@ -142,7 +163,6 @@ TRN.SceneConverter.prototype = {
                 "visible"  		: false
             };
         }
-
     },
 
 	//  create a sprite sequence: if there's more than one sprite in the sequence, we create an animated texture
@@ -170,10 +190,12 @@ TRN.SceneConverter.prototype = {
 			spriteid = 'spriteseq' + spriteSeq.objectID;
 		}
 
-
 		var sprite = this.sc.data.trlevel.spriteTextures[spriteIndex];
-		var meshJSON = this.createNewJSONEmbed();
+		var meshJSON = this.createNewGeometryData();
 		var tiles2material = {};
+
+        delete meshJSON.attributes.color;
+        delete meshJSON.attributes._flags;
 
 		meshJSON.vertices.push(sprite.leftSide,  -sprite.topSide,       0);
 		meshJSON.vertices.push(sprite.leftSide,  -sprite.bottomSide,    0);
@@ -229,15 +251,32 @@ TRN.SceneConverter.prototype = {
 
 		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
-		meshJSON._materials = this.makeMaterialList(tiles2material, 'sprite');
+        const materials = this.makeMaterialList(tiles2material, 'sprite', spriteid);
 
-		this.sc.embeds[spriteid] = meshJSON;
-		this.sc.geometries[spriteid] = {
-			"type": "embedded",
-			"id"  : spriteid
-		};
+        meshJSON.groups = [];
+            
+        for (let i = 0, ofst = 0; i < meshJSON.indices.length; ++i) {
+            const indices = meshJSON.indices[i];
+            meshJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
+            ofst += indices.length;
+            meshJSON.index.array.push.apply(meshJSON.index.array, indices);
+        }
 
-		return true;
+        delete meshJSON.indices;
+        delete meshJSON.vertices;
+        delete meshJSON.colors;
+        delete meshJSON._flags;
+
+		this.sc.geometries.push({
+            "uuid": spriteid,
+			"type": "BufferGeometry",
+			"data": meshJSON
+		});
+
+        return { 
+            "uuid": spriteid,
+            "materials": materials
+        };
 	},
 
 	// generate the rooms + static meshes + sprites in the room
@@ -264,12 +303,17 @@ TRN.SceneConverter.prototype = {
 			var info = room.info, rdata = room.roomData, rflags = room.flags, lightMode = room.lightMode;
 			var isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
             
-			this.sc.objects['room' + m] = {
+            const roomMesh = {
+                "uuid"              : "room" + m,
+                "type"              : "Mesh",
+                "name"              : "room" + m,
 				"geometry" 			: "room" + m,
 				"position" 			: [ 0, 0, 0 ],
 				"quaternion" 		: [ 0, 0, 0, 1 ],
 				"scale"	   			: [ 1, 1, 1 ]
-			};
+            };
+            
+            this.objects.push(roomMesh);
 
             var roomData = {
 				"type"				: 'room',
@@ -390,14 +434,9 @@ TRN.SceneConverter.prototype = {
 			roomData.ambientColor = ambientColor;
 
             // room geometry
-            var roomJSON = this.createNewJSONEmbed();
+            var roomJSON = this.createNewGeometryData();
             
-            var attributes = {
-				_flags: { type:"f4", value:[] }
-			};
 			var tiles2material = {};
-
-			roomData.attributes = attributes;
 
 			// push the vertices + vertex colors of the room
 			for (var v = 0; v < rdata.vertices.length; ++v) {
@@ -405,21 +444,40 @@ TRN.SceneConverter.prototype = {
 				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater);
 
 				roomJSON.vertices.push(vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z);
-				attributes._flags.value.push(vertexInfo.flag);
-				roomJSON.colors.push(vertexInfo.color);
+				roomJSON.colors.push(vertexInfo.color2[0], vertexInfo.color2[1], vertexInfo.color2[2]);
+				roomJSON._flags.push(vertexInfo.flag[0], vertexInfo.flag[1], vertexInfo.flag[2], vertexInfo.flag[3]);
 			}
 
 			// create the tri/quad faces
 			this.makeFaces(roomJSON, [rdata.rectangles, rdata.triangles], tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, 0);
             
-			// add the room to the scene
-			this.sc.embeds['room' + m] = roomJSON;
-			this.sc.geometries['room' + m] = {
-				"type": "embedded",
-				"id"  : "room" + m
-            };
+            const materials = this.makeMaterialList(tiles2material, 'room', 'room' + m);
+
+            this.sc.materials.push(...materials);
+
+            if (materials.length != roomJSON.indices.length) {
+                console.log('Pb in room geometry!', materials, roomJSON.indices);
+            }
+
+            roomJSON.groups = [];
             
-			this.sc.objects['room' + m].material = this.makeMaterialList(tiles2material, 'room');
+            for (let i = 0, ofst = 0; i < roomJSON.indices.length; ++i) {
+                const indices = roomJSON.indices[i];
+                roomJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
+                ofst += indices.length;
+                roomJSON.index.array.push.apply(roomJSON.index.array, indices);
+            }
+
+            delete roomJSON.indices;
+                        
+			// add the room geometry to the scene
+			this.sc.geometries.push({
+                "uuid": "room" + m,
+				"type": "BufferGeometry",
+				"data": roomJSON
+            });
+            
+            roomMesh.material = materials.map( (m) => m.uuid );
 
 			// portal in the room
 			var portals = [];
@@ -606,8 +664,7 @@ TRN.SceneConverter.prototype = {
 
 	},
 
-	createMoveables : function () {
-
+    createAllMoveables : function() {
 		var objIdAnim  = this.confMgr.param('behaviour[name="ScrollTexture"]', true, true);
         var lstIdAnim  =  {};
         
@@ -618,123 +675,135 @@ TRN.SceneConverter.prototype = {
             }
         }
 
-		var numMoveables = 0;
-		for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
-			var moveable = this.sc.data.trlevel.moveables[m];
-
-			var numMeshes = moveable.numMeshes, meshIndex = moveable.startingMesh, meshTree = moveable.meshTree;
-			var isDummy = numMeshes == 1 && this.sc.data.trlevel.meshes[meshIndex].dummy && !moveable.objectID == this.laraObjectID;
-
-			if (this.sc.geometries['moveable' + moveable.objectID] || isDummy) continue;
-
-			var meshJSON = this.createNewJSONEmbed();
-			var attributes = {
-				_flags: { type:"f4", value:[] }
-			};
-			var tiles2material = {};
-			var stackIdx = 0, stack = [], parent = -1;
-			var px = 0, py = 0, pz = 0, ofsvert = 0, bones = [], skinIndices = [], skinWeights = [];
-
-			meshJSON.attributes = attributes;
-			meshJSON.objHasScrollAnim = moveable.objectID in lstIdAnim;
-
-			var moveableIsExternallyLit = false;
-			for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
-				if (idx != 0) {
-					var sflag = this.sc.data.trlevel.meshTrees[meshTree++].coord;
-					px = this.sc.data.trlevel.meshTrees[meshTree++].coord;
-					py = this.sc.data.trlevel.meshTrees[meshTree++].coord;
-					pz = this.sc.data.trlevel.meshTrees[meshTree++].coord;
-					if (sflag & 1) {
-                        if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
-                        parent = stack[--stackIdx];
-					}
-					if (sflag & 2) {
-						stack[stackIdx++] = parent;
-					}
-				}
-
-				var mesh = this.sc.data.trlevel.meshes[meshIndex];
-
-                if ((mesh.dummy && this.sc.data.trlevel.rversion == 'TR4') || (idx == 0 && this.sc.data.trlevel.rversion == 'TR4' && moveable.objectID == TRN.ObjectID.LaraJoints)) {
-                    // hack to remove bad data from joint #0 of Lara joints in TR4
-                } else {
-                    var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, ofsvert, attributes, idx, skinIndices, skinWeights);
-                    
-                    moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
-
-                    ofsvert = parseInt(meshJSON.vertices.length/3);
-                }
-
-				bones.push({
-					"parent": parent,
-					"name": "mesh#" + meshIndex,
-					"pos": [ 0, 0, 0 ],
-					"pos_init": [ px, -py, -pz ],
-					"rotq": [ 0, 0, 0, 1]
-				});
-
-				parent = idx;
-			}
-
-			meshJSON.bones = bones;
-			meshJSON.skinIndices = skinIndices;
-			meshJSON.skinWeights = skinWeights;
-			meshJSON.moveableIsInternallyLit = !moveableIsExternallyLit;
-
-			meshJSON._materials = this.makeMaterialList(tiles2material, 'moveable');
-
-			this.sc.embeds['moveable' + moveable.objectID] = meshJSON;
-			this.sc.geometries['moveable' + moveable.objectID] = {
-				"type": "embedded",
-				"id"  : "moveable" + moveable.objectID
-			};
-
-			numMoveables++;
-		}
-
-		console.log('Num moveables=', numMoveables)
-	},
-
-    createAllMoveableInstances : function() {
-        this.createMoveables();
-
         for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
             var moveable = this.sc.data.trlevel.moveables[m];
 
-            this.createMoveableInstance(moveable);
+            this.createMoveable(moveable, lstIdAnim);
         }
     },
 
-	createMoveableInstance : function(moveable) {
+	createMoveable : function(moveable, lstIdAnim) {
 		var jsonid = 'moveable' + moveable.objectID;
 
 		var objIDForVisu = this.confMgr.number('moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
 
-        var hasGeometry = this.sc.embeds['moveable' + objIDForVisu];
-        
-		this.sc.objects[jsonid] = {
-			"geometry" 				: hasGeometry ? "moveable" + objIDForVisu : null,
-			"material" 				: hasGeometry ? hasGeometry._materials : null,
-			"position" 				: [ 0, 0, 0 ],
-			"quaternion" 			: [ 0, 0, 0, 1 ],
-			"scale"	   				: [ 1, 1, 1 ],
-			"skin"					: true,
-			"use_vertex_texture" 	: true
-		};
+        const moveableGeom = this.sc.data.trlevel.moveables[this.movObjID2Index[objIDForVisu]];
 
-        this.sc.data.objects[jsonid] = {
-			"type"   				: 'moveable',
-            "raw"                   : moveable,
-            "has_anims"				: hasGeometry ? true : false,
-            "numAnimations"         : hasGeometry ? moveable.numAnimations : 0,
-			"roomIndex"				: -1,
-			"animationStartIndex"	: moveable.animation,
-            "objectid"              : moveable.objectID,
-            "visible"  				: false,
-            "bonesStartingPos"      : hasGeometry ? hasGeometry.bones : null,
-            "attributes"            : hasGeometry ? hasGeometry.attributes : null,
-            "internallyLit"         : hasGeometry ? hasGeometry.moveableIsInternallyLit : false
+        var numMeshes = moveableGeom.numMeshes, meshIndex = moveableGeom.startingMesh, meshTree = moveableGeom.meshTree;
+        var moveableIsExternallyLit = false, materials = null, meshJSON = null;
+        var isDummy = numMeshes == 1 && this.sc.data.trlevel.meshes[meshIndex].dummy && !moveableGeom.objectID == this.laraObjectID;
+
+        if (!isDummy) {
+            meshJSON = this.createNewGeometryData();
+
+            delete meshJSON.attributes.color;
+
+            var tiles2material = {};
+            var stackIdx = 0, stack = [], parent = -1;
+            var px = 0, py = 0, pz = 0, bones = [];
+
+            meshJSON.objHasScrollAnim = moveableGeom.objectID in lstIdAnim;
+
+            meshJSON.attributes['skinIndex'] = {
+                "itemSize": 4,
+                "type": "Float32Array",
+                "array": [],
+                "normalized": false
+            }
+            meshJSON.attributes['skinWeight'] = {
+                "itemSize": 4,
+                "type": "Float32Array",
+                "array": [],
+                "normalized": false
+            }
+
+            for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
+                if (idx != 0) {
+                    var sflag = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+                    px = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+                    py = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+                    pz = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+                    if (sflag & 1) {
+                        if (stackIdx == 0) stackIdx = 1; // some moveables can have stackPtr == -1 without this test... (look in joby1a.tr4 for eg)
+                        parent = stack[--stackIdx];
+                    }
+                    if (sflag & 2) {
+                        stack[stackIdx++] = parent;
+                    }
+                }
+
+                var mesh = this.sc.data.trlevel.meshes[meshIndex];
+
+                if ((mesh.dummy && this.sc.data.trlevel.rversion == 'TR4') || (idx == 0 && this.sc.data.trlevel.rversion == 'TR4' && moveableGeom.objectID == TRN.ObjectID.LaraJoints)) {
+                    // hack to remove bad data from joint #0 of Lara joints in TR4
+                } else {
+                    var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, idx);
+                    
+                    moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
+                }
+
+                bones.push({
+                    "parent": parent,
+                    "name": "mesh#" + meshIndex,
+                    "pos": [ 0, 0, 0 ],
+                    "pos_init": [ px, -py, -pz ],
+                    "rotq": [ 0, 0, 0, 1]
+                });
+
+                parent = idx;
+            }
+
+            meshJSON.bones = bones;
+
+            materials = this.makeMaterialList(tiles2material, 'moveable', jsonid);
+
+            meshJSON.groups = [];
+            
+            for (let i = 0, ofst = 0; i < meshJSON.indices.length; ++i) {
+                const indices = meshJSON.indices[i];
+                meshJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
+                ofst += indices.length;
+                meshJSON.index.array.push.apply(meshJSON.index.array, indices);
+            }
+
+            delete meshJSON.indices;
+            delete meshJSON.vertices;
+            delete meshJSON.colors;
+            delete meshJSON._flags;
+
+            this.sc.geometries.push({
+                "uuid": jsonid,
+                "type": "BufferGeometry",
+                "data": meshJSON
+            });
+            
+            if (materials) {
+                this.sc.materials.push(...materials);
+            }
+
+            this.objects.push({
+                "uuid"                  : jsonid,
+                "type"                  : "Mesh",
+                "name"                  : jsonid,
+                "geometry" 				: !isDummy ? jsonid : null,
+                "material" 				: !isDummy ? materials.map( (m) => m.uuid ) : null,
+                "position" 				: [ 0, 0, 0 ],
+                "quaternion" 			: [ 0, 0, 0, 1 ],
+                "scale"	   				: [ 1, 1, 1 ]
+            });
+
+            this.sc.data.objects[jsonid] = {
+                "type"   				: 'moveable',
+                "raw"                   : moveable,
+                "has_anims"				: !isDummy,
+                "numAnimations"         : !isDummy ? moveable.numAnimations : 0,
+                "roomIndex"				: -1,
+                "animationStartIndex"	: moveable.animation,
+                "objectid"              : moveable.objectID,
+                "visible"  				: false,
+                "bonesStartingPos"      : !isDummy ? meshJSON.bones : null,
+                "internallyLit"         : !moveableIsExternallyLit
+            }
         }
 	},
 
@@ -742,30 +811,35 @@ TRN.SceneConverter.prototype = {
         for (let s = 0; s < this.sc.data.trlevel.spriteSequences.length; ++s) {
             const spriteSeq = this.sc.data.trlevel.spriteSequences[s];
 
-            this.createSpriteSeqInstance(spriteSeq);
+            this.createSpriteSequence(spriteSeq);
         }
     },
 
-	createSpriteSeqInstance : function(spriteSeq) {
-            this.createSpriteSeq(spriteSeq);
-        
-            var spriteid = 'spriteseq' + spriteSeq.objectID;
+	createSpriteSequence : function(spriteSeq) {
+        const geometry = this.createSpriteSeq(spriteSeq);
+    
+        const spriteid = 'spriteseq' + spriteSeq.objectID;
 
-			this.sc.objects[spriteid] = {
-				"geometry" 	    : spriteid,
-				"material" 	    : this.sc.embeds[spriteid]._materials,
-				"position" 	    : [ 0, 0, 0 ],
-				"quaternion"    : [ 0, 0, 0, 1 ],
-				"scale"	   	    : [ 1, 1, 1 ]
-            };
-            
-            this.sc.data.objects[spriteid] = {
-				"type" 	        : 'spriteseq',
-                "raw"           : spriteSeq,
-				"roomIndex"	    : -1,
-                "objectid"      : spriteSeq.objectID,
-                "visible"  	    : false
-            }    
+        this.sc.materials.push(...geometry.materials);
+
+        this.objects.push({
+            "uuid"          : spriteid,
+            "type"          : "Mesh",
+            "name"          : spriteid,
+            "geometry" 	    : geometry.uuid,
+            "material" 		: geometry.materials.map( (m) => m.uuid ),
+            "position" 	    : [ 0, 0, 0 ],
+            "quaternion"    : [ 0, 0, 0, 1 ],
+            "scale"	   	    : [ 1, 1, 1 ]
+        });
+        
+        this.sc.data.objects[spriteid] = {
+            "type" 	        : 'spriteseq',
+            "raw"           : spriteSeq,
+            "roomIndex"	    : -1,
+            "objectid"      : spriteSeq.objectID,
+            "visible"  	    : false
+        }
 	},
 
     // remove animations for moveables that have a single animation with a single keyframe
@@ -773,15 +847,14 @@ TRN.SceneConverter.prototype = {
 
         var numOptimized = 0;
 
-        for (var objID in this.sc.objects) {
-
-            var objJSON = this.sc.objects[objID], data = this.sc.data.objects[objID];
+        for (var i = 0; i < this.objects.length; ++i) {
+            var objJSON = this.objects[i], data = this.sc.data.objects[objJSON.name];
 
             if (!data.has_anims) continue;
 
             var track = this.sc.data.animTracks[data.animationStartIndex];
 
-            if (!track || track.nextTrack != data.animationStartIndex) { // the moveables has more than one anim
+            if (!track || track.nextTrack != data.animationStartIndex) { // the moveable has more than one anim
                 continue;
             }
 
@@ -822,74 +895,35 @@ TRN.SceneConverter.prototype = {
         var vA, vB, vC, vD;
         var cb, ab, db, dc, bc, cross;
 
-        for (var id in this.sc.embeds) {
-            var embed = this.sc.embeds[id];
-            var vertices = embed.vertices, faces = embed.faces;
+        for (var i = 0; i < this.sc.geometries.length; ++i) {
+            var geom = this.sc.geometries[i].data;
+            var vertices = geom.attributes.position.array, indices = geom.index.array;
 
-            var normals = embed.normals;
+            var normals = geom.attributes.normal.array;
 
-            for (var v = 0; v < vertices.length; ++v) normals.push(0);
+            for (var v = 0; v < vertices.length; ++v) {
+                normals.push(0);
+            }
 
             var f = 0;
-            while (f < faces.length) {
-                let isTri = (faces[f] & 1) == 0, faceSize = isTri ? 14 : 18;
+            while (f < indices.length) {
+                vA = [ vertices[ indices[ f + 0 ] * 3 + 0 ], vertices[ indices[ f + 0 ] * 3 + 1 ], vertices[ indices[ f + 0 ] * 3 + 2 ] ];
+                vB = [ vertices[ indices[ f + 1 ] * 3 + 0 ], vertices[ indices[ f + 1 ] * 3 + 1 ], vertices[ indices[ f + 1 ] * 3 + 2 ] ];
+                vC = [ vertices[ indices[ f + 2 ] * 3 + 0 ], vertices[ indices[ f + 2 ] * 3 + 1 ], vertices[ indices[ f + 2 ] * 3 + 2 ] ];
 
-                if ( isTri ) {
+                cb = [ vC[0] - vB[0], vC[1] - vB[1], vC[2] - vB[2] ];
+                ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
+                cross = [ 
+                    cb[1] * ab[2] - cb[2] * ab[1],
+                    cb[2] * ab[0] - cb[0] * ab[2],
+                    cb[0] * ab[1] - cb[1] * ab[0]
+                ];
 
-                    vA = [ vertices[ faces[ f + 1 ] * 3 + 0 ], vertices[ faces[ f + 1 ] * 3 + 1 ], vertices[ faces[ f + 1 ] * 3 + 2 ] ];
-                    vB = [ vertices[ faces[ f + 2 ] * 3 + 0 ], vertices[ faces[ f + 2 ] * 3 + 1 ], vertices[ faces[ f + 2 ] * 3 + 2 ] ];
-                    vC = [ vertices[ faces[ f + 3 ] * 3 + 0 ], vertices[ faces[ f + 3 ] * 3 + 1 ], vertices[ faces[ f + 3 ] * 3 + 2 ] ];
-
-                    cb = [ vC[0] - vB[0], vC[1] - vB[1], vC[2] - vB[2] ];
-                    ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
-                    cross = [ 
-                        cb[1] * ab[2] - cb[2] * ab[1],
-                        cb[2] * ab[0] - cb[0] * ab[2],
-                        cb[0] * ab[1] - cb[1] * ab[0]
-                    ];
-
-                    normals[ faces[ f + 1 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 1 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 1 ] * 3 + 2 ] += cross[2];
-                    normals[ faces[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 2 ] * 3 + 2 ] += cross[2];
-                    normals[ faces[ f + 3 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 3 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 3 ] * 3 + 2 ] += cross[2];
-
-                } else {
-
-                    vA = [ vertices[ faces[ f + 1 ] * 3 + 0 ], vertices[ faces[ f + 1 ] * 3 + 1 ], vertices[ faces[ f + 1 ] * 3 + 2 ] ];
-                    vB = [ vertices[ faces[ f + 2 ] * 3 + 0 ], vertices[ faces[ f + 2 ] * 3 + 1 ], vertices[ faces[ f + 2 ] * 3 + 2 ] ];
-                    vC = [ vertices[ faces[ f + 3 ] * 3 + 0 ], vertices[ faces[ f + 3 ] * 3 + 1 ], vertices[ faces[ f + 3 ] * 3 + 2 ] ];
-                    vD = [ vertices[ faces[ f + 4 ] * 3 + 0 ], vertices[ faces[ f + 4 ] * 3 + 1 ], vertices[ faces[ f + 4 ] * 3 + 2 ] ];
-
-                    // abd
-
-                    db = [ vD[0] - vB[0], vD[1] - vB[1], vD[2] - vB[2] ];
-                    ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
-                    cross = [ 
-                        db[1] * ab[2] - db[2] * ab[1],
-                        db[2] * ab[0] - db[0] * ab[2],
-                        db[0] * ab[1] - db[1] * ab[0]
-                    ];
-
-                    normals[ faces[ f + 1 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 1 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 1 ] * 3 + 2 ] += cross[2];
-                    normals[ faces[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 2 ] * 3 + 2 ] += cross[2];
-                    normals[ faces[ f + 4 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 4 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 4 ] * 3 + 2 ] += cross[2];
-
-                    // bcd
-
-                    dc = [ vD[0] - vC[0], vD[1] - vC[1], vD[2] - vC[2] ];
-                    bc = [ vB[0] - vC[0], vB[1] - vC[1], vB[2] - vC[2] ];
-                    cross = [ 
-                        dc[1] * bc[2] - dc[2] * bc[1],
-                        dc[2] * bc[0] - dc[0] * bc[2],
-                        dc[0] * bc[1] - dc[1] * bc[0]
-                    ];
-
-                    normals[ faces[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 2 ] * 3 + 2 ] += cross[2];
-                    normals[ faces[ f + 3 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 3 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 3 ] * 3 + 2 ] += cross[2];
-                    normals[ faces[ f + 4 ] * 3 + 0 ] += cross[0]; normals[ faces[ f + 4 ] * 3 + 1 ] += cross[1]; normals[ faces[ f + 4 ] * 3 + 2 ] += cross[2];
-
-                }
+                normals[ indices[ f + 0 ] * 3 + 0 ] += cross[0]; normals[ indices[ f + 0 ] * 3 + 1 ] += cross[1]; normals[ indices[ f + 0 ] * 3 + 2 ] += cross[2];
+                normals[ indices[ f + 1 ] * 3 + 0 ] += cross[0]; normals[ indices[ f + 1 ] * 3 + 1 ] += cross[1]; normals[ indices[ f + 1 ] * 3 + 2 ] += cross[2];
+                normals[ indices[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ indices[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ indices[ f + 2 ] * 3 + 2 ] += cross[2];
     
-                f += faceSize;
+                f += 3;
             }
 
             for (var n = 0; n < normals.length/3; ++n) {
@@ -905,12 +939,22 @@ TRN.SceneConverter.prototype = {
         }
     },
     
+    getGeometryFromId : function(id) {
+        for (let i = 0; i < this.sc.geometries.length; ++i) {
+            const geom = this.sc.geometries[i];
+            if (geom.uuid == id) {
+                return geom;
+            }
+        }
+        return null;
+    },
+
     makeSkinnedLara : function() {
         var laraIDForVisu = this.confMgr.number('moveable[id="' + this.laraObjectID + '"] > visuid', true, this.laraObjectID);
         
-        var joints = this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints];
+        var joints = this.getGeometryFromId('moveable' + TRN.ObjectID.LaraJoints).data;
         var jointsVertices = joints.vertices;
-        var main = this.sc.embeds['moveable' + laraIDForVisu];
+        var main = this.getGeometryFromId('moveable' + laraIDForVisu).data;
         var mainVertices = main.vertices;
 
         var bones = main.bones;
@@ -984,9 +1028,6 @@ TRN.SceneConverter.prototype = {
         if (!this.sc.data.trlevel.atlas.make) {
             joints._materials.forEach( (m) => main._materials.push(m) );
         }
-
-        delete this.sc.embeds['moveable' + TRN.ObjectID.LaraJoints];
-        delete this.sc.geometries['moveable' + TRN.ObjectID.LaraJoints];
     },
 
     collectLightsExt : function() {
@@ -1047,27 +1088,23 @@ TRN.SceneConverter.prototype = {
 
 		this.sc =  {
 			"metadata": {
-				"formatVersion": 3.2,
-				"type" : "scene"
+				"version": 4.3,
+				"type" : "Object"
 			},
 
-			"urlBaseType" : "relativeToHTML",
-
-			"objects": { },
+			"object": { 
+                "type": "Scene",
+                "children": [ ]
+            },
 			
-			"geometries": {	},
+			"geometries": [ ],
 			
-			"materials": { },
+			"materials": [ ],
 			
-			"textures": { },
+            "textures": [ ],
+            
+            "images": [ ],
 			
-			"embeds": { },
-
-			"defaults": {
-				"camera": "camera1",
-				"fog": false
-			},
-
             "data": {
                 "objects": {
                 },
@@ -1075,6 +1112,8 @@ TRN.SceneConverter.prototype = {
                 "trlevel": trlevel
             }
 		};
+
+        this.objects = this.sc.object.children;
 
 		this.sc.data.levelFileName = this.sc.data.trlevel.filename;
 		this.sc.data.levelShortFileName = this.sc.data.levelFileName;
@@ -1092,14 +1131,23 @@ TRN.SceneConverter.prototype = {
             this.sc.data.trlevel.animatedTexturesUVCount = 0;
         }
 
-		this.sc.objects.camera1 = {
-			"type"      : "PerspectiveCamera",
+		this.movObjID2Index = {};
+
+		for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+			var moveable = this.sc.data.trlevel.moveables[m];
+			this.movObjID2Index[moveable.objectID] = m;
+		}
+
+		this.objects.push({
+            "uuid"      : "camera1",
+            "type"      : "PerspectiveCamera",
+            "name"      : "camera1",
 			"fov"       : this.confMgr.float('camera > fov', true, 50),
 			"near"      : this.confMgr.float('camera > neardist', true, 50),
 			"far"       : this.confMgr.float('camera > fardist', true, 10000),
 			"position"  : [ 0, 0, 0 ],
             "quaternion": [ 0, 0, 0, 1 ]
-		}
+		});
 
         this.sc.data.objects['camera1'] = {
 			"type"      : "camera",
@@ -1125,7 +1173,7 @@ TRN.SceneConverter.prototype = {
 
         this.createAllStaticMeshes();
 
-        this.createAllMoveableInstances();
+        this.createAllMoveables();
 
         this.createAllSprites();
 
@@ -1133,21 +1181,19 @@ TRN.SceneConverter.prototype = {
 
 		this.createAnimations();
 
-        this.optimizeAnimations();
+        //this.optimizeAnimations();
 
         this.createVertexNormals();
 
         if (this.sc.data.trlevel.rversion == 'TR4') {
-            this.makeSkinnedLara();
+          //  this.makeSkinnedLara();
         }
         
         // delete some properties that are not needed anymore on embeds
         for (var id in this.sc.embeds) {
             var embed = this.sc.embeds[id];
 
-            delete embed._materials;
             delete embed.objHasScrollAnim;
-            delete embed.moveableIsInternallyLit;
         }
         
         callback_created(this.sc);
