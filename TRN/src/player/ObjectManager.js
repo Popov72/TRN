@@ -202,7 +202,7 @@ TRN.ObjectManager.prototype = {
         // copy material
         const newMaterial = [];
 
-        const skeleton = new TRN.Skeleton(data.bonesStartingPos);
+        const skeleton = typeof(setAnimation) == 'boolean' ? new TRN.Skeleton(data.bonesStartingPos) : setAnimation;
 
         for (let m = 0; m < obj.material.length; ++m) {
             const material = obj.material[m];
@@ -211,7 +211,10 @@ TRN.ObjectManager.prototype = {
             newMaterial[m].userData = material.userData;
             newMaterial[m].uniforms.map.value = material.uniforms.map.value;
             newMaterial[m].uniforms.mapBump.value = material.uniforms.mapBump.value;
-            newMaterial[m].uniforms.boneMatrices = { "type":"m4v", "value":skeleton.getBoneMatrices() };
+            newMaterial[m].uniforms.boneMatrices = { "type":"m4v", "value":null };
+            if (skeleton) {
+                newMaterial[m].uniforms.boneMatrices.value = skeleton.getBoneMatrices();
+            }
 
             if (extrnColor) {
                 newMaterial[m].uniforms.ambientColor.value = extrnColor;
@@ -226,7 +229,7 @@ TRN.ObjectManager.prototype = {
         const newData = {
             "type"   	            : 'moveable',
             "roomIndex"             : roomIndex,
-            "has_anims"				: data.has_anims,
+            "has_anims"				: data.has_anims && typeof(setAnimation) == 'boolean',
             "objectid"              : data.objectid,
             "visible"  				: true,
             "internallyLit"         : extrnColor != undefined,/*data.internallyLit*/
@@ -254,7 +257,7 @@ TRN.ObjectManager.prototype = {
             this.sceneRender.add(obj);
         }
 
-        if (setAnimation && data.has_anims) {
+        if (typeof(setAnimation) == 'boolean' && setAnimation && data.has_anims) {
             this.anmMgr.setAnimation(obj, 0, false);
         }
 
