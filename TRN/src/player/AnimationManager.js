@@ -197,6 +197,5 @@ TRN.AnimationManager.prototype = {
 		}
 
 		this.gameData.needWebGLInit |= updateWebGLObjects;
-
 	}
 }

@@ -140,7 +140,6 @@ TRN.MasterLoader = {
                     data.liveObj = obj;
                     objToRemoveFromScene.push(obj);
                 }
-                //!if (data.type == 'room') objToRemoveFromScene.push(obj);
 
                 if (data.visible == undefined) {
                     console.log('Object has no visible property!', obj);
@@ -153,29 +152,11 @@ TRN.MasterLoader = {
                 return;
             }
 
-			//!if (!data.has_anims) {
-				obj.geometry.computeBoundingBox();
-				obj.geometry.computeBoundingSphere();
-			//!}
+            obj.geometry.computeBoundingBox();
+            obj.geometry.computeBoundingSphere();
 
 			obj.frustumCulled = true;
 
-			/*var material = [];
-
-			for (var mt_ = 0; mt_ < obj.material.length; ++mt_) {
-                var elem = obj.material[mt_];
-                
-                material.materials[mt_] = oscene.scene.materials[elem.material].clone();
-                material.materials[mt_].uniforms = THREE.UniformsUtils.clone(elem.uniforms);
-
-				for (var mkey in elem) {
-					if (!elem.hasOwnProperty(mkey) || mkey == 'uniforms' || mkey == 'attributes') continue;
-					material.materials[mt_][mkey] = elem[mkey];
-				}
-			}
-
-            obj.material = material;*/
-            
 			var materials = obj.material;
 
 			if (!materials || !materials.length) {
@@ -184,13 +165,6 @@ TRN.MasterLoader = {
 
 			for (var i = 0; i < materials.length; ++i) {
 				var material = materials[i];
-
-				/*if (material.uniforms.map && typeof(material.uniforms.map.value) == 'string' && material.uniforms.map.value) {
-					material.uniforms.map.value = sceneData.textures['texture' + material.uniforms.map.value];
-				}
-				if (material.uniforms.mapBump && typeof(material.uniforms.mapBump.value) == 'string' && material.uniforms.mapBump.value) {
-					material.uniforms.mapBump.value = sceneData.textures['texture' + material.uniforms.mapBump.value];
-				}*/
 
 				if (material.transparent) {
 					material.blending = THREE.AdditiveBlending;

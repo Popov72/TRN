@@ -753,8 +753,6 @@ TRN.SceneConverter.prototype = {
                 parent = idx;
             }
 
-            meshJSON.bones = bones;
-
             materials = this.makeMaterialList(tiles2material, 'moveable', jsonid);
 
             meshJSON.groups = [];
@@ -801,7 +799,7 @@ TRN.SceneConverter.prototype = {
                 "animationStartIndex"	: moveable.animation,
                 "objectid"              : moveable.objectID,
                 "visible"  				: false,
-                "bonesStartingPos"      : !isDummy ? meshJSON.bones : null,
+                "bonesStartingPos"      : !isDummy ? bones : null,
                 "internallyLit"         : !moveableIsExternallyLit
             }
         }
@@ -841,54 +839,6 @@ TRN.SceneConverter.prototype = {
             "visible"  	    : false
         }
 	},
-
-    // remove animations for moveables that have a single animation with a single keyframe
-    optimizeAnimations : function () {
-
-        var numOptimized = 0;
-
-        for (var i = 0; i < this.objects.length; ++i) {
-            var objJSON = this.objects[i], data = this.sc.data.objects[objJSON.name];
-
-            if (!data.has_anims) continue;
-
-            var track = this.sc.data.animTracks[data.animationStartIndex];
-
-            if (!track || track.nextTrack != data.animationStartIndex) { // the moveable has more than one anim
-                continue;
-            }
-
-            if (track.commands.length == 0 && track.numFrames == 1 && track.keys.length == 1 && track.keys[0].data.length == 1 && data.numAnimations == 1) {
-                var qobj = objJSON.quaternion;
-                var qanim = [track.keys[0].data[0].quaternion.x, track.keys[0].data[0].quaternion.y, track.keys[0].data[0].quaternion.z, track.keys[0].data[0].quaternion.w];
-                var trans = [track.keys[0].data[0].position.x, track.keys[0].data[0].position.y, track.keys[0].data[0].position.z];
-
-                var qobjinv = [0,0,0,0];
-
-                glMatrix.quat.invert(qobjinv, qobj);
-
-                glMatrix.vec3.transformQuat(trans, trans, qobj)
-
-                objJSON.position[0] += trans[0];
-                objJSON.position[1] += trans[1];
-                objJSON.position[2] += trans[2];
-
-                glMatrix.quat.multiply(qobj, qobj, qanim);
-
-                objJSON.quaternion = qobj;
-
-                data.has_anims = false;
-
-                numOptimized++;
-
-                //console.log('Anim for object', objID, ' optimized');
-            }
-
-        }
-
-        console.log('Number of moveables optimized for animations=' + numOptimized);
-
-    },
 
     createVertexNormals : function() {
 
@@ -957,7 +907,7 @@ TRN.SceneConverter.prototype = {
         var main = this.getGeometryFromId('moveable' + laraIDForVisu).data;
         var mainVertices = main.vertices;
 
-        var bones = main.bones;
+        var bones = this.sc.data.objects['moveable' + TRN.ObjectID.LaraJoints].bonesStartingPos;
         var numJoints = bones.length;
         var posStack = [];
 
@@ -1181,12 +1131,10 @@ TRN.SceneConverter.prototype = {
 
 		this.createAnimations();
 
-        //this.optimizeAnimations();
-
         this.createVertexNormals();
 
         if (this.sc.data.trlevel.rversion == 'TR4') {
-          //  this.makeSkinnedLara();
+            this.makeSkinnedLara();
         }
         
         // delete some properties that are not needed anymore on embeds
