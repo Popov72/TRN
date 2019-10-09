@@ -547,8 +547,8 @@
                 <behaviour name="Skydome">
 					<color><r>255</r><g>190</g><b>255</b></color>
                 </behaviour>
-                <behaviour name="Lara">
-                    <startanim>7</startanim>
+                <behaviour name="SetAnimation" objectid="34">
+                    <anim>7</anim>
                 </behaviour>
 			</level>
 			<level id="jeepchs2.tr4"		type="normal"	name="KV5">
