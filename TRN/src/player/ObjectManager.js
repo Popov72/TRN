@@ -255,7 +255,7 @@ TRN.ObjectManager.prototype = {
         }
 
         if (setAnimation && data.has_anims) {
-            this.anmMgr.setAnimation(obj, data.animationStartIndex, false);
+            this.anmMgr.setAnimation(obj, 0, false);
         }
 
         return obj;

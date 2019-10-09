@@ -27,7 +27,7 @@ TRN.AnimationManager.prototype = {
 
     setAnimation : function (obj, animIndex, desynchro) {
         var data = this.sceneData.objects[obj.name],
-            track = this.sceneData.animTracks[animIndex],
+            track = this.sceneData.animTracks[animIndex + data.animationStartIndex],
             trackInstance = track ? new TRN.Animation.TrackInstance(track, data.skeleton) : null;
 
         if (trackInstance) {

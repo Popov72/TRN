@@ -38,7 +38,7 @@ TRN.Behaviours.Sky.prototype = {
         this.objSky.matrixAutoUpdate = true;
 
         if (data.has_anims) {
-            this.anmMgr.setAnimation(this.objSky, data.animationStartIndex, false);
+            this.anmMgr.setAnimation(this.objSky, 0, false);
         }
 
         this.sceneBackground.add(this.objSky);
