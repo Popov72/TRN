@@ -18,6 +18,11 @@ TRN.Behaviours.Lara.prototype = {
 
         this.lara = lstObjs[0];
 
+        const dataLara = this.sceneData.objects[this.lara.name],
+              layer = new TRN.Layer(this.lara, this.gameData);
+
+        dataLara.layer = layer;
+
         if (!this.gameData.isCutscene) {
             if (startTrans) {
                 this.lara.position.x += parseFloat(startTrans.x);
@@ -53,23 +58,41 @@ TRN.Behaviours.Lara.prototype = {
             this.gameData.camera.quaternion.set(laraQuat.x, laraQuat.y, laraQuat.z, laraQuat.w);
 
             if (startAnim !== undefined) {
-                this.anmMgr.setAnimation(this.lara, parseInt(startAnim), false);
+               this.anmMgr.setAnimation(this.lara, parseInt(startAnim), false);
             }
 
         }
 
-		TRN.Consts.leftThighIndex = parseInt(this.nbhv.pistol_anim.left_dthigh) - 1;
-		TRN.Consts.rightThighIndex = parseInt(this.nbhv.pistol_anim.right_thigh) - 1;
-		TRN.Consts.leftHandIndex = parseInt(this.nbhv.pistol_anim.left_hand) - 1;
-		TRN.Consts.rightHandIndex = parseInt(this.nbhv.pistol_anim.right_hand) - 1;
-
         // create pistolanim object
-        /*!TRN.ObjectID.PistolAnim = parseInt(this.nbhv.pistol_anim.id);
+        TRN.ObjectID.PistolAnim = this.nbhv.animobject && this.nbhv.animobject.pistol ? parseInt(this.nbhv.animobject.pistol) : -1;
 
-        var mvb = this.objMgr.createMoveable(TRN.ObjectID.PistolAnim, -1, undefined, false, false);
-        if (mvb) {
-            this.sceneData.objects[mvb.name].visible = false;
-            this.sceneData.objects[mvb.name].has_anims = false;
+        var mvbPistolAnim = this.objMgr.createMoveable(TRN.ObjectID.PistolAnim, -1, undefined, true, dataLara.skeleton);
+        if (mvbPistolAnim) {
+            layer.setMesh(TRN.Layer.LAYER.WEAPON, mvbPistolAnim, 0);
+        }
+
+        // create holster empty object
+        TRN.ObjectID.HolsterEmpty = this.nbhv.animobject && this.nbhv.animobject.holster ? parseInt(this.nbhv.animobject.holster) : -1;
+
+        var mvbHolsterEmpty = this.objMgr.createMoveable(TRN.ObjectID.HolsterEmpty, -1, undefined, true, dataLara.skeleton);
+        if (mvbHolsterEmpty) {
+            layer.setMesh(TRN.Layer.LAYER.HOLSTER_EMPTY, mvbHolsterEmpty, 0);
+        }
+
+        // create holster full object
+        TRN.ObjectID.HolsterFull = this.nbhv.animobject && this.nbhv.animobject.holster_pistols ? parseInt(this.nbhv.animobject.holster_pistols) : -1;
+
+        var mvbHolsterFull = this.objMgr.createMoveable(TRN.ObjectID.HolsterFull, -1, undefined, true, dataLara.skeleton);
+        if (mvbHolsterFull) {
+            const skinIndices = mvbHolsterFull.geometry.attributes.skinIndex.array;
+            for (let i = 0; i < skinIndices.length; ++i) {
+                if (skinIndices[i] == 4) {
+                    skinIndices[i] = 1;
+                } else if (skinIndices[i] == 8) {
+                    skinIndices[i] = 4;
+                }
+            }
+            layer.setMesh(TRN.Layer.LAYER.HOLSTER_FULL, mvbHolsterFull, 0);
         }
 
         // create the meshswap objects
@@ -81,23 +104,26 @@ TRN.Behaviours.Lara.prototype = {
         for (var i = 0; i < meshSwapIds.length; ++i) {
             TRN.ObjectID['meshswap' + (i+1)] = meshSwapIds[i];
             if (TRN.ObjectID['meshswap' + (i+1)] > 0) {
-                var mvb = this.objMgr.createMoveable(TRN.ObjectID['meshswap' + (i+1)], -1, undefined, false, false);
+                var mvb = this.objMgr.createMoveable(TRN.ObjectID['meshswap' + (i+1)], -1, undefined, true, dataLara.skeleton);
                 if (mvb) {
-                    this.sceneData.objects[mvb.name].visible = false;
-                    this.sceneData.objects[mvb.name].has_anims = false;
+                    layer.makeSkinIndicesList(mvb.geometry);
+                    layer.setMask(mvb, 0);
                 }
             }
         }
 
-        // put pistols in Lara holsters
-        var obj = this.objMgr.objectList['moveable'][TRN.ObjectID.PistolAnim];
-		var lara = this.objMgr.objectList['moveable'][TRN.ObjectID.Lara];
+        layer.update();
+        layer.setBoundingObjects();
 
-		if (obj && lara) {
-			var mswap = new TRN.MeshSwap(obj[0], lara[0]);
-
-			mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.rightThighIndex]);
-		}*/
+        if (this.confMgr.trversion == 'TR4') {
+            if (mvbHolsterFull) {
+                layer.updateMask(TRN.Layer.LAYER.HOLSTER_FULL, TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.LEG_R1);
+            }
+        } else if (mvbPistolAnim) {
+            // put pistols in Lara holsters
+            layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.LEG_R1);
+            //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.LEG_R1);
+        }
 
         resolve(TRN.Consts.Behaviour.retKeepBehaviour);
     },

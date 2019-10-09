@@ -62,6 +62,9 @@ TRN.Behaviours.CutScene.prototype = {
                 if (data.objectid == TRN.ObjectID.Lara || data.objectid >= min && data.objectid <= max) {
                     obj.position.set(this.cutscene.position.x, this.cutscene.position.y, this.cutscene.position.z);
                     obj.quaternion.set(this.cutscene.quaternion.x, this.cutscene.quaternion.y, this.cutscene.quaternion.z, this.cutscene.quaternion.w);
+                    if (data.layer) {
+                        data.layer.update();
+                    }
                 }
             });
         }
@@ -239,6 +242,10 @@ TRN.Behaviours.CutScene.prototype = {
                 data.roomIndex = roomObj;
 
                 this.matMgr.setUniformsFromRoom(obj, roomObj);
+
+                if (data.layer) {
+                    data.layer.setRoom(roomObj);
+                }
 
                 if (curLIdx >= 0 && newLIdx >= 0) {
                     const uniforms = [];

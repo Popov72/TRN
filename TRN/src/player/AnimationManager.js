@@ -97,6 +97,11 @@ TRN.AnimationManager.prototype = {
                     boundingBox.getBoundingSphere(obj.geometry.boundingSphere);
                     obj.geometry.boundingBox = boundingBox;
 
+                    if (data.layer) {
+                        data.layer.update();
+                        data.layer.setBoundingObjects();
+                    }
+
                     if (obj.boxHelper) {
                         obj.boxHelper.box = boundingBox;
                     }
@@ -130,28 +135,24 @@ TRN.AnimationManager.prototype = {
 						}
 
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
-							var oswap = this.objMgr.objectList['moveable'][TRN.ObjectID.PistolAnim];
+                            const layer = this.sceneData.objects[obj.name].layer;
 
-							if (oswap) {
-								var mswap = new TRN.MeshSwap(oswap[0], obj);
+                            layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
+                            //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
 
-								mswap.swap([TRN.Consts.leftThighIndex, TRN.Consts.leftHandIndex]);
+                            layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);
 
-								updateWebGLObjects = true;
-							}
 							break;
 						}
 
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
-							var oswap = this.objMgr.objectList['moveable'][TRN.ObjectID.PistolAnim];
+                            const layer = this.sceneData.objects[obj.name].layer;
 
-							if (oswap) {
-								var mswap = new TRN.MeshSwap(oswap[0], obj);
+                            layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
+                            //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
 
-								mswap.swap([TRN.Consts.rightThighIndex, TRN.Consts.rightHandIndex]);
+                            layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);
 
-								updateWebGLObjects = true;
-							}
 							break;
 						}
 
@@ -159,19 +160,24 @@ TRN.AnimationManager.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP2:
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP3: {
 							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
+                            
 							var oswap = this.objMgr.objectList['moveable'][TRN.ObjectID['meshswap' + idx]];
 
 							if (oswap) {
-								var mswap = new TRN.MeshSwap(obj, oswap[0]);
+                                const layer = this.sceneData.objects[obj.name].layer;
 
-								mswap.swapall();
+                                if (layer.isEmpty(TRN.Layer.LAYER.MESHSWAP) || layer.getMesh(TRN.Layer.LAYER.MESHSWAP) != oswap[0]) {
+                                    layer.setMesh(TRN.Layer.LAYER.MESHSWAP, oswap[0], 0);
+                                }
 
-                                this.matMgr.setUniformsFromRoom(obj, this.gameData.sceneData.objects[obj.name].roomIndex);
+                                layer.updateMask(TRN.Layer.LAYER.MESHSWAP,  TRN.Layer.MASK.ALL);
+                                layer.updateMask(TRN.Layer.LAYER.MAIN,      TRN.Layer.MASK.ALL);
 
-								updateWebGLObjects = true;
+                                layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);
 							} else {
 								console.log('Could not apply anim command meshswap (' , action, '): object meshswap' + idx + ' not found.');
 							}
+                            
 							break;
 						}
 
