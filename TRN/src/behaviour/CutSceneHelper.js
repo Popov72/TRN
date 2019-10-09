@@ -1,6 +1,19 @@
 Object.assign( TRN.Behaviours.CutScene.prototype, {
 
-    prepareLevel : function(csIndex, actorMoveables) {
+    prepareLevel : function(trVersion, levelName, csIndex, actorMoveables) {
+        if (trVersion == 'TR2') {
+            if (levelName == 'cut3.tr2') {
+                // bad guys are not at the right location
+                const black = this.objMgr.objectList['moveable']['98'][0],
+                      red = this.objMgr.objectList['moveable']['97'][0];
+
+                black.quaternion.set(0, 1, 0, 0); // 180 deg rotation
+                black.position.set(16900, -5632, -7680);
+
+                red.position.set(20000, -5632, -10700);
+            }
+        }
+
         switch(csIndex) {
             case 7:
             case 8:
@@ -156,8 +169,6 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
         delete oroom.__webglInit;
         updateWebGLObjects = true;
         oroom.__done = true;
-
-        this.gameData.needWebGLInit = true;
     }
 
 });
