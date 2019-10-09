@@ -1,4 +1,5 @@
 TRN.AnimationManager = function() {
+    this.paused = false;
 }
 
 TRN.AnimationManager.prototype = {
@@ -12,6 +13,10 @@ TRN.AnimationManager.prototype = {
         this.objMgr = gameData.objMgr;
     
         this.makeTracks();
+    },
+
+    pause : function(pause) {
+        this.paused = pause;
     },
 
     makeTracks : function() {
@@ -45,6 +50,10 @@ TRN.AnimationManager.prototype = {
     },
 
 	animateObjects : function(delta) {
+        if (this.paused) {
+            return;
+        }
+
         var animatables = this.objMgr.objectList['moveable'];
 
 		for (var objID in animatables) {
@@ -158,7 +167,7 @@ TRN.AnimationManager.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1:
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP2:
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP3: {
-							var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
+                            var idx = action - TRN.Animation.Commands.Misc.ANIMCMD_MISC_MESHSWAP1 + 1;
                             
 							var oswap = this.objMgr.objectList['moveable'][TRN.ObjectID['meshswap' + idx]];
 
@@ -171,11 +180,11 @@ TRN.AnimationManager.prototype = {
 
                                 layer.updateMask(TRN.Layer.LAYER.MESHSWAP,  TRN.Layer.MASK.ALL);
                                 layer.updateMask(TRN.Layer.LAYER.MAIN,      TRN.Layer.MASK.ALL);
-
+    
                                 layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);
 							} else {
 								console.log('Could not apply anim command meshswap (' , action, '): object meshswap' + idx + ' not found.');
-							}
+                            }
                             
 							break;
 						}

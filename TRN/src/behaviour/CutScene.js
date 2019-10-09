@@ -209,6 +209,7 @@ TRN.Behaviours.CutScene.prototype = {
 
 		} else {
 			this.cutSceneEnded = true;
+            this.anmMgr.pause(true);
 		}
     },
 
