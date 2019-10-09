@@ -41,7 +41,7 @@ TRN.Animation.Commands.Misc = {
 	ANIMCMD_MISC_UNK4:                              22,
 	ANIMCMD_MISC_HIDEOBJECT:                        23,
 	ANIMCMD_MISC_SHOWOBJECT:                        24,
-	ANIMCMD_MISC_CAMERACTRL3:                       26,
+	ANIMCMD_MISC_RESETHAIR:                         26,
 	ANIMCMD_MISC_ADDITIONALSOUND1:                  -32736,
 	ANIMCMD_MISC_PLAYSTEPSOUND:                     32,
 	ANIMCMD_MISC_GETWATERSKIN:                      43,
