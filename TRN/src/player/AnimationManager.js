@@ -113,7 +113,6 @@ TRN.AnimationManager.prototype = {
 	processAnimCommands : function (trackInstance, prevFrame, curFrame, obj) {
 
 		var commands = trackInstance.track.commands;
-		var updateWebGLObjects = false;
 
 		for (var i = 0; i < commands.length; ++i) {
 			var command = commands[i];
@@ -201,7 +200,5 @@ TRN.AnimationManager.prototype = {
 				}
 			}
 		}
-
-		this.gameData.needWebGLInit |= updateWebGLObjects;
 	}
 }

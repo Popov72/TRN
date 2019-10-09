@@ -28,9 +28,7 @@ TRN.Play = function (container) {
         "unitVec3" : [1.0, 1.0, 1.0],
         "globalTintColor":  null,
 
-        "fps": 0,
-
-        "needWebGLInit": false
+        "fps": 0
     };
 
     this.clock = new THREE.Clock();
@@ -179,11 +177,6 @@ TRN.Play.prototype = {
 		this.gameData.objMgr.updateObjects(curTime);
 
         this.gameData.bhvMgr.frameEnded(curTime, delta);
-
-		/*!if (this.gameData.needWebGLInit) {
-			this.gameData.needWebGLInit = false;
-			this.renderer.initWebGLObjects(this.gameData.sceneRender);
-		}*/
 
 		this.render();
 	},

@@ -6,11 +6,6 @@ TRN.ObjectID = {
 };
 
 TRN.Consts = {
-	"objNameForPistolAnim" : "pistolanim",
-	"leftThighIndex" : 0,
-	"rightThighIndex" : 0,
-	"leftHandIndex" : 0,
-	"rightHandIndex" : 0,
 	"uvRotateTileHeight" : 64,
 	"moveableScrollAnimTileHeight" : 128
 };
