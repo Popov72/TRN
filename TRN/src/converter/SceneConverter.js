@@ -84,24 +84,10 @@ TRN.SceneConverter.prototype = {
             
             var tiles2material = {};
     
-            this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture);
+            this.makeMeshGeometry(mesh, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture);
     
             const materials = this.makeMaterialList(tiles2material, 'mesh', 'mesh' + meshIndex);
             
-            meshJSON.groups = [];
-            
-            for (let i = 0, ofst = 0; i < meshJSON.indices.length; ++i) {
-                const indices = meshJSON.indices[i];
-                meshJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
-                ofst += indices.length;
-                meshJSON.index.array.push.apply(meshJSON.index.array, indices);
-            }
-
-            delete meshJSON.indices;
-            delete meshJSON.vertices;
-            delete meshJSON.colors;
-            delete meshJSON._flags;
-
             this.sc.geometries.push({
                 "uuid": 'mesh' + meshIndex,
                 "type": "BufferGeometry",
@@ -252,20 +238,6 @@ TRN.SceneConverter.prototype = {
 		this.makeFaces(meshJSON, [texturedRectangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, 0);
 
         const materials = this.makeMaterialList(tiles2material, 'sprite', spriteid);
-
-        meshJSON.groups = [];
-            
-        for (let i = 0, ofst = 0; i < meshJSON.indices.length; ++i) {
-            const indices = meshJSON.indices[i];
-            meshJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
-            ofst += indices.length;
-            meshJSON.index.array.push.apply(meshJSON.index.array, indices);
-        }
-
-        delete meshJSON.indices;
-        delete meshJSON.vertices;
-        delete meshJSON.colors;
-        delete meshJSON._flags;
 
 		this.sc.geometries.push({
             "uuid": spriteid,
@@ -455,21 +427,6 @@ TRN.SceneConverter.prototype = {
 
             this.sc.materials.push(...materials);
 
-            if (materials.length != roomJSON.indices.length) {
-                console.log('Pb in room geometry!', materials, roomJSON.indices);
-            }
-
-            roomJSON.groups = [];
-            
-            for (let i = 0, ofst = 0; i < roomJSON.indices.length; ++i) {
-                const indices = roomJSON.indices[i];
-                roomJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
-                ofst += indices.length;
-                roomJSON.index.array.push.apply(roomJSON.index.array, indices);
-            }
-
-            delete roomJSON.indices;
-                        
 			// add the room geometry to the scene
 			this.sc.geometries.push({
                 "uuid": "room" + m,
@@ -704,19 +661,9 @@ TRN.SceneConverter.prototype = {
 
             meshJSON.objHasScrollAnim = moveableGeom.objectID in lstIdAnim;
 
-            meshJSON.attributes['skinIndex'] = {
-                "itemSize": 4,
-                "type": "Float32Array",
-                "array": [],
-                "normalized": false
-            }
-            meshJSON.attributes['skinWeight'] = {
-                "itemSize": 4,
-                "type": "Float32Array",
-                "array": [],
-                "normalized": false
-            }
-
+            meshJSON.skinIndices = [];
+            meshJSON.skinWeights = [];
+    
             for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
                 if (idx != 0) {
                     var sflag = this.sc.data.trlevel.meshTrees[meshTree++].coord;
@@ -737,7 +684,7 @@ TRN.SceneConverter.prototype = {
                 if ((mesh.dummy && this.sc.data.trlevel.rversion == 'TR4') || (idx == 0 && this.sc.data.trlevel.rversion == 'TR4' && moveableGeom.objectID == TRN.ObjectID.LaraJoints)) {
                     // hack to remove bad data from joint #0 of Lara joints in TR4
                 } else {
-                    var internalLit = this.makeMeshGeometry(mesh, meshIndex, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, idx);
+                    var internalLit = this.makeMeshGeometry(mesh, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, idx);
                     
                     moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
                 }
@@ -753,21 +700,9 @@ TRN.SceneConverter.prototype = {
                 parent = idx;
             }
 
+            delete meshJSON.objHasScrollAnim;
+
             materials = this.makeMaterialList(tiles2material, 'moveable', jsonid);
-
-            meshJSON.groups = [];
-            
-            for (let i = 0, ofst = 0; i < meshJSON.indices.length; ++i) {
-                const indices = meshJSON.indices[i];
-                meshJSON.groups.push({ "start":ofst, "count":indices.length, "materialIndex":i });
-                ofst += indices.length;
-                meshJSON.index.array.push.apply(meshJSON.index.array, indices);
-            }
-
-            delete meshJSON.indices;
-            delete meshJSON.vertices;
-            delete meshJSON.colors;
-            delete meshJSON._flags;
 
             this.sc.geometries.push({
                 "uuid": jsonid,
@@ -840,146 +775,6 @@ TRN.SceneConverter.prototype = {
         }
 	},
 
-    createVertexNormals : function() {
-
-        var vA, vB, vC, vD;
-        var cb, ab, db, dc, bc, cross;
-
-        for (var i = 0; i < this.sc.geometries.length; ++i) {
-            var geom = this.sc.geometries[i].data;
-            var vertices = geom.attributes.position.array, indices = geom.index.array;
-
-            var normals = geom.attributes.normal.array;
-
-            for (var v = 0; v < vertices.length; ++v) {
-                normals.push(0);
-            }
-
-            var f = 0;
-            while (f < indices.length) {
-                vA = [ vertices[ indices[ f + 0 ] * 3 + 0 ], vertices[ indices[ f + 0 ] * 3 + 1 ], vertices[ indices[ f + 0 ] * 3 + 2 ] ];
-                vB = [ vertices[ indices[ f + 1 ] * 3 + 0 ], vertices[ indices[ f + 1 ] * 3 + 1 ], vertices[ indices[ f + 1 ] * 3 + 2 ] ];
-                vC = [ vertices[ indices[ f + 2 ] * 3 + 0 ], vertices[ indices[ f + 2 ] * 3 + 1 ], vertices[ indices[ f + 2 ] * 3 + 2 ] ];
-
-                cb = [ vC[0] - vB[0], vC[1] - vB[1], vC[2] - vB[2] ];
-                ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
-                cross = [ 
-                    cb[1] * ab[2] - cb[2] * ab[1],
-                    cb[2] * ab[0] - cb[0] * ab[2],
-                    cb[0] * ab[1] - cb[1] * ab[0]
-                ];
-
-                normals[ indices[ f + 0 ] * 3 + 0 ] += cross[0]; normals[ indices[ f + 0 ] * 3 + 1 ] += cross[1]; normals[ indices[ f + 0 ] * 3 + 2 ] += cross[2];
-                normals[ indices[ f + 1 ] * 3 + 0 ] += cross[0]; normals[ indices[ f + 1 ] * 3 + 1 ] += cross[1]; normals[ indices[ f + 1 ] * 3 + 2 ] += cross[2];
-                normals[ indices[ f + 2 ] * 3 + 0 ] += cross[0]; normals[ indices[ f + 2 ] * 3 + 1 ] += cross[1]; normals[ indices[ f + 2 ] * 3 + 2 ] += cross[2];
-    
-                f += 3;
-            }
-
-            for (var n = 0; n < normals.length/3; ++n) {
-                var x = normals[n * 3 + 0], y = normals[n * 3 + 1], z = normals[n * 3 + 2];
-                var nrm = Math.sqrt(x*x + y*y + z*z);
-                if (x == 0 && y == 0 && z == 0) { x = 1; y = z = 0; nrm = 1; } // it's possible some vertices are not used in the object, so normal==0 at this point - put a (fake) valid normal
-                normals[n * 3 + 0] = x / nrm;
-                normals[n * 3 + 1] = y / nrm;
-                normals[n * 3 + 2] = z / nrm;
-                
-            }
-
-        }
-    },
-    
-    getGeometryFromId : function(id) {
-        for (let i = 0; i < this.sc.geometries.length; ++i) {
-            const geom = this.sc.geometries[i];
-            if (geom.uuid == id) {
-                return geom;
-            }
-        }
-        return null;
-    },
-
-    makeSkinnedLara : function() {
-        var laraIDForVisu = this.confMgr.number('moveable[id="' + this.laraObjectID + '"] > visuid', true, this.laraObjectID);
-        
-        var joints = this.getGeometryFromId('moveable' + TRN.ObjectID.LaraJoints).data;
-        var jointsVertices = joints.vertices;
-        var main = this.getGeometryFromId('moveable' + laraIDForVisu).data;
-        var mainVertices = main.vertices;
-
-        var bones = this.sc.data.objects['moveable' + TRN.ObjectID.LaraJoints].bonesStartingPos;
-        var numJoints = bones.length;
-        var posStack = [];
-
-        for (var j = 0; j < numJoints; ++j) {
-            var bone = bones[j], pos = bone.pos_init.slice(0);
-            if (bone.parent >= 0) {
-                pos[0] += posStack[bone.parent][0];
-                pos[1] += posStack[bone.parent][1];
-                pos[2] += posStack[bone.parent][2];
-            }
-            posStack.push(pos);
-        }
-
-        function findVertex(x, y, z, b1, b2) {
-            for (var v = 0; v < mainVertices.length/3; ++v) {
-                var bidx = main.skinIndices[v*2+0];
-                if (bidx != b1 && bidx != b2) continue;
-                var boneTrans = posStack[bidx];
-                var dx = mainVertices[v*3+0]+boneTrans[0]-x, dy = mainVertices[v*3+1]+boneTrans[1]-y, dz = mainVertices[v*3+2]+boneTrans[2]-z;
-                var dist = dx*dx+dy*dy+dz*dz;
-                if (dist < 4) {
-                    return v;
-                }
-            }
-            return -1;
-        }
-
-        for (var i = 0; i < jointsVertices.length/3; ++i) {
-            var boneIdx = joints.skinIndices[i*2+0];
-            var boneParentIdx = boneIdx > 0 ? bones[boneIdx].parent : boneIdx;
-            var jointTrans = posStack[boneIdx];
-            var x = jointsVertices[i*3+0]+jointTrans[0], y = jointsVertices[i*3+1]+jointTrans[1], z = jointsVertices[i*3+2]+jointTrans[2];
-            var idx = findVertex(x, y, z, boneIdx, boneParentIdx);
-            if (idx >= 0) {
-                jointsVertices[i*3+0] = mainVertices[idx*3+0];
-                jointsVertices[i*3+1] = mainVertices[idx*3+1];
-                jointsVertices[i*3+2] = mainVertices[idx*3+2];
-                joints.normals[i*3+0] = main.normals[idx*3+0];
-                joints.normals[i*3+1] = main.normals[idx*3+1];
-                joints.normals[i*3+2] = main.normals[idx*3+2];
-                joints.skinIndices[i*2+0] = main.skinIndices[idx*2+0];
-                joints.skinIndices[i*2+1] = main.skinIndices[idx*2+1];
-            }
-        }
-
-        var f = 0, faces = joints.faces;
-        while (f < faces.length) {
-            let isTri = (faces[f] & 1) == 0, numVert = isTri ? 3 : 4, faceSize = isTri ? 14 : 18;
-            faces[f+1+numVert] += this.sc.data.trlevel.atlas.make ? 0 : main._materials.length;
-            for (let v = 0; v < numVert; ++v) {
-                faces[f+1+v] += mainVertices.length/3; // position
-                faces[f+2+numVert+v] += main.uvs[0].length/2; // uvs
-                faces[f+2+numVert*2+v] += main.normals.length/3; // normals
-                faces[f+2+numVert*3+v] += main.colors.length; // vertex colors
-            }
-            f += faceSize;
-        }
-
-        main.attributes._flags.value = main.attributes._flags.value.concat(joints.attributes._flags.value);
-        main.colors = main.colors.concat(joints.colors);
-        main.faces = main.faces.concat(joints.faces);
-        main.normals = main.normals.concat(joints.normals);
-        main.skinIndices = main.skinIndices.concat(joints.skinIndices);
-        main.skinWeights = main.skinWeights.concat(joints.skinWeights);
-        main.uvs[0] = main.uvs[0].concat(joints.uvs[0]);
-        main.vertices = main.vertices.concat(joints.vertices);
-
-        if (!this.sc.data.trlevel.atlas.make) {
-            joints._materials.forEach( (m) => main._materials.push(m) );
-        }
-    },
-
     collectLightsExt : function() {
 
         var addedLights = 0;
@@ -1029,6 +824,263 @@ TRN.SceneConverter.prototype = {
         }
 
         console.log('Number of additional lights added: ' + addedLights);
+    },
+
+    createVertexNormals : function() {
+
+        var vA, vB, vC, vD;
+        var cb, ab, db, dc, bc, cross;
+
+        for (var i = 0; i < this.sc.geometries.length; ++i) {
+            const geom = this.sc.geometries[i].data;
+
+            const vertices = geom.vertices, 
+                  normals = geom.normals,
+                  faces = geom.faces;
+
+            for (var v = 0; v < vertices.length; ++v) {
+                normals.push(0);
+            }
+
+            for (let f = 0; f < faces.length; ++f) {
+                const face = faces[f], isTri = face.length == 3;
+
+                if ( isTri ) {
+                    vA = [ vertices[ face[0].idx * 3 + 0 ], vertices[ face[0].idx * 3 + 1 ], vertices[ face[0].idx * 3 + 2 ] ];
+                    vB = [ vertices[ face[1].idx * 3 + 0 ], vertices[ face[1].idx * 3 + 1 ], vertices[ face[1].idx * 3 + 2 ] ];
+                    vC = [ vertices[ face[1].idx * 3 + 0 ], vertices[ face[2].idx * 3 + 1 ], vertices[ face[2].idx * 3 + 2 ] ];
+
+                    cb = [ vC[0] - vB[0], vC[1] - vB[1], vC[2] - vB[2] ];
+                    ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
+                    cross = [ 
+                        cb[1] * ab[2] - cb[2] * ab[1],
+                        cb[2] * ab[0] - cb[0] * ab[2],
+                        cb[0] * ab[1] - cb[1] * ab[0]
+                    ];
+
+                    normals[ face[0].idx * 3 + 0 ] += cross[0]; normals[ face[0].idx * 3 + 1 ] += cross[1]; normals[ face[0].idx * 3 + 2 ] += cross[2];
+                    normals[ face[1].idx * 3 + 0 ] += cross[0]; normals[ face[1].idx * 3 + 1 ] += cross[1]; normals[ face[1].idx * 3 + 2 ] += cross[2];
+                    normals[ face[2].idx * 3 + 0 ] += cross[0]; normals[ face[2].idx * 3 + 1 ] += cross[1]; normals[ face[2].idx * 3 + 2 ] += cross[2];
+                } else {
+                    vA = [ vertices[ face[0].idx * 3 + 0 ], vertices[ face[0].idx * 3 + 1 ], vertices[ face[0].idx * 3 + 2 ] ];
+                    vB = [ vertices[ face[1].idx * 3 + 0 ], vertices[ face[1].idx * 3 + 1 ], vertices[ face[1].idx * 3 + 2 ] ];
+                    vC = [ vertices[ face[2].idx * 3 + 0 ], vertices[ face[2].idx * 3 + 1 ], vertices[ face[2].idx * 3 + 2 ] ];
+                    vD = [ vertices[ face[3].idx * 3 + 0 ], vertices[ face[3].idx * 3 + 1 ], vertices[ face[3].idx * 3 + 2 ] ];
+
+                    // abd
+
+                    db = [ vD[0] - vB[0], vD[1] - vB[1], vD[2] - vB[2] ];
+                    ab = [ vA[0] - vB[0], vA[1] - vB[1], vA[2] - vB[2] ];
+                    cross = [ 
+                        db[1] * ab[2] - db[2] * ab[1],
+                        db[2] * ab[0] - db[0] * ab[2],
+                        db[0] * ab[1] - db[1] * ab[0]
+                    ];
+
+                    normals[ face[0].idx * 3 + 0 ] += cross[0]; normals[ face[0].idx * 3 + 1 ] += cross[1]; normals[ face[0].idx * 3 + 2 ] += cross[2];
+                    normals[ face[1].idx * 3 + 0 ] += cross[0]; normals[ face[1].idx * 3 + 1 ] += cross[1]; normals[ face[1].idx * 3 + 2 ] += cross[2];
+                    normals[ face[3].idx * 3 + 0 ] += cross[0]; normals[ face[3].idx * 3 + 1 ] += cross[1]; normals[ face[3].idx * 3 + 2 ] += cross[2];
+
+                    // bcd
+
+                    dc = [ vD[0] - vC[0], vD[1] - vC[1], vD[2] - vC[2] ];
+                    bc = [ vB[0] - vC[0], vB[1] - vC[1], vB[2] - vC[2] ];
+                    cross = [ 
+                        dc[1] * bc[2] - dc[2] * bc[1],
+                        dc[2] * bc[0] - dc[0] * bc[2],
+                        dc[0] * bc[1] - dc[1] * bc[0]
+                    ];
+
+                    normals[ face[1].idx * 3 + 0 ] += cross[0]; normals[ face[1].idx * 3 + 1 ] += cross[1]; normals[ face[1].idx * 3 + 2 ] += cross[2];
+                    normals[ face[2].idx * 3 + 0 ] += cross[0]; normals[ face[2].idx * 3 + 1 ] += cross[1]; normals[ face[2].idx * 3 + 2 ] += cross[2];
+                    normals[ face[3].idx * 3 + 0 ] += cross[0]; normals[ face[3].idx * 3 + 1 ] += cross[1]; normals[ face[3].idx * 3 + 2 ] += cross[2];
+
+                }
+            }
+
+            for (var n = 0; n < normals.length/3; ++n) {
+                var x = normals[n * 3 + 0], y = normals[n * 3 + 1], z = normals[n * 3 + 2];
+                var nrm = Math.sqrt(x*x + y*y + z*z);
+                if (x == 0 && y == 0 && z == 0) { x = 1; y = z = 0; nrm = 1; } // it's possible some vertices are not used in the object, so normal==0 at this point - put a (fake) valid normal
+                normals[n * 3 + 0] = x / nrm;
+                normals[n * 3 + 1] = y / nrm;
+                normals[n * 3 + 2] = z / nrm;
+                
+            }
+
+        }
+    },
+    
+    makeSkinnedLara : function() {
+        var laraID = 0;
+        
+        var joints = this.getGeometryFromId('moveable' + TRN.ObjectID.LaraJoints).data;
+        var jointsVertices = joints.vertices;
+        var main = this.getGeometryFromId('moveable' + laraID).data;
+        var mainVertices = main.vertices;
+
+        var bones = this.sc.data.objects['moveable' + TRN.ObjectID.LaraJoints].bonesStartingPos;
+        var numJoints = bones.length;
+        var posStack = [];
+
+        for (var j = 0; j < numJoints; ++j) {
+            var bone = bones[j], pos = bone.pos_init.slice(0);
+            if (bone.parent >= 0) {
+                pos[0] += posStack[bone.parent][0];
+                pos[1] += posStack[bone.parent][1];
+                pos[2] += posStack[bone.parent][2];
+            }
+            posStack.push(pos);
+        }
+
+        function findVertex(x, y, z, b1, b2) {
+            for (var v = 0; v < mainVertices.length/3; ++v) {
+                var bidx = main.skinIndices[v*2+0];
+                if (bidx != b1 && bidx != b2) continue;
+                var boneTrans = posStack[bidx];
+                var dx = mainVertices[v*3+0]+boneTrans[0]-x, dy = mainVertices[v*3+1]+boneTrans[1]-y, dz = mainVertices[v*3+2]+boneTrans[2]-z;
+                var dist = dx*dx+dy*dy+dz*dz;
+                if (dist < 4) {
+                    return v;
+                }
+            }
+            return -1;
+        }
+
+        for (var i = 0; i < jointsVertices.length/3; ++i) {
+            var boneIdx = joints.skinIndices[i*2+0];
+            var boneParentIdx = boneIdx > 0 ? bones[boneIdx].parent : boneIdx;
+            var jointTrans = posStack[boneIdx];
+            var x = jointsVertices[i*3+0]+jointTrans[0], y = jointsVertices[i*3+1]+jointTrans[1], z = jointsVertices[i*3+2]+jointTrans[2];
+            var idx = findVertex(x, y, z, boneIdx, boneParentIdx);
+            if (idx >= 0) {
+                jointsVertices[i*3+0] = mainVertices[idx*3+0];
+                jointsVertices[i*3+1] = mainVertices[idx*3+1];
+                jointsVertices[i*3+2] = mainVertices[idx*3+2];
+                joints.normals[i*3+0] = main.normals[idx*3+0];
+                joints.normals[i*3+1] = main.normals[idx*3+1];
+                joints.normals[i*3+2] = main.normals[idx*3+2];
+                joints.skinIndices[i*2+0] = main.skinIndices[idx*2+0];
+                joints.skinIndices[i*2+1] = main.skinIndices[idx*2+1];
+            }
+        }
+
+        let numMatInMain = 0;
+        for (let f = 0; f < main.faces.length; ++f) {
+            const face = main.faces[f];
+            numMatInMain = Math.max(numMatInMain, face.matIndex+1);
+        }
+
+        var faces = joints.faces;
+        for (let f = 0; f < faces.length; ++f) {
+            let face = faces[f];
+            face.matIndex += this.sc.data.trlevel.atlas.make ? 0 : numMatInMain;
+            for (let v = 0; v < face.length; ++v) {
+                face[v].idx += mainVertices.length/3; // position
+            }
+        }
+
+        main._flags = main._flags.concat(joints._flags);
+        main.colors = main.colors.concat(joints.colors);
+        main.faces = main.faces.concat(joints.faces);
+        main.normals = main.normals.concat(joints.normals);
+        main.skinIndices = main.skinIndices.concat(joints.skinIndices);
+        main.skinWeights = main.skinWeights.concat(joints.skinWeights);
+        main.vertices = main.vertices.concat(joints.vertices);
+
+        const laraObject = this.getObjectFromId('moveable' + laraID);
+        const laraJointObject = this.getObjectFromId('moveable' + TRN.ObjectID.LaraJoints);
+
+        laraObject.material = laraObject.material.concat(laraJointObject.material);
+
+        this.sc.geometries.splice(this.sc.geometries.indexOf(this.getGeometryFromId('moveable' + TRN.ObjectID.LaraJoints)), 1);
+        this.objects.splice(this.objects.indexOf(laraJointObject), 1);
+    },
+
+    makeGeometryData : function() {
+        for (let i = 0; i < this.sc.geometries.length; ++i) {
+            const geom = this.sc.geometries[i].data;
+
+            const attributes = geom.attributes,
+                  vertices = geom.vertices, 
+                  normals = geom.normals,
+                  colors = attributes.color ? geom.colors : null,
+                  _flags = attributes._flags ? geom._flags : null,
+                  skinIndices = geom.skinIndices,
+                  skinWeights = geom.skinWeights,
+                  faces = geom.faces;
+
+            if (skinIndices) {
+                geom.attributes['skinIndex'] = {
+                    "itemSize": 4,
+                    "type": "Float32Array",
+                    "array": [],
+                    "normalized": false
+                }
+                geom.attributes['skinWeight'] = {
+                    "itemSize": 4,
+                    "type": "Float32Array",
+                    "array": [],
+                    "normalized": false
+                }
+            }
+    
+            const indices = [];
+
+            for (let f = 0; f < faces.length; ++f) {
+                const face = faces[f];
+
+                const matIndex = face.matIndex, posIdx = attributes.position.array.length / 3;
+                for (let v = 0; v < face.length; ++v) {
+                    const vertex = face[v];
+                    attributes.position.array.push(vertices[vertex.idx * 3 + 0], vertices[vertex.idx * 3 + 1], vertices[vertex.idx * 3 + 2]);
+                    attributes.uv.array.push(vertex.u, vertex.v);
+                    attributes.normal.array.push(normals[vertex.idx * 3 + 0], normals[vertex.idx * 3 + 1], normals[vertex.idx * 3 + 2]);
+                    if (colors) {
+                        attributes.color.array.push(colors[vertex.idx * 3 + 0], colors[vertex.idx * 3 + 1], colors[vertex.idx * 3 + 2]);
+                    }
+                    if (_flags) {
+                        attributes._flags.array.push(_flags[vertex.idx * 4 + 0], _flags[vertex.idx * 4 + 1], _flags[vertex.idx * 4 + 2], _flags[vertex.idx * 4 + 3]);
+                    }
+                    if (skinIndices) {
+                        attributes.skinIndex.array.push(skinIndices[vertex.idx * 2 + 0], skinIndices[vertex.idx * 2 + 1], 0, 0);
+                    }
+                    if (skinWeights) {
+                        attributes.skinWeight.array.push(skinWeights[vertex.idx * 2 + 0], skinWeights[vertex.idx * 2 + 1], 0, 0);
+                    }
+                }
+
+                let lsti = indices[matIndex];
+                if (!lsti) {
+                    lsti = [];
+                    indices[matIndex] = lsti;
+                }
+                
+                if (face.length == 3) {
+                    lsti.push(posIdx, posIdx + 1, posIdx + 2);
+                } else {
+                    lsti.push(posIdx, posIdx + 1, posIdx + 3);
+                    lsti.push(posIdx + 1, posIdx + 2, posIdx + 3);
+                }
+            }
+
+            geom.groups = [];
+            
+            for (let i = 0, ofst = 0; i < indices.length; ++i) {
+                const lst = indices[i];
+                geom.groups.push({ "start":ofst, "count":lst.length, "materialIndex":i });
+                ofst += lst.length;
+                geom.index.array.push.apply(geom.index.array, lst);
+            }
+
+            delete geom.vertices;
+            delete geom.faces;
+            delete geom.colors;
+            delete geom.normals;
+            delete geom._flags;
+            delete geom.skinIndices;
+            delete geom.skinWeights;
+        }
     },
 
 	convert : function (trlevel, callback_created) {
@@ -1137,13 +1189,8 @@ TRN.SceneConverter.prototype = {
             this.makeSkinnedLara();
         }
         
-        // delete some properties that are not needed anymore on embeds
-        for (var id in this.sc.embeds) {
-            var embed = this.sc.embeds[id];
+        this.makeGeometryData();
 
-            delete embed.objHasScrollAnim;
-        }
-        
         callback_created(this.sc);
 	}
 }

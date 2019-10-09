@@ -40,9 +40,10 @@ TRN.extend(TRN.SceneConverter.prototype, {
             },
             "groups": null,
 
-            "indices": [],
+            "faces": [],
             "vertices": [],
             "colors": [],
+            "normals": [],
             "_flags": []
 		};
 	},
@@ -74,14 +75,12 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
         switch(objType) {
             case 'moveable':
-                //mat.skinning = true;
                 mat.vertexColors = false;
                 break;
             case 'sprite':
                 mat.vertexColors = false;
                 break;
             case 'sky':
-                //mat.skinning = true;
                 mat.vertexColors = false;
                 mat.fragmentShader = this.shaderMgr.getFragmentShader('sky');
                 break;
@@ -160,8 +159,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
 		};
 	},
 
-	makeFace : function (obj, oface, tiles2material, tex, mapObjTexture2AnimTexture, fidx) {
-        var vertices = oface.vertices, texture = oface.texture & 0x7FFF, isQuad = vertices.length == 4, tile = tex.tile & 0x7FFF, origTile = tex.origTile;
+	makeFace : function (obj, oface, tiles2material, tex, mapObjTexture2AnimTexture, fidx, ofstvert) {
+        var vertices = oface.vertices, texture = oface.texture & 0x7FFF, tile = tex.tile & 0x7FFF, origTile = tex.origTile;
         
         if (origTile == undefined) {
             origTile = tile;
@@ -217,73 +216,44 @@ TRN.extend(TRN.SceneConverter.prototype, {
             }
 		}
 
-        if (!obj.indices[imat]) {
-            obj.indices[imat] = [];
-        }
-
 		var isAnimatedObject = obj.objHasScrollAnim;
         
-        var posIdx = obj.attributes.position.array.length/3;
+        var face = [];
 		for (var tv = 0; tv < vertices.length; ++tv) {
-            obj.attributes.position.array.push(obj.vertices[vertices[fidx(tv)]*3+0], obj.vertices[vertices[fidx(tv)]*3+1], obj.vertices[vertices[fidx(tv)]*3+2]);
-
 			var u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.sc.data.trlevel.atlas.width;
             var v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.sc.data.trlevel.atlas.height;
             
-			if (!isAnimatedObject) {
-				obj.attributes.uv.array.push(u, v);
-			} else if (v != maxV) {
-				obj.attributes.uv.array.push(u, v);
-			} else {
-				obj.attributes.uv.array.push(u, minV + (maxV - minV) / 2);
-            }
-            
-            if (obj.attributes.color) {
-                obj.attributes.color.array.push(obj.colors[vertices[fidx(tv)]*3+0], obj.colors[vertices[fidx(tv)]*3+1], obj.colors[vertices[fidx(tv)]*3+2]);
+			if (isAnimatedObject && v == maxV) {
+                v = minV + (maxV - minV) / 2;
             }
 
-            if (obj.attributes._flags) {
-                obj.attributes._flags.array.push(obj._flags[vertices[fidx(tv)]*4+0], obj._flags[vertices[fidx(tv)]*4+1], obj._flags[vertices[fidx(tv)]*4+2], obj._flags[vertices[fidx(tv)]*4+3]);
-            }
-
-            if (obj.attributes.skinIndex) {
-                obj.attributes.skinIndex.array.push(obj.skinIndices[vertices[fidx(tv)]*4+0], obj.skinIndices[vertices[fidx(tv)]*4+1], obj.skinIndices[vertices[fidx(tv)]*4+2], obj.skinIndices[vertices[fidx(tv)]*4+3]);
-            }
-            if (obj.attributes.skinWeight) {
-                obj.attributes.skinWeight.array.push(obj.skinWeights[vertices[fidx(tv)]*4+0], obj.skinWeights[vertices[fidx(tv)]*4+1], obj.skinWeights[vertices[fidx(tv)]*4+2], obj.skinWeights[vertices[fidx(tv)]*4+3]);
-            }
+            face.push({"u":u, "v":v, "idx":vertices[fidx(tv)] + ofstvert});
         }
 
-        // faces
-        if (isQuad) {
-            obj.indices[imat].push(posIdx, posIdx + 1, posIdx + 3);
-            obj.indices[imat].push(posIdx + 1, posIdx + 2, posIdx + 3);
-        } else {
-            obj.indices[imat].push(posIdx, posIdx + 1, posIdx + 2);
-        }
+        face.matIndex = imat;
+
+        obj.faces.push(face);
 	},
 
-	makeFaces : function (obj, facearrays, tiles2material, objectTextures, mapObjTexture2AnimTexture) {
+	makeFaces : function (obj, facearrays, tiles2material, objectTextures, mapObjTexture2AnimTexture, ofstvert) {
 		for (var a = 0; a < facearrays.length; ++a) {
 			var lstface = facearrays[a];
 			for (var i = 0; i < lstface.length; ++i) {
 				var o = lstface[i];
 				var twoSided = (o.texture & 0x8000) != 0, tex = objectTextures[o.texture & 0x7FFF];
-				this.makeFace(obj, o, tiles2material, tex, mapObjTexture2AnimTexture, function(idx) { return o.vertices.length-1-idx; });
+				this.makeFace(obj, o, tiles2material, tex, mapObjTexture2AnimTexture, function(idx) { return o.vertices.length-1-idx; }, ofstvert);
 				if (twoSided) {
-					this.makeFace(obj, o, tiles2material, tex, mapObjTexture2AnimTexture, function(idx) { return idx; });
+					this.makeFace(obj, o, tiles2material, tex, mapObjTexture2AnimTexture, function(idx) { return idx; }, ofstvert);
 				}
 			}
 		}
 	},
 
-	makeMeshGeometry : function (mesh, meshnum, meshJSON, tiles2material, objectTextures, mapObjTexture2AnimTexture, skinidx) {
+	makeMeshGeometry : function (mesh, meshJSON, tiles2material, objectTextures, mapObjTexture2AnimTexture, skinidx) {
         var internallyLit = mesh.lights.length > 0;
-        const skinIndices = [], skinWeights = [];
 
-        meshJSON.skinIndices = skinIndices;
-        meshJSON.skinWeights = skinWeights;
-        
+        const ofstvert = meshJSON.vertices.length/3;
+
 		// push the vertices + vertex colors of the mesh
 		for (var v = 0; v < mesh.vertices.length; ++v) {
 			var vertex = mesh.vertices[v], lighting = internallyLit ? 1.0 - mesh.lights[v]/8192.0 : 1.0;
@@ -294,20 +264,13 @@ TRN.extend(TRN.SceneConverter.prototype, {
             meshJSON._flags.push(0, 0, 0, lighting);
             
 			if (skinidx !== undefined) {
-                skinIndices.push(skinidx, skinidx, 0, 0);
-                skinWeights.push(0.5, 0.5, 0, 0);
+                meshJSON.skinIndices.push(skinidx, skinidx);
+                meshJSON.skinWeights.push(0.5, 0.5);
             }
 		}
 
-		this.makeFaces(meshJSON, [mesh.texturedRectangles, mesh.texturedTriangles], tiles2material, objectTextures, mapObjTexture2AnimTexture);
+		this.makeFaces(meshJSON, [mesh.texturedRectangles, mesh.texturedTriangles], tiles2material, objectTextures, mapObjTexture2AnimTexture, ofstvert);
 
-        meshJSON.vertices = [];
-        meshJSON.colors = [];
-        meshJSON._flags = [];
-        
-        delete meshJSON.skinIndices;
-        delete meshJSON.skinWeights;
-        
 		return internallyLit;
 	},
 
@@ -371,6 +334,26 @@ TRN.extend(TRN.SceneConverter.prototype, {
         }
     
         return 0;
+    },
+
+    getGeometryFromId : function(id) {
+        for (let i = 0; i < this.sc.geometries.length; ++i) {
+            const geom = this.sc.geometries[i];
+            if (geom.uuid == id) {
+                return geom;
+            }
+        }
+        return null;
+    },
+
+    getObjectFromId : function(id) {
+        for (let i = 0; i < this.objects.length; ++i) {
+            const obj = this.objects[i];
+            if (obj.uuid == id) {
+                return obj;
+            }
+        }
+        return null;
     }
 
 });
