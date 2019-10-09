@@ -991,7 +991,9 @@ TRN.SceneConverter.prototype = {
         const laraObject = this.getObjectFromId('moveable' + laraID);
         const laraJointObject = this.getObjectFromId('moveable' + TRN.ObjectID.LaraJoints);
 
-        laraObject.material = laraObject.material.concat(laraJointObject.material);
+        if (!this.sc.data.trlevel.atlas.make) {
+            laraObject.material = laraObject.material.concat(laraJointObject.material);
+        }
 
         this.sc.geometries.splice(this.sc.geometries.indexOf(this.getGeometryFromId('moveable' + TRN.ObjectID.LaraJoints)), 1);
         this.objects.splice(this.objects.indexOf(laraJointObject), 1);
