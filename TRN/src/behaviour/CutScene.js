@@ -52,14 +52,20 @@ TRN.Behaviours.CutScene.prototype = {
         // update position/quaternion for some specific items when we play a cut scene
         const min = this.confMgr.number('cutscene > animminid', true, -1),
               max = this.confMgr.number('cutscene > animmaxid', true, -1),
+              ids = this.confMgr.param('cutscene > animids', true),
+              oids = new Set().add(TRN.ObjectID.Lara),
               moveables = this.objMgr.objectList['moveable'];
+
+        if (ids) {
+            ids.split(",").forEach( (id) => oids.add(parseInt(id)));
+        }
         for (let objID in moveables) {
             const lstObj = moveables[objID];
             
             lstObj.forEach( (obj) => {
                 const data = this.sceneData.objects[obj.name];
 
-                if (data.objectid == TRN.ObjectID.Lara || data.objectid >= min && data.objectid <= max) {
+                if (data.objectid >= min && data.objectid <= max || oids.has(data.objectid)) {
                     obj.position.set(this.cutscene.position.x, this.cutscene.position.y, this.cutscene.position.z);
                     obj.quaternion.set(this.cutscene.quaternion.x, this.cutscene.quaternion.y, this.cutscene.quaternion.z, this.cutscene.quaternion.w);
                     if (data.layer) {

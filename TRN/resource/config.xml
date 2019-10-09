@@ -29,13 +29,9 @@
                     <startanim>103</startanim>
                     <dirdist>1430</dirdist>
                     <updist>1000</updist>
-                    <pistol_anim>
-                        <id>1</id>
-                        <left_thigh>2</left_thigh>
-                        <right_thigh>5</right_thigh>
-                        <left_hand>14</left_hand>
-                        <right_hand>11</right_hand>
-                    </pistol_anim>
+                    <animobject>
+                        <pistol>1</pistol>
+                    </animobject>
                 </behaviour>
                 <behaviour name="Flare">
                     <offset><x>0</x><y>0</y><z>0</z></offset>
@@ -90,7 +86,7 @@
 				<lara>
 					<id>77</id>
 				</lara>
-                <behaviour name="Lara">
+                <behaviour name="Lara" objectid="77">
                     <angle>90</angle>
                 </behaviour>
                 <behaviour name="CutScene" objectid="77" cutsceneonly="true"/>
@@ -99,8 +95,11 @@
 				<lara>
 					<id>77</id>
 				</lara>
-                <behaviour name="Lara">
+                <behaviour name="Lara" objectid="77">
                     <angle>-90</angle>
+                    <animobject>
+                        <pistol>1</pistol>
+                    </animobject>
                 </behaviour>
                 <behaviour name="CutScene" objectid="77" cutsceneonly="true"/>
 			</level>
@@ -109,12 +108,19 @@
 				<lara>
 					<id>77</id>
 				</lara>
+                <behaviour name="Lara" objectid="77">
+                </behaviour>
                 <behaviour name="CutScene" objectid="77" cutsceneonly="true"/>
 			</level>
 			<level id="cut4.phd"		type="cutscene" name="Lara vs. Natla">
 				<lara>
 					<id>77</id>
 				</lara>
+                <behaviour name="Lara" objectid="77">
+                    <animobject>
+                        <pistol>1</pistol>
+                    </animobject>
+                </behaviour>
                 <behaviour name="CutScene" objectid="77" cutsceneonly="true"/>
 			</level>
 			<!-- Gold levels -->
@@ -170,13 +176,9 @@
                     <startanim>103</startanim>
                     <dirdist>1200</dirdist>
                     <updist>1000</updist>
-                    <pistol_anim>
-                        <id>1</id>
-                        <left_thigh>2</left_thigh>
-                        <right_thigh>5</right_thigh>
-                        <left_hand>14</left_hand>
-                        <right_hand>11</right_hand>
-                    </pistol_anim>
+                    <animobject>
+                        <pistol>1</pistol>
+                    </animobject>
                 </behaviour>
                 <behaviour name="Flare">
                     <offset><x>0</x><y>0</y><z>0</z></offset>
@@ -262,6 +264,7 @@
                         <particlesys_offset><x>0</x><y>0</y><z>0</z></particlesys_offset>
                     </behaviour>
                 </moveable>
+                <behaviour name="MakeLayeredMesh" objectid="123" cutsceneonly="true"/>
                 <behaviour name="CutScene" objectid="0" cutsceneonly="true"/>
 			</level>
 			<level id="cut2.tr2"	type="cutscene"	name="Lara the Stowaway">
@@ -332,13 +335,9 @@
                     <startanim>103</startanim>
                     <dirdist>1200</dirdist>
                     <updist>1000</updist>
-                    <pistol_anim>
-                        <id>1</id>
-                        <left_thigh>2</left_thigh>
-                        <right_thigh>5</right_thigh>
-                        <left_hand>14</left_hand>
-                        <right_hand>11</right_hand>
-                    </pistol_anim>
+                    <animobject>
+                        <pistol>1</pistol>
+                    </animobject>
                 </behaviour>
                 <behaviour name="Flare">
                     <offset><x>0</x><y>0</y><z>0</z></offset>
@@ -416,6 +415,8 @@
                 <behaviour name="CutScene" objectid="0" cutsceneonly="true"/>
 			</level>
 			<level id="cut3.tr2"		type="cutscene"	name="Lara gets the artifacts to Willard">
+                <behaviour name="MakeLayeredMesh" objectid="148" cutsceneonly="true"/>
+                <behaviour name="MakeLayeredMesh" objectid="149" cutsceneonly="true"/>
                 <behaviour name="CutScene" objectid="0" cutsceneonly="true"/>
             </level>
 			<level id="cut4.tr2"		type="cutscene"	name="Lara confronts tribesman about artifact">
@@ -440,6 +441,7 @@
                 <behaviour name="CutScene" objectid="0" cutsceneonly="true"/>
             </level>
 			<level id="cut11.tr2" 		type="cutscene"	name="Lara meets Sophia Lee">
+                <behaviour name="MakeLayeredMesh" objectid="148" cutsceneonly="true"/>
                 <behaviour name="CutScene" objectid="0" cutsceneonly="true"/>
             </level>
 			<level id="cut12.tr2" 		type="cutscene"	name="Lara watches Willard transform">
@@ -492,13 +494,11 @@
                     <startanim>103</startanim>
                     <dirdist>1430</dirdist>
                     <updist>800</updist>
-                    <pistol_anim>
-                        <id>-1</id>
-                        <left_thigh>-1</left_thigh>
-                        <right_thigh>-1</right_thigh>
-                        <left_hand>-1</left_hand>
-                        <right_hand>-1</right_hand>
-                    </pistol_anim>
+                    <animobject>
+                        <pistol>1</pistol>
+                        <holster>13</holster>
+                        <holster_pistols>14</holster_pistols>
+                    </animobject>
                 </behaviour>
                 <behaviour name="Flare">
                     <offset><x>0</x><y>0</y><z>0</z></offset>
