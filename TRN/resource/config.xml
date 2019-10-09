@@ -271,6 +271,16 @@
                 <behaviour name="CutScene" objectid="0" cutsceneonly="true"/>
             </level>
 			<level id="cut3.tr2"	type="cutscene"	name="Bartoli vs. Monk">
+                <meshswap>
+                    <objid1>0</objid1>
+                    <objid2>0</objid2>
+                    <objid3>99</objid3>
+                </meshswap>
+                <cutscene>
+                    <animids>97,98</animids>
+                    <animminid>123</animminid>
+                    <animmaxid>132</animmaxid>
+                </cutscene>
                 <behaviour name="CutScene" objectid="0" cutsceneonly="true"/>
             </level>
 			<level id="cut4.tr2"	type="cutscene"	name="Bartoli Stabs Himself">

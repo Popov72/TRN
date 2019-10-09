@@ -1,10 +1,11 @@
-const noSound = true;
+const noSound = false;
 
 TRN.Behaviours.CutScene = function(nbhv, gameData) {
     this.nbhv = nbhv;
     this.gameData = gameData;
     this.bhvMgr = gameData.bhvMgr;
     this.confMgr = gameData.confMgr;
+    this.anmMgr = gameData.anmMgr;
     this.matMgr = gameData.matMgr;
     this.objMgr = gameData.objMgr;
     this.trlvl = gameData.trlvl;
@@ -80,6 +81,7 @@ TRN.Behaviours.CutScene.prototype = {
         if (index > 0) {
             promiseSound = this.makeTR4Cutscene(parseInt(index));
         } else {
+            this.prepareLevel(this.confMgr.trversion, this.confMgr.levelName, 0, null);
             promiseSound = TRN.Helper.loadSoundAsync(this.sceneData.soundPath + this.sceneData.levelShortFileNameNoExt.toUpperCase());
         }
 
@@ -214,7 +216,7 @@ TRN.Behaviours.CutScene.prototype = {
 			}
 
 		} else {
-			this.cutSceneEnded = true;
+            this.cutSceneEnded = true;
             this.anmMgr.pause(true);
 		}
     },

@@ -159,7 +159,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
         ocs.frames = frames;
 
-        this.prepareLevel(cutscene.index, actorMoveables);
+        this.prepareLevel(this.confMgr.trversion, this.confMgr.levelName, cutscene.index, actorMoveables);
     },
 
     makeAnimationForActor : function(cutscene, actor, animName) {
