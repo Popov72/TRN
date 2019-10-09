@@ -940,7 +940,7 @@ TRN.SceneConverter.prototype = {
                 var boneTrans = posStack[bidx];
                 var dx = mainVertices[v*3+0]+boneTrans[0]-x, dy = mainVertices[v*3+1]+boneTrans[1]-y, dz = mainVertices[v*3+2]+boneTrans[2]-z;
                 var dist = dx*dx+dy*dy+dz*dz;
-                if (dist < 4) {
+                if (dist < 24) {
                     return v;
                 }
             }
@@ -976,7 +976,7 @@ TRN.SceneConverter.prototype = {
             let face = faces[f];
             face.matIndex += this.sc.data.trlevel.atlas.make ? 0 : numMatInMain;
             for (let v = 0; v < face.length; ++v) {
-                face[v].idx += mainVertices.length/3; // position
+                face[v].idx += mainVertices.length/3;
             }
         }
 
