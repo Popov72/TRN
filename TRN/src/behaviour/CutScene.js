@@ -174,10 +174,10 @@ TRN.Behaviours.CutScene.prototype = {
 
         // Update camera
 		const t = this.cutscene.curFrame - Math.floor(this.cutscene.curFrame),
-		      cfrmA = Math.min(Math.floor(this.cutscene.curFrame), this.cutscene.frames.length-3),
-		      cfrmB = Math.min(cfrmA+1, this.cutscene.frames.length-3);
+		      cfrmA = Math.min(Math.floor(this.cutscene.curFrame), this.cutscene.frames.length-2),
+		      cfrmB = Math.min(cfrmA+1, this.cutscene.frames.length-1);
 
-		if (cfrmA < this.cutscene.frames.length-3) {
+		if (cfrmA < this.cutscene.frames.length-2) {
             const bhvCtrl = this.bhvMgr.getBehaviour("BasicControl")[0];
 			if (!bhvCtrl.captureMouse) {
 				const frm1 = this.cutscene.frames[cfrmA],
