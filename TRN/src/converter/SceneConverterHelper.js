@@ -220,8 +220,8 @@ TRN.extend(TRN.SceneConverter.prototype, {
 
         const face = [];
 		for (let tv = 0; tv < vertices.length; ++tv) {
-			const u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.sc.data.trlevel.atlas.width,
-                  v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.sc.data.trlevel.atlas.height;
+			let u = (tex.vertices[fidx(tv)].Xpixel + 0.5) / this.sc.data.trlevel.atlas.width,
+                v = (tex.vertices[fidx(tv)].Ypixel + 0.5) / this.sc.data.trlevel.atlas.height;
             
 			if (obj.objHasScrollAnim && v == maxV) {
                 v = minV + (maxV - minV) / 2;
