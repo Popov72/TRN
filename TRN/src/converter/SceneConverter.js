@@ -16,8 +16,8 @@ TRN.SceneConverter.prototype = {
 	createTextures : function () {
 
 		// create one texture per tile	
-		for (var i = 0; i < this.sc.data.trlevel.textile.length; ++i) {
-			var name = 'texture' + i;
+		for (let i = 0; i < this.sc.data.trlevel.textile.length; ++i) {
+			const name = 'texture' + i;
 			this.sc.textures.push({
                 "uuid": name,
                 "name": name,
@@ -38,22 +38,22 @@ TRN.SceneConverter.prototype = {
 
 	// Collect the animated textures
 	createAnimatedTextures : function () {
-		var i = 0, adata = this.sc.data.trlevel.animatedTextures, numAnimatedTextures = adata[i++];
-		var animatedTextures = [], mapObjTexture2AnimTexture = {};
+		let i = 0, adata = this.sc.data.trlevel.animatedTextures, numAnimatedTextures = adata[i++];
+		const animatedTextures = [], mapObjTexture2AnimTexture = {};
 		while (numAnimatedTextures-- > 0) {
-			var numTextures = adata[i++] + 1, snumTextures = numTextures;
-			var anmcoords = [];
+			let numTextures = adata[i++] + 1, snumTextures = numTextures,
+			    anmcoords = [];
 			while (numTextures-- > 0) {
-				var texture = adata[i++], tex = this.sc.data.trlevel.objectTextures[texture], tile = tex.tile & 0x7FFF;
-				var isTri = (tex.tile & 0x8000) != 0;
+				const texture = adata[i++], tex = this.sc.data.trlevel.objectTextures[texture], tile = tex.tile & 0x7FFF;
+				const isTri = (tex.tile & 0x8000) != 0;
 
-			    var minU = 0x7FFF, minV = 0x7FFF, numVertices = isTri ? 3 : 4;
+			    let minU = 0x7FFF, minV = 0x7FFF, numVertices = isTri ? 3 : 4;
 
 		    	mapObjTexture2AnimTexture[texture] = { idxAnimatedTexture:animatedTextures.length, pos:snumTextures-numTextures-1 };
 
-			    for (var j = 0; j < numVertices; j++) {
-			        var u = tex.vertices[j].Xpixel;
-			        var v = tex.vertices[j].Ypixel;
+			    for (let j = 0; j < numVertices; j++) {
+			        const u = tex.vertices[j].Xpixel,
+			              v = tex.vertices[j].Ypixel;
 
 			        if (minU > u) minU = u; if (minV > v) minV = v;
 			    }
@@ -82,7 +82,7 @@ TRN.SceneConverter.prototype = {
             const mesh = this.sc.data.trlevel.meshes[meshIndex];
             const meshJSON = this.createNewGeometryData();
             
-            var tiles2material = {};
+            const tiles2material = {};
     
             this.makeMeshGeometry(mesh, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture);
     
@@ -121,8 +121,8 @@ TRN.SceneConverter.prototype = {
     },
 
     createAllSprites : function() {
-        for (var s = 0; s < this.sc.data.trlevel.spriteTextures.length; ++s) {
-            var sprite = this.sc.data.trlevel.spriteTextures[s];
+        for (let s = 0; s < this.sc.data.trlevel.spriteTextures.length; ++s) {
+            const sprite = this.sc.data.trlevel.spriteTextures[s];
 
             const geometry = this.createSpriteSeq(s);
 
@@ -154,7 +154,7 @@ TRN.SceneConverter.prototype = {
 	//  create a sprite sequence: if there's more than one sprite in the sequence, we create an animated texture
 	createSpriteSeq : function (spriteSeq) {
 
-		var spriteIndex, numSprites = 1, spriteid;
+		let spriteIndex, numSprites = 1, spriteid;
 
 		if (typeof(spriteSeq) == 'number') {
 			// case where this function is called to create a single sprite in a room
@@ -176,9 +176,9 @@ TRN.SceneConverter.prototype = {
 			spriteid = 'spriteseq' + spriteSeq.objectID;
 		}
 
-		var sprite = this.sc.data.trlevel.spriteTextures[spriteIndex];
-		var meshJSON = this.createNewGeometryData();
-		var tiles2material = {};
+		let sprite = this.sc.data.trlevel.spriteTextures[spriteIndex],
+		    meshJSON = this.createNewGeometryData(),
+		    tiles2material = {};
 
         delete meshJSON.attributes.color;
         delete meshJSON.attributes._flags;
@@ -188,39 +188,39 @@ TRN.SceneConverter.prototype = {
 		meshJSON.vertices.push(sprite.rightSide, -sprite.bottomSide,    0);
 		meshJSON.vertices.push(sprite.rightSide, -sprite.topSide,       0);
 
-		var texturedRectangles = [
-			{
-				vertices: [0,1,2,3],
-				texture: 0x8000,
-			}
-		];
-		var width = (sprite.width-255)/256;
-		var height = (sprite.height-255)/256;
-		var row = 0, col = 0, tile = sprite.tile;
+		const texturedRectangles = [
+                {
+                    vertices: [0,1,2,3],
+                    texture: 0x8000,
+                }
+            ];
+		const width = (sprite.width-255)/256,
+		      height = (sprite.height-255)/256;
+		let row = 0, col = 0, tile = sprite.tile;
 		if (this.sc.data.trlevel.atlas.make) {
 			row = Math.floor(tile / this.sc.data.trlevel.atlas.numColPerRow), col = tile - row * this.sc.data.trlevel.atlas.numColPerRow;
 			tile = 0;
 		}
-		var objectTextures = [
-			{
-				attributes: 0,
-                tile: tile,
-                origTile: tile,
-				vertices: [
-					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y + row * 256 },
-					{ Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y+height-1 + row * 256 },
-					{ Xpixel: sprite.x+width-1 + col * 256, Ypixel: sprite.y+height-1 + row * 256 },
-					{ Xpixel: sprite.x+width-1 + col * 256, Ypixel: sprite.y + row * 256 }
-				]
-			}
+		const objectTextures = [
+                {
+                    attributes: 0,
+                    tile: tile,
+                    origTile: tile,
+                    vertices: [
+                        { Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y + row * 256 },
+                        { Xpixel: sprite.x + col * 256, 		Ypixel: sprite.y+height-1 + row * 256 },
+                        { Xpixel: sprite.x+width-1 + col * 256, Ypixel: sprite.y+height-1 + row * 256 },
+                        { Xpixel: sprite.x+width-1 + col * 256, Ypixel: sprite.y + row * 256 }
+                    ]
+                }
 		];
 
-	    var mapObjTexture2AnimTexture = {};
+	    const mapObjTexture2AnimTexture = {};
 
 	    if (numSprites > 1 && this.sc.data.animatedTextures) {
-			var anmcoords = [];
+			const anmcoords = [];
 		    mapObjTexture2AnimTexture[0] = { idxAnimatedTexture:this.sc.data.animatedTextures.length, pos:0 };
-			for (var i = 0; i < numSprites; ++i) {
+			for (let i = 0; i < numSprites; ++i) {
                 sprite = this.sc.data.trlevel.spriteTextures[spriteIndex + i];
                 tile = sprite.tile;
 				if (this.sc.data.trlevel.atlas.make) {
@@ -254,26 +254,25 @@ TRN.SceneConverter.prototype = {
 	// generate the rooms + static meshes + sprites in the room
 	createRooms : function () {
 		// flag the alternate rooms
-		for (var m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
+		for (let m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
 			this.sc.data.trlevel.rooms[m].isAlternate = false;
         }
         
-		for (var m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
-			var room = this.sc.data.trlevel.rooms[m];
-            var alternate = room.alternateRoom;
+		for (let m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
+			const room = this.sc.data.trlevel.rooms[m],
+                  alternate = room.alternateRoom;
             if (alternate != -1) {
                 this.sc.data.trlevel.rooms[alternate].isAlternate = true;
             }
 		}
 		
-		var maxLightsInRoom = 0, roomL = -1;
+		let maxLightsInRoom = 0, roomL = -1;
 
 		// generate the rooms
-		for (var m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
-			//if (m != 10) continue;
-			var room = this.sc.data.trlevel.rooms[m];
-			var info = room.info, rdata = room.roomData, rflags = room.flags, lightMode = room.lightMode;
-			var isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
+		for (let m = 0; m < this.sc.data.trlevel.rooms.length; ++m) {
+			const room = this.sc.data.trlevel.rooms[m],
+			      info = room.info, rdata = room.roomData, rflags = room.flags, lightMode = room.lightMode,
+			      isFilledWithWater = (rflags & 1) != 0, isFlickering = (lightMode == 1);
             
             const roomMesh = {
                 "uuid"              : "room" + m,
@@ -287,7 +286,7 @@ TRN.SceneConverter.prototype = {
             
             this.objects.push(roomMesh);
 
-            var roomData = {
+            const roomData = {
 				"type"				: 'room',
                 "raw"               : room,
 				"isAlternateRoom" 	: room.isAlternate,
@@ -306,58 +305,60 @@ TRN.SceneConverter.prototype = {
 				roomL = m;
 			}
 
-			var ambientColor = glMatrix.vec3.create();
+			const ambientColor = glMatrix.vec3.create();
 			if (this.sc.data.trlevel.rversion != 'TR4') {
-				var ambient1 = 1.0 - room.ambientIntensity1/0x2000;
+				const ambient1 = 1.0 - room.ambientIntensity1/0x2000;
 				glMatrix.vec3.set(ambientColor, ambient1, ambient1, ambient1);
 			} else {
-				var rc = room.roomColour;
+				const rc = room.roomColour;
 				ambientColor[0] = ((rc & 0xFF0000) >> 16) / 255.0;
 				ambientColor[1] = ((rc & 0xFF00) >> 8)  / 255.0;
 				ambientColor[2] = (rc & 0xFF)  / 255.0;
 			}
 
-			var lights = [];
-			for (var l = 0; l < room.lights.length; ++l) {
-				var light = room.lights[l], color = [1,1,1];
-				var px = light.x, py = -light.y, pz = -light.z;
-				var fadeIn = 0, fadeOut = 0;
-				var plight = { type:'point' };
+			const lights = [];
+			for (let l = 0; l < room.lights.length; ++l) {
+				const light = room.lights[l], color = [1,1,1];
+				let px = light.x, py = -light.y, pz = -light.z,
+				    fadeIn = 0, fadeOut = 0;
+				const plight = { type:'point' };
 				switch(this.sc.data.trlevel.rversion) {
 					case 'TR1':
-					case 'TR2':
-						var intensity = light.intensity1;
+					case 'TR2': {
+						let intensity = light.intensity1;
 		                if (intensity > 0x2000) intensity = 0x2000;
 		                intensity = intensity / 0x2000;
 		                glMatrix.vec3.set(color, intensity, intensity, intensity);
 		                fadeOut = light.fade1;
-						break;
-					case 'TR3':
-		                var r = light.color.r / 255.0;
-		                var g = light.color.g / 255.0;
-		                var b = light.color.b / 255.0;
-		                var intensity = light.intensity;
+                        break;
+                    }
+					case 'TR3': {
+		                const r = light.color.r / 255.0,
+		                      g = light.color.g / 255.0,
+		                      b = light.color.b / 255.0;
+		                let intensity = light.intensity;
 		                if (intensity > 0x2000) intensity = 0x2000; // without this test, cut5 in TR3 (for eg) is wrong
 		                intensity = intensity / 0x2000;
 		                glMatrix.vec3.set(color, r*intensity, g*intensity, b*intensity);
 		                fadeOut = light.fade;
-						break;
-					case 'TR4':
+                        break;
+                    }
+					case 'TR4': {
 						if (light.lightType > 2) {
 							// todo: handling of shadow / fog bulb lights
 							//console.log('light not handled because of type ' + light.lightType + ' in room ' + m, room)
 							continue;
 						}
-		                var r = light.color.r / 255.0;
-		                var g = light.color.g / 255.0;
-		                var b = light.color.b / 255.0;
-		                var intensity = light.intensity;
+		                const r = light.color.r / 255.0,
+		                      g = light.color.g / 255.0,
+		                      b = light.color.b / 255.0;
+		                let intensity = light.intensity;
 		                if (intensity > 32) intensity = 32;
 		                intensity = intensity / 16.0;
 		                glMatrix.vec3.set(color, r*intensity, g*intensity, b*intensity);
 		                switch (light.lightType) {
 		                	case 0: // directional light
-		                		var bb = this.getBoundingBox(room.roomData.vertices);
+		                		const bb = this.getBoundingBox(room.roomData.vertices);
 		                		px = (bb[0] + bb[1]) / 2.0 + info.x;
 		                		py = -(bb[2] + bb[3]) / 2.0;
 		                		pz = -(bb[4] + bb[5]) / 2.0 - info.z;
@@ -389,7 +390,8 @@ TRN.SceneConverter.prototype = {
 				                plight.type = 'spot';
 		                		break;
 		                }
-						break;
+                        break;
+                    }
 				}
 		        if (fadeOut > 0x7FFF) fadeOut = 0x8000;
 		        if (fadeIn > fadeOut) fadeIn = 0;
@@ -406,14 +408,14 @@ TRN.SceneConverter.prototype = {
 			roomData.ambientColor = ambientColor;
 
             // room geometry
-            var roomJSON = this.createNewGeometryData();
+            const roomJSON = this.createNewGeometryData();
             
-			var tiles2material = {};
+			const tiles2material = {};
 
 			// push the vertices + vertex colors of the room
-			for (var v = 0; v < rdata.vertices.length; ++v) {
-				var rvertex = rdata.vertices[v];
-				var vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater);
+			for (let v = 0; v < rdata.vertices.length; ++v) {
+				const rvertex = rdata.vertices[v],
+				      vertexInfo = this.processRoomVertex(rvertex, isFilledWithWater);
 
 				roomJSON.vertices.push(vertexInfo.x+info.x, vertexInfo.y, vertexInfo.z-info.z);
 				roomJSON.colors.push(vertexInfo.color2[0], vertexInfo.color2[1], vertexInfo.color2[2]);
@@ -437,9 +439,9 @@ TRN.SceneConverter.prototype = {
             roomMesh.material = materials.map( (m) => m.uuid );
 
 			// portal in the room
-			var portals = [];
-			for (var p = 0; p < room.portals.length; ++p) {
-				var portal = room.portals[p];
+			const portals = [];
+			for (let p = 0; p < room.portals.length; ++p) {
+				const portal = room.portals[p];
 				portals.push({
 					"adjoiningRoom": portal.adjoiningRoom,
 					"normal": { x:portal.normal.x, y:-portal.normal.y, z:-portal.normal.z },
@@ -459,20 +461,20 @@ TRN.SceneConverter.prototype = {
 	},
 
 	createAnimations : function () {
-		var animTracks = [];
+		const animTracks = [];
 
-		for (var anm = 0; anm < this.sc.data.trlevel.animations.length; ++anm) {
-			var anim = this.sc.data.trlevel.animations[anm];
+		for (let anm = 0; anm < this.sc.data.trlevel.animations.length; ++anm) {
+			const anim = this.sc.data.trlevel.animations[anm];
 
-			var frameOffset = anim.frameOffset / 2;
-			var frameStep   = anim.frameSize;
-			var numFrames = anim.frameEnd - anim.frameStart + 1;
-			var animNumKeys = parseInt((numFrames - 1) / anim.frameRate) + 1;
+			let frameOffset = anim.frameOffset / 2,
+			    frameStep   = anim.frameSize;
+			    numFrames = anim.frameEnd - anim.frameStart + 1;
+			    animNumKeys = parseInt((numFrames - 1) / anim.frameRate) + 1;
 
 			if ((numFrames - 1) % anim.frameRate) animNumKeys++;
 
-			var animFPS = TRN.baseFrameRate;
-			var animLength = ((animNumKeys-1) * anim.frameRate) / TRN.baseFrameRate;
+			let animFPS = TRN.baseFrameRate,
+			    animLength = ((animNumKeys-1) * anim.frameRate) / TRN.baseFrameRate;
 
 			if (animLength == 0) {
 				animFPS = 1.0;
@@ -483,34 +485,34 @@ TRN.SceneConverter.prototype = {
 				frameStep = this.sc.data.trlevel.frames[frameOffset + 9] * 2 + 10;
 			}
 
-			var animKeys = [];
+			const animKeys = [];
 
-			for (var key = 0; key < animNumKeys; key++)	{
-				var frame = frameOffset + key * frameStep, sframe = frame;
+			for (let key = 0; key < animNumKeys; key++)	{
+				let frame = frameOffset + key * frameStep, sframe = frame;
 
-				var BBLoX =  this.sc.data.trlevel.frames[frame++], BBHiX =  this.sc.data.trlevel.frames[frame++];
-				var BBLoY = -this.sc.data.trlevel.frames[frame++], BBHiY = -this.sc.data.trlevel.frames[frame++];
-				var BBLoZ = -this.sc.data.trlevel.frames[frame++], BBHiZ = -this.sc.data.trlevel.frames[frame++];
+				const BBLoX =  this.sc.data.trlevel.frames[frame++], BBHiX =  this.sc.data.trlevel.frames[frame++],
+				      BBLoY = -this.sc.data.trlevel.frames[frame++], BBHiY = -this.sc.data.trlevel.frames[frame++],
+				      BBLoZ = -this.sc.data.trlevel.frames[frame++], BBHiZ = -this.sc.data.trlevel.frames[frame++];
 
-				var transX = this.sc.data.trlevel.frames[frame++], transY = -this.sc.data.trlevel.frames[frame++], transZ = -this.sc.data.trlevel.frames[frame++];
+				let transX = this.sc.data.trlevel.frames[frame++], transY = -this.sc.data.trlevel.frames[frame++], transZ = -this.sc.data.trlevel.frames[frame++];
 
-				var numAnimatedMeshesUnknown = 99999, numAnimatedMeshes = numAnimatedMeshesUnknown;
+				let numAnimatedMeshesUnknown = 99999, numAnimatedMeshes = numAnimatedMeshesUnknown;
 				if (this.sc.data.trlevel.rversion == 'TR1') {
 					numAnimatedMeshes = this.sc.data.trlevel.frames[frame++];
 				}
 
-				var mesh = 0, keyData = [];
+				let mesh = 0, keyData = [];
 				// Loop through all the meshes of the key
 				while (mesh < numAnimatedMeshes) {
-					var angleX = 0.0, angleY = 0.0, angleZ = 0.0;
+					let angleX = 0.0, angleY = 0.0, angleZ = 0.0;
 
 					if (numAnimatedMeshes == numAnimatedMeshesUnknown && (frame-sframe) >= frameStep) break;
 
-				    var frameData = this.sc.data.trlevel.frames[frame++];
+				    let frameData = this.sc.data.trlevel.frames[frame++];
 				    if (frameData < 0) frameData += 65536;
 
 				    if ((frameData & 0xC000) && (this.sc.data.trlevel.rversion != 'TR1')) { // single axis of rotation
-				        var angle = this.sc.data.trlevel.rversion == 'TR4' ? (frameData & 0xFFF) >> 2 : frameData & 0x3FF;
+				        let angle = this.sc.data.trlevel.rversion == 'TR4' ? (frameData & 0xFFF) >> 2 : frameData & 0x3FF;
 
 						angle *= 360.0 / 1024.0;
 
@@ -528,11 +530,11 @@ TRN.SceneConverter.prototype = {
 			        } else { // 3 axis of rotation
 						if (numAnimatedMeshes == numAnimatedMeshesUnknown && (frame-sframe) >= frameStep) break;
 
-				        var frameData2 = this.sc.data.trlevel.frames[frame++];
+				        let frameData2 = this.sc.data.trlevel.frames[frame++];
 					    if (frameData2 < 0) frameData2 += 65536;
 
 				        if (this.sc.data.trlevel.rversion == 'TR1') {
-				            var temp = frameData;
+				            let temp = frameData;
 				            frameData = frameData2;
 				            frameData2 = temp;
 				        }
@@ -552,7 +554,7 @@ TRN.SceneConverter.prototype = {
 					angleY *= Math.PI / 180.0;
 					angleZ *= Math.PI / 180.0;
 
-					var qx = glMatrix.quat.create(), qy = glMatrix.quat.create(), qz = glMatrix.quat.create();
+					const qx = glMatrix.quat.create(), qy = glMatrix.quat.create(), qz = glMatrix.quat.create();
 
 					glMatrix.quat.setAxisAngle(qx, [1,0,0], angleX);
 					glMatrix.quat.setAxisAngle(qy, [0,1,0], -angleY);
@@ -579,14 +581,14 @@ TRN.SceneConverter.prototype = {
 
 			}
 
-			var animCommands = [], numAnimCommands = anim.numAnimCommands;
+			const animCommands = [], numAnimCommands = anim.numAnimCommands;
 
 			if (numAnimCommands < 0x100) {
-				var aco = anim.animCommand;
-				for (var ac = 0; ac < numAnimCommands; ++ac) {
-					var cmd = this.sc.data.trlevel.animCommands[aco++].value, numParams = TRN.Animation.Commands.numParams[cmd];
+				let aco = anim.animCommand;
+				for (let ac = 0; ac < numAnimCommands; ++ac) {
+					let cmd = this.sc.data.trlevel.animCommands[aco++].value, numParams = TRN.Animation.Commands.numParams[cmd];
 
-					var command = {
+					const command = {
 						"cmd": cmd,
 						"params": []
 					};
@@ -622,51 +624,51 @@ TRN.SceneConverter.prototype = {
 	},
 
     createAllMoveables : function() {
-		var objIdAnim  = this.confMgr.param('behaviour[name="ScrollTexture"]', true, true);
-        var lstIdAnim  =  {};
+		const objIdAnim  = this.confMgr.param('behaviour[name="ScrollTexture"]', true, true),
+              lstIdAnim  =  {};
         
         if (objIdAnim) {
-            for (var i = 0; i < objIdAnim.size(); ++i) {
-                var node = objIdAnim[i];
+            for (let i = 0; i < objIdAnim.size(); ++i) {
+                const node = objIdAnim[i];
                 lstIdAnim[parseInt(node.getAttribute("objectid"))] = true;
             }
         }
 
-        for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
-            var moveable = this.sc.data.trlevel.moveables[m];
+        for (let m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+            const moveable = this.sc.data.trlevel.moveables[m];
 
             this.createMoveable(moveable, lstIdAnim);
         }
     },
 
 	createMoveable : function(moveable, lstIdAnim) {
-		var jsonid = 'moveable' + moveable.objectID;
+		const jsonid = 'moveable' + moveable.objectID;
 
-		var objIDForVisu = this.confMgr.number('moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
+		const objIDForVisu = this.confMgr.number('moveable[id="' + moveable.objectID + '"] > visuid', true, moveable.objectID);
 
         const moveableGeom = this.sc.data.trlevel.moveables[this.movObjID2Index[objIDForVisu]];
 
-        var numMeshes = moveableGeom.numMeshes, meshIndex = moveableGeom.startingMesh, meshTree = moveableGeom.meshTree;
-        var moveableIsExternallyLit = false, materials = null, meshJSON = null;
-        var isDummy = numMeshes == 1 && this.sc.data.trlevel.meshes[meshIndex].dummy && !moveableGeom.objectID == this.laraObjectID;
+        let numMeshes = moveableGeom.numMeshes, meshIndex = moveableGeom.startingMesh, meshTree = moveableGeom.meshTree,
+            moveableIsExternallyLit = false, materials = null, meshJSON = null;
+        const isDummy = numMeshes == 1 && this.sc.data.trlevel.meshes[meshIndex].dummy && !moveableGeom.objectID == this.laraObjectID;
 
         if (!isDummy) {
             meshJSON = this.createNewGeometryData();
 
             delete meshJSON.attributes.color;
 
-            var tiles2material = {};
-            var stackIdx = 0, stack = [], parent = -1;
-            var px = 0, py = 0, pz = 0, bones = [];
+            const tiles2material = {};
+            let stackIdx = 0, stack = [], parent = -1;
+            let px = 0, py = 0, pz = 0, bones = [];
 
             meshJSON.objHasScrollAnim = moveableGeom.objectID in lstIdAnim;
 
             meshJSON.skinIndices = [];
             meshJSON.skinWeights = [];
     
-            for (var idx = 0; idx < numMeshes; ++idx, meshIndex++) {
+            for (let idx = 0; idx < numMeshes; ++idx, meshIndex++) {
                 if (idx != 0) {
-                    var sflag = this.sc.data.trlevel.meshTrees[meshTree++].coord;
+                    const sflag = this.sc.data.trlevel.meshTrees[meshTree++].coord;
                     px = this.sc.data.trlevel.meshTrees[meshTree++].coord;
                     py = this.sc.data.trlevel.meshTrees[meshTree++].coord;
                     pz = this.sc.data.trlevel.meshTrees[meshTree++].coord;
@@ -679,12 +681,12 @@ TRN.SceneConverter.prototype = {
                     }
                 }
 
-                var mesh = this.sc.data.trlevel.meshes[meshIndex];
+                const mesh = this.sc.data.trlevel.meshes[meshIndex];
 
                 if ((mesh.dummy && this.sc.data.trlevel.rversion == 'TR4') || (idx == 0 && this.sc.data.trlevel.rversion == 'TR4' && moveableGeom.objectID == TRN.ObjectID.LaraJoints)) {
                     // hack to remove bad data from joint #0 of Lara joints in TR4
                 } else {
-                    var internalLit = this.makeMeshGeometry(mesh, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, idx);
+                    const internalLit = this.makeMeshGeometry(mesh, meshJSON, tiles2material, this.sc.data.trlevel.objectTextures, this.sc.data.trlevel.mapObjTexture2AnimTexture, idx);
                     
                     moveableIsExternallyLit = moveableIsExternallyLit || !internalLit;
                 }
@@ -776,42 +778,41 @@ TRN.SceneConverter.prototype = {
 	},
 
     collectLightsExt : function() {
+        let addedLights = 0;
 
-        var addedLights = 0;
-
-        for(var objID in this.sc.data.objects) {
-            var objData = this.sc.data.objects[objID];
+        for(let objID in this.sc.data.objects) {
+            const objData = this.sc.data.objects[objID];
 
             if (objData.type != 'room') {
                 continue;
             }
 
-            var portals = objData.portals;
+            const portals = objData.portals;
 
-            var lights = objData.lights.slice(0);
-            for (var p = 0; p < portals.length; ++p) {
-                var portal = portals[p], r = portal.adjoiningRoom, adjRoom = this.sc.data.objects['room' + r];
+            const lights = objData.lights.slice(0);
+            for (let p = 0; p < portals.length; ++p) {
+                const portal = portals[p], r = portal.adjoiningRoom, adjRoom = this.sc.data.objects['room' + r];
                 if (!adjRoom) continue;
 
-                var portalCenter = {
+                const portalCenter = {
                     x: (portal.vertices[0].x + portal.vertices[1].x + portal.vertices[2].x + portal.vertices[3].x) / 4.0,
                     y: (portal.vertices[0].y + portal.vertices[1].y + portal.vertices[2].y + portal.vertices[3].y) / 4.0,
                     z: (portal.vertices[0].z + portal.vertices[1].z + portal.vertices[2].z + portal.vertices[3].z) / 4.0
                 };
 
-                var rlights = adjRoom.lights;
-                for(var l = 0; l < rlights.length; ++l) {
-                    var rlight = rlights[l];
+                const rlights = adjRoom.lights;
+                for(let l = 0; l < rlights.length; ++l) {
+                    const rlight = rlights[l];
 
                     switch(rlight.type) {
                         case 'directional':
                             continue;
                     }
 
-                    var distToPortalSq = 
-                        (portalCenter.x - rlight.x)*(portalCenter.x - rlight.x) + 
-                        (portalCenter.y - rlight.y)*(portalCenter.y - rlight.y) + 
-                        (portalCenter.z - rlight.z)*(portalCenter.z - rlight.z);
+                    const distToPortalSq = 
+                            (portalCenter.x - rlight.x)*(portalCenter.x - rlight.x) + 
+                            (portalCenter.y - rlight.y)*(portalCenter.y - rlight.y) + 
+                            (portalCenter.z - rlight.z)*(portalCenter.z - rlight.z);
 
                     if (distToPortalSq > rlight.fadeOut*rlight.fadeOut) continue;
 
@@ -828,17 +829,17 @@ TRN.SceneConverter.prototype = {
 
     createVertexNormals : function() {
 
-        var vA, vB, vC, vD;
-        var cb, ab, db, dc, bc, cross;
+        let vA, vB, vC, vD;
+        let cb, ab, db, dc, bc, cross;
 
-        for (var i = 0; i < this.sc.geometries.length; ++i) {
+        for (let i = 0; i < this.sc.geometries.length; ++i) {
             const geom = this.sc.geometries[i].data;
 
             const vertices = geom.vertices, 
                   normals = geom.normals,
                   faces = geom.faces;
 
-            for (var v = 0; v < vertices.length; ++v) {
+            for (let v = 0; v < vertices.length; ++v) {
                 normals.push(0);
             }
 
@@ -898,9 +899,9 @@ TRN.SceneConverter.prototype = {
                 }
             }
 
-            for (var n = 0; n < normals.length/3; ++n) {
-                var x = normals[n * 3 + 0], y = normals[n * 3 + 1], z = normals[n * 3 + 2];
-                var nrm = Math.sqrt(x*x + y*y + z*z);
+            for (let n = 0; n < normals.length/3; ++n) {
+                let x = normals[n * 3 + 0], y = normals[n * 3 + 1], z = normals[n * 3 + 2];
+                let nrm = Math.sqrt(x*x + y*y + z*z);
                 if (x == 0 && y == 0 && z == 0) { x = 1; y = z = 0; nrm = 1; } // it's possible some vertices are not used in the object, so normal==0 at this point - put a (fake) valid normal
                 normals[n * 3 + 0] = x / nrm;
                 normals[n * 3 + 1] = y / nrm;
@@ -912,19 +913,19 @@ TRN.SceneConverter.prototype = {
     },
     
     makeSkinnedLara : function() {
-        var laraID = 0;
+        const laraID = 0;
         
-        var joints = this.getGeometryFromId('moveable' + TRN.ObjectID.LaraJoints).data;
-        var jointsVertices = joints.vertices;
-        var main = this.getGeometryFromId('moveable' + laraID).data;
-        var mainVertices = main.vertices;
+        const joints = this.getGeometryFromId('moveable' + TRN.ObjectID.LaraJoints).data,
+              jointsVertices = joints.vertices,
+              main = this.getGeometryFromId('moveable' + laraID).data,
+              mainVertices = main.vertices;
 
-        var bones = this.sc.data.objects['moveable' + TRN.ObjectID.LaraJoints].bonesStartingPos;
-        var numJoints = bones.length;
-        var posStack = [];
+        const bones = this.sc.data.objects['moveable' + TRN.ObjectID.LaraJoints].bonesStartingPos,
+              numJoints = bones.length,
+              posStack = [];
 
-        for (var j = 0; j < numJoints; ++j) {
-            var bone = bones[j], pos = bone.pos_init.slice(0);
+        for (let j = 0; j < numJoints; ++j) {
+            const bone = bones[j], pos = bone.pos_init.slice(0);
             if (bone.parent >= 0) {
                 pos[0] += posStack[bone.parent][0];
                 pos[1] += posStack[bone.parent][1];
@@ -934,12 +935,12 @@ TRN.SceneConverter.prototype = {
         }
 
         function findVertex(x, y, z, b1, b2) {
-            for (var v = 0; v < mainVertices.length/3; ++v) {
-                var bidx = main.skinIndices[v*2+0];
+            for (let v = 0; v < mainVertices.length/3; ++v) {
+                const bidx = main.skinIndices[v*2+0];
                 if (bidx != b1 && bidx != b2) continue;
-                var boneTrans = posStack[bidx];
-                var dx = mainVertices[v*3+0]+boneTrans[0]-x, dy = mainVertices[v*3+1]+boneTrans[1]-y, dz = mainVertices[v*3+2]+boneTrans[2]-z;
-                var dist = dx*dx+dy*dy+dz*dz;
+                const boneTrans = posStack[bidx],
+                      dx = mainVertices[v*3+0]+boneTrans[0]-x, dy = mainVertices[v*3+1]+boneTrans[1]-y, dz = mainVertices[v*3+2]+boneTrans[2]-z,
+                    dist = dx*dx+dy*dy+dz*dz;
                 if (dist < 24) {
                     return v;
                 }
@@ -947,12 +948,12 @@ TRN.SceneConverter.prototype = {
             return -1;
         }
 
-        for (var i = 0; i < jointsVertices.length/3; ++i) {
-            var boneIdx = joints.skinIndices[i*2+0];
-            var boneParentIdx = boneIdx > 0 ? bones[boneIdx].parent : boneIdx;
-            var jointTrans = posStack[boneIdx];
-            var x = jointsVertices[i*3+0]+jointTrans[0], y = jointsVertices[i*3+1]+jointTrans[1], z = jointsVertices[i*3+2]+jointTrans[2];
-            var idx = findVertex(x, y, z, boneIdx, boneParentIdx);
+        for (let i = 0; i < jointsVertices.length/3; ++i) {
+            const boneIdx = joints.skinIndices[i*2+0],
+                  boneParentIdx = boneIdx > 0 ? bones[boneIdx].parent : boneIdx,
+                  jointTrans = posStack[boneIdx],
+                  x = jointsVertices[i*3+0]+jointTrans[0], y = jointsVertices[i*3+1]+jointTrans[1], z = jointsVertices[i*3+2]+jointTrans[2];
+            const idx = findVertex(x, y, z, boneIdx, boneParentIdx);
             if (idx >= 0) {
                 jointsVertices[i*3+0] = mainVertices[idx*3+0];
                 jointsVertices[i*3+1] = mainVertices[idx*3+1];
@@ -971,7 +972,7 @@ TRN.SceneConverter.prototype = {
             numMatInMain = Math.max(numMatInMain, face.matIndex+1);
         }
 
-        var faces = joints.faces;
+        const faces = joints.faces;
         for (let f = 0; f < faces.length; ++f) {
             let face = faces[f];
             face.matIndex += this.sc.data.trlevel.atlas.make ? 0 : numMatInMain;
@@ -1137,8 +1138,8 @@ TRN.SceneConverter.prototype = {
 
 		this.movObjID2Index = {};
 
-		for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
-			var moveable = this.sc.data.trlevel.moveables[m];
+		for (let m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+			const moveable = this.sc.data.trlevel.moveables[m];
 			this.movObjID2Index[moveable.objectID] = m;
 		}
 
@@ -1161,8 +1162,8 @@ TRN.SceneConverter.prototype = {
         }
 
         // get the number of animations for each moveable
-        for (var m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
-            var moveable = this.sc.data.trlevel.moveables[m];
+        for (let m = 0; m < this.sc.data.trlevel.moveables.length; ++m) {
+            const moveable = this.sc.data.trlevel.moveables[m];
 
             moveable.numAnimations = this.numAnimationsForMoveable(m);
         }
