@@ -63,22 +63,15 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
         // create moveable instances used in cutscene
         const actorMoveables = [];
-        let   mshswap = null;
 
         for (let ac = 0; ac < cutscene.actors.length; ++ac) {
             const id = cutscene.actors[ac].slotNumber;
-            let mvb;
+            let mvb = lara;
+
             if (id != TRN.ObjectID.Lara) {
                 mvb = this.objMgr.createMoveable(id, laraRoomIndex, undefined, true, false);
-                this.sceneData.objects[mvb.name].has_anims = true; // could be false because of animation optimization in scene converter
-            } else {
-                mvb = lara;
-                if (cutscene.index in { 1:1, 2:1, 21:1 }) {
-                    mshswap = this.objMgr.createMoveable(417, laraRoomIndex, undefined, true, false);
-                    mshswap.position.set(ocs.position.x, ocs.position.y, ocs.position.z);
-                    mshswap.quaternion.set(0, 0, 0, 1);
-                }
             }
+
             actorMoveables.push(mvb);
 
             mvb.position.set(ocs.position.x, ocs.position.y, ocs.position.z);
@@ -87,66 +80,21 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
         // create actor frames
         for (let ac = 0; ac < cutscene.actors.length; ++ac) {
-            const actor = cutscene.actors[ac];
-
-            const animation = this.makeAnimationForActor(cutscene, actor, "anim_cutscene_actor" + ac);
+            const actor = cutscene.actors[ac],
+                  animation = this.makeAnimationForActor(cutscene, actor, "anim_cutscene_actor" + ac);
 
             this.sceneData.objects[actorMoveables[ac].name].animationStartIndex = this.sceneData.animTracks.length;
 
             const oanimation = TRN.Animation.addTrack(animation, this.sceneData.animTracks);
             
-            let oanimationMeshswap = null;
-
-            if (mshswap && ac == 0) {
-                const animationMeshswap = Object.assign({}, animation);
-    
-                animationMeshswap.nextTrack = this.sceneData.animTracks.length;
-    
-                this.sceneData.objects[mshswap.name].animationStartIndex = this.sceneData.animTracks.length;
-    
-                if (cutscene.index == 1) {
-                    mshswap.visible = false;
-
-                    animationMeshswap.commands = [
-                        { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0, TRN.Animation.Commands.Misc.ANIMCMD_MISC_HIDEOBJECT] },
-                        { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [24, TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT] },
-                        { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [230, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => this.fadeOut(1.0)] }
-                    ];
-                }
-    
-                if (cutscene.index == 2) {
-                    animationMeshswap.commands = [
-                        { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0, TRN.Animation.Commands.Misc.ANIMCMD_MISC_SHOWOBJECT] },
-                        { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [140, TRN.Animation.Commands.Misc.ANIMCMD_MISC_HIDEOBJECT] }
-                    ];
-                }
-
-                oanimationMeshswap = TRN.Animation.addTrack(animationMeshswap, this.sceneData.animTracks);
-            }
-
             if (cutscene.index == 1 && ac == 0) {
+                // special case for cutscene #1: we add the animation for cutscene #2 as #1+#2 is really the same cutscene
                 const animationCont = this.makeAnimationForActor(cutscenes[1], cutscenes[1].actors[ac], "anim_cutscene2_actor" + ac);
 
                 oanimation.nextTrack = this.sceneData.animTracks.length;
-                animationCont.nextTrack = this.sceneData.animTracks.length-2;
+                animationCont.nextTrack = this.sceneData.animTracks.length-1;
 
-                animationCont.commands = [
-                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [27, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, this.cs1MakeHole.bind(this)] },
-                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [30, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => this.fadeIn(1.0)] }
-                ];
-            
                 TRN.Animation.addTrack(animationCont, this.sceneData.animTracks);
-
-                if (oanimationMeshswap) {
-                    const animationContMeshswap = Object.assign({}, animationCont);
-
-                    animationContMeshswap.commands = [];
-
-                    oanimationMeshswap.nextTrack = this.sceneData.animTracks.length;
-                    animationContMeshswap.nextTrack = this.sceneData.animTracks.length-2;
-        
-                    TRN.Animation.addTrack(animationContMeshswap, this.sceneData.animTracks);
-                }
             }
         }
 

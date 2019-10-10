@@ -55,10 +55,8 @@ TRN.Animation.addTrack = function(trackJSON, animTracks) {
 
     var track = new TRN.Animation.Track(trackJSON.numKeys, trackJSON.numFrames, trackJSON.frameRate, trackJSON.fps, trackJSON.name);
 
-    trackJSON.commands.frameStart = trackJSON.frameStart;
-
     track.setNextTrack(trackJSON.nextTrack, trackJSON.nextTrackFrame);
-    track.setCommands(trackJSON.commands);
+    track.setCommands(trackJSON.commands, trackJSON.frameStart);
 
     animTracks.push(track);
 
@@ -141,8 +139,9 @@ TRN.Animation.Track.prototype = {
 		this.nextTrackFrame = frame;
 	},
 
-	setCommands : function(commands) {
-		this.commands = commands;
+	setCommands : function(commands, frameStart) {
+        this.commands = commands;
+        this.commands.frameStart = frameStart;
 	}
 
 }

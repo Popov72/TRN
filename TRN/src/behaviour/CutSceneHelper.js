@@ -15,6 +15,64 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
         }
 
         switch(csIndex) {
+            case 1: {
+                // Handle the shovel / Make a hole in the ground / Add a fade-in/out between animation #1 and #2 (so that we don't see the hole pop...)
+                const lara = actorMoveables[0],
+                      data = this.sceneData.objects[lara.name],
+                      track1 = this.sceneData.animTracks[this.sceneData.objects[lara.name].animationStartIndex],
+                      track2 = this.sceneData.animTracks[this.sceneData.objects[lara.name].animationStartIndex + 1];
+                
+                const meshShovel = this.objMgr.createMoveable(417, data.roomIndex, undefined, true, data.skeleton);
+
+                data.layer.setMesh(TRN.Layer.LAYER.MESHSWAP, meshShovel, 0);
+
+                track1.setCommands([
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [24,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [230, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => this.fadeOut(1.0)] }
+                ], 0);
+
+                track2.setCommands([
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [27,  TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, this.cs1MakeHole.bind(this)] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [30,  TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => this.fadeIn(1.0)] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [147, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] }
+                ], 0);
+
+                break;
+            }
+
+            case 2: {
+                // Handle the shovel
+                const lara = actorMoveables[0],
+                      data = this.sceneData.objects[lara.name],
+                      track1 = this.sceneData.animTracks[this.sceneData.objects[lara.name].animationStartIndex];
+                
+                const meshShovel = this.objMgr.createMoveable(417, data.roomIndex, undefined, true, data.skeleton);
+
+                data.layer.setMesh(TRN.Layer.LAYER.MESHSWAP, meshShovel, 0);
+
+                track1.setCommands([
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [147, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] }
+                ], 0);
+
+                break;
+            }
+
+            case 4: {
+                // Handle the pistols visibility during the fight with the scorpion
+                const lara = actorMoveables[0],
+                      track1 = this.sceneData.animTracks[this.sceneData.objects[lara.name].animationStartIndex];
+
+                track1.setCommands([
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [320,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [320,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] }
+                ], 0);
+
+                break;
+            }
+
             case 7:
             case 8:
             case 9: {
@@ -73,6 +131,39 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                     });*/
                 break;
             }
+
+            case 21: {
+                // Handle the pole
+                const lara = actorMoveables[0],
+                      data = this.sceneData.objects[lara.name],
+                      track1 = this.sceneData.animTracks[this.sceneData.objects[lara.name].animationStartIndex];
+                
+                const meshPole = this.objMgr.createMoveable(417, data.roomIndex, undefined, true, data.skeleton);
+
+                data.layer.setMesh(TRN.Layer.LAYER.MESHSWAP, meshPole, 0);
+
+                track1.setCommands([
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_R3)] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [560, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_R3)] }
+                ], 0);
+
+                break;
+            }
+
+            case 24: {
+                // Handle the pistols visibility during the dialog with the wounded guy
+                const lara = actorMoveables[0],
+                      track1 = this.sceneData.animTracks[this.sceneData.objects[lara.name].animationStartIndex];
+
+                track1.setCommands([
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [552,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [552,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] }
+                ], 0);
+
+                break;
+            }
         }
     },
 
@@ -86,6 +177,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
     // Between cutscene 1 and 2, a hole should appear in the ground to reveal hidden entrance to pyramid
     cs1MakeHole : function() {
+        return;
         let oroom = this.objMgr.objectList['room']['81'];
         if (oroom.__done) {
             return;
