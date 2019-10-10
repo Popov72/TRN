@@ -219,6 +219,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
             });
         }
 
+        let realNumFrames = 0;
         for (let d = 0; d < cutscene.numFrames; ++d) {
             const key = {
                 "time": d,
@@ -275,9 +276,12 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
             }
 
             if (addKey) {
+                realNumFrames = d;
                 animation.keys.push(key);
             }
         }
+
+        animation.numFrames = realNumFrames;
 
         return animation;
     },
