@@ -535,6 +535,13 @@
 		</global>
 		<levels>
 			<level id="angkor1.tr4"			type="normal"	name="Angkor Wat">
+                <behaviour name="Lara">
+                    <animobject>
+                        <pistol>-1</pistol>
+                        <holster>-1</holster>
+                        <holster_pistols>-1</holster_pistols>
+                    </animobject>
+                </behaviour>
 				<behaviour name="UVRotate" objectid="73" objecttype="room"/>
 				<behaviour name="UVRotate" objectid="74" objecttype="room"/>
 				<behaviour name="UVRotate" objectid="75" objecttype="room"/>
