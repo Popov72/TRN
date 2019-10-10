@@ -551,6 +551,11 @@
 			<level id="ang_race.tr4"		type="normal"	name="Race For The Iris">
 				<behaviour name="Lara">
 					<startanim>70</startanim>
+                    <animobject>
+                        <pistol>-1</pistol>
+                        <holster>-1</holster>
+                        <holster_pistols>-1</holster_pistols>
+                    </animobject>
 				</behaviour>
                 <behaviour name="RemoveObject" objectid="431" cutsceneonly="true"/>
             </level>
