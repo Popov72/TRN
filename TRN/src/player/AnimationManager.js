@@ -11,6 +11,7 @@ TRN.AnimationManager.prototype = {
         this.sceneData = gameData.sceneData;
         this.matMgr = gameData.matMgr;
         this.objMgr = gameData.objMgr;
+        this.trversion = gameData.confMgr.trversion;
     
         this.makeTracks();
     },
@@ -145,8 +146,15 @@ TRN.AnimationManager.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN: {
                             const layer = this.sceneData.objects[obj.name].layer;
 
-                            layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
-                            //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
+                            if (this.trversion == 'TR4') {
+                                layer.updateMask(TRN.Layer.LAYER.HOLSTER_EMPTY, TRN.Layer.MASK.LEG_L1);
+                                layer.updateMask(TRN.Layer.LAYER.HOLSTER_FULL,  TRN.Layer.MASK.LEG_L1);
+                                layer.updateMask(TRN.Layer.LAYER.WEAPON,        TRN.Layer.MASK.ARM_L3);
+                    
+                            } else {
+                                layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
+                                //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
+                            }
 
                             layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);
 
@@ -156,8 +164,14 @@ TRN.AnimationManager.prototype = {
 						case TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN: {
                             const layer = this.sceneData.objects[obj.name].layer;
 
-                            layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
-                            //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
+                            if (this.trversion == 'TR4') {
+                                layer.updateMask(TRN.Layer.LAYER.HOLSTER_EMPTY, TRN.Layer.MASK.LEG_R1);
+                                layer.updateMask(TRN.Layer.LAYER.HOLSTER_FULL,  TRN.Layer.MASK.LEG_R1);
+                                layer.updateMask(TRN.Layer.LAYER.WEAPON,        TRN.Layer.MASK.ARM_R3);
+                            } else {
+                                layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
+                                //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
+                            }
 
                             layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);
 
@@ -200,6 +214,7 @@ TRN.AnimationManager.prototype = {
                         }
                         
                         case TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION: {
+                            //console.log('custom function at frame #', curFrame, ' (' + frame + ')');
                             command.params[2]();
                             break;
                         }
