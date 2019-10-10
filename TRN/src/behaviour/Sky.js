@@ -14,9 +14,9 @@ TRN.Behaviours.Sky.prototype = {
     constructor : TRN.Behaviours.Sky,
 
     init : async function(lstObjs, resolve) {
-        var id = this.nbhv.id, 
-            hide = this.nbhv.hide == 'true', 
-            noanim = this.nbhv.noanim == 'true';
+        const id = this.nbhv.id, 
+              hide = this.nbhv.hide == 'true', 
+              noanim = this.nbhv.noanim == 'true';
 
         if (hide) {
             resolve(TRN.Consts.Behaviour.retDontKeepBehaviour);
@@ -30,7 +30,7 @@ TRN.Behaviours.Sky.prototype = {
             return;
         }
 
-        var data = this.sceneData.objects[this.objSky.name];
+        const data = this.sceneData.objects[this.objSky.name];
 
         data.has_anims = !noanim;
 
@@ -43,9 +43,9 @@ TRN.Behaviours.Sky.prototype = {
 
         this.sceneBackground.add(this.objSky);
 
-        var materials = this.objSky.material;
-        for (var mat = 0; mat < materials.length; ++mat) {
-            var material = materials[mat];
+        const materials = this.objSky.material;
+        for (let mat = 0; mat < materials.length; ++mat) {
+            const material = materials[mat];
             
             material.depthWrite = false;
             material.fragmentShader = this.shdMgr.getFragmentShader('sky');

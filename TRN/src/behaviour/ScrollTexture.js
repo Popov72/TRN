@@ -18,12 +18,12 @@ TRN.Behaviours.ScrollTexture.prototype = {
     },
 
     frameEnded : function(curTime, delta) {
-        for (var i = 0; i < this.lstObjs.length; ++i) {
-            var obj = this.lstObjs[i],
-                materials = obj.material;
+        for (let i = 0; i < this.lstObjs.length; ++i) {
+            const obj = this.lstObjs[i],
+                  materials = obj.material;
             
-            for (var m = 0; m < materials.length; ++m) {
-                var material = materials[m],
+            for (let m = 0; m < materials.length; ++m) {
+                let material = materials[m],
                     pgr = (curTime * 1000.0) / (5*material.uniforms.map.value.image.height), 
                     h = (TRN.Consts.moveableScrollAnimTileHeight/2.0)/material.uniforms.map.value.image.height;
 
