@@ -153,7 +153,7 @@ TRN.AnimationManager.prototype = {
                     
                             } else {
                                 layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
-                                //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
+                                layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.ARM_L3);
                             }
 
                             layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);
@@ -170,7 +170,7 @@ TRN.AnimationManager.prototype = {
                                 layer.updateMask(TRN.Layer.LAYER.WEAPON,        TRN.Layer.MASK.ARM_R3);
                             } else {
                                 layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
-                                //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
+                                layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_R1 | TRN.Layer.MASK.ARM_R3);
                             }
 
                             layer.setRoom(this.gameData.sceneData.objects[obj.name].roomIndex);

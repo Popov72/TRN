@@ -122,7 +122,7 @@ TRN.Behaviours.Lara.prototype = {
         } else if (mvbPistolAnim) {
             // put pistols in Lara holsters
             layer.updateMask(TRN.Layer.LAYER.WEAPON, TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.LEG_R1);
-            //layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.LEG_R1);
+            layer.updateMask(TRN.Layer.LAYER.MAIN,   TRN.Layer.MASK.LEG_L1 | TRN.Layer.MASK.LEG_R1);
         }
 
         resolve(TRN.Consts.Behaviour.retKeepBehaviour);
