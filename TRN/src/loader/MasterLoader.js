@@ -1,112 +1,44 @@
 TRN.MasterLoader = {
 
 	/* trlevel is either:
-	 	* a string which is the name of the level to download. On the web site, the level file is in JSON format as outputted by TRN.SceneConverter (so no need to call it again on client side)
+	 	* a string which is the name of the level to download.
 	 	* a JSON object like { data:XXX, name:YYY } where data are the binary data of the TR level and YYY the filename
 	 */	
-	loadLevel : function (trlevel, progressbar, callbackLevelLoaded) {
-		
-		var this_ = this;
-
+	loadLevel : async function (trlevel, progressbar, callbackLevelLoaded) {
 		progressbar.show();
 
 		if (typeof(trlevel) != 'string') {
-
-			var rs = TRN.Loader.loadRawLevel(trlevel.data, trlevel.name);
+			const rs = TRN.Loader.loadRawLevel(trlevel.data, trlevel.name);
 
 			if (trlevel.noConversion) {
 				callbackLevelLoaded(rs.json);
 				return;
 			}
 
-			var converter = new TRN.SceneConverter();
+			const converter = new TRN.SceneConverter();
 
 			converter.convert(rs.json, this._parseLevel.bind(this, trlevel, progressbar, callbackLevelLoaded));
 
 		} else {
+            const blob = await (await fetch(trlevel)).arrayBuffer();
 
-		    var request = new XMLHttpRequest();
+            const rs = TRN.Loader.loadRawLevel(blob, trlevel),
+                  converter = new TRN.SceneConverter();
 
-		    request.open("GET", trlevel, true);
-		    request.responseType = "arraybuffer";
-
-		    request.onerror = function() {
-		        console.log('Read level: XHR error', request.status, request.statusText);
-		    }
-
-		    request.onprogress = function(e) {
-		    	if (e.lengthComputable) {
-		    		var pct = 0;
-
-					if ( e.total )
-						pct = e.loaded / e.total;
-
-		    		progressbar.progress(pct);
-
-		    	}
-		    }
-
-		    request.onreadystatechange = function() {
-		        if (request.readyState != 4) return;
-
-		        if (request.status != 200) {
-			   		console.log('Could not read the level', trlevel, request.status, request.statusText);
-		        } else {
-		        	progressbar.progress(1);
-                    var rs = TRN.Loader.loadRawLevel(request.response, trlevel);
-                    var converter = new TRN.SceneConverter();
-                    converter.convert(rs.json, this_._parseLevel.bind(this_, trlevel, progressbar, callbackLevelLoaded));
-                    return;
-		        }
-		    }
-
-			request.send();
-
-		}
-
+            converter.convert(rs.json, this._parseLevel.bind(this, trlevel, progressbar, callbackLevelLoaded));
+        }
 	},
 
 	/*
 		Make ThreeJS parse sceneJSON into its own internal scene representation
 	*/
 	_parseLevel : function (trlevel, progressbar, callbackLevelLoaded, sceneJSON) {
+		const loader = new THREE.ObjectLoader();
 
-		var this_ = this;
-
-		var loader = new THREE.ObjectLoader();
-
-		loader.callbackProgress = function (progress, result) {
-
-			var	pct = 0,
-				total = progress.totalModels + progress.totalTextures,
-				loaded = progress.loadedModels + progress.loadedTextures;
-
-			if (total)
-				pct = loaded / total;
-
-			progressbar.progress(pct);
-
-		};
-
-		loader.parse(sceneJSON, function(scene) {
-
-            console.log(sceneJSON)
-            console.log(scene);
-
-		    window.setTimeout(function() {
-
-		    	progressbar.setMessage('Processing...');
-
-			    window.setTimeout(function() {
-
-					this_._postProcessLevel(progressbar, callbackLevelLoaded, sceneJSON, scene);
-
-				}, 100);
-
-			}, 100);
-
-		}, '');
-
+		loader.parse(sceneJSON, (scene) => {
+            progressbar.setMessage('Processing...');
+            window.setTimeout( () => this._postProcessLevel(progressbar, callbackLevelLoaded, sceneJSON, scene), 0);
+		});
 	},
 
 	/*
@@ -114,7 +46,7 @@ TRN.MasterLoader = {
 		We now make additional setup in the scene created by ThreeJS
 	*/
 	_postProcessLevel : function (progressbar, callbackLevelLoaded, sceneJSON, scene) {
-		var sceneData = sceneJSON.data, sceneRender = scene;
+		const sceneData = sceneJSON.data, sceneRender = scene;
 
         sceneData.textures = sceneRender.__textures;
 
@@ -126,10 +58,10 @@ TRN.MasterLoader = {
 		});
 
 		// create the material for each mesh and set the loaded texture in the ShaderMaterial materials
-        var objToRemoveFromScene = [];
+        const objToRemoveFromScene = [];
 
         sceneRender.traverse( (obj) => {
-            var data = sceneData.objects[obj.name];
+            const data = sceneData.objects[obj.name];
 
             if (data) {
                 if ((data.type == 'moveable' || data.type == 'spriteseq' || data.type == 'sprite' || data.type == 'staticmesh') && data.roomIndex < 0) {
@@ -153,14 +85,14 @@ TRN.MasterLoader = {
 
 			obj.frustumCulled = true;
 
-			var materials = obj.material;
+			const materials = obj.material;
 
 			if (!materials || !materials.length) {
                 return;
             }
 
-			for (var i = 0; i < materials.length; ++i) {
-				var material = materials[i];
+			for (let i = 0; i < materials.length; ++i) {
+				const material = materials[i];
 
 				if (material.transparent) {
 					material.blending = THREE.AdditiveBlending;
@@ -175,5 +107,4 @@ TRN.MasterLoader = {
 
 		callbackLevelLoaded(sceneJSON, scene);
     }
-    
 }
