@@ -60,9 +60,9 @@ TRN.Play.prototype = {
 
 	constructor : TRN.Play,
 
-	start : async function (oscene) {
-        this.gameData.sceneData = oscene.sceneJSON.data;
-		this.gameData.sceneRender = oscene.scene;
+	start : async function (sceneJSON, scene) {
+        this.gameData.sceneData = sceneJSON.data;
+		this.gameData.sceneRender = scene;
         this.gameData.sceneBackground = new THREE.Scene();
 
         this.gameData.camera = this.gameData.sceneRender.getObjectByName("camera1");

@@ -100,12 +100,11 @@
 
 <script>
 var showTiles = false;
-var makeJSON = false;
 var level2JSON = {};
 var play = null;
 
 function setContainerDimensions() {
-	if (!makeJSON && !showTiles) {
+	if (!showTiles) {
 		jQuery('#container').width(window.innerWidth);
 		jQuery('#container').height(window.innerHeight);
 	}
@@ -157,38 +156,21 @@ function handleFileSelect(evt) {
 		var freader = new FileReader();
 		freader.onload = (function(theFile) {
 			return function(e) {
-				if (!showTiles && !makeJSON) {
+				if (!showTiles) {
 					var progressbar = new TRN.ProgressBar(jQuery('#container'));
-					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name}, progressbar, function(oscene) {
+					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name}, progressbar, function(sceneJSON, scene) {
 						jQuery('#files').css('display', 'none');
 						jQuery('#output').css('display', 'none');
 						play = new TRN.Play(document.getElementById( 'container' ));
 						if (TRN.Browser.QueryString.autostart == '1') {
-							play.start(oscene);
+							play.start(sceneJSON, scene);
 						} else {
-							progressbar.showStart(function() { progressbar.hide(); play.start(oscene)});
+							progressbar.showStart(function() { progressbar.hide(); play.start(sceneJSON, scene)});
 						}
 					});
-				} else if (makeJSON) {
+				} else {
 					var progressbar = new TRN.ProgressBar(jQuery('#container'));
-					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name, noPostProcessing:true}, progressbar, function(oscene) {
-						progressbar.hide();
-						level2JSON[oscene.sceneJSON.levelShortFileName] = JSON.stringify(oscene.sceneJSON);
-
-						jQuery('body').append(
-							'<div style="color:white;cursor:pointer" onclick="saveJSON(\'' + oscene.sceneJSON.rversion + '\', \'' + oscene.sceneJSON.levelShortFileName + '\')">' +
-							idx + '/' + files.length + ' - Click to download ' + oscene.sceneJSON.levelShortFileNameNoExt + '<div>'
-						);
-
-						if (idx++ < files.length) {
-							window.setTimeout(function() {
-								readFile(idx);
-							}, 100);
-						}
-					});
-				} else if (showTiles) {
-					var progressbar = new TRN.ProgressBar(jQuery('#container'));
-					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name, noConversion:true}, progressbar, function(oscene) {
+					var oscene = TRN.MasterLoader.loadLevel({data:e.target.result, name:theFile.name, noConversion:true}, progressbar, function(sceneJSON, scene) {
 						progressbar.hide();
 						if (idx++ < files.length) {
 							window.setTimeout(function() {
@@ -233,13 +215,13 @@ if (TRN.Browser.QueryString.level) {
 	jQuery(html).appendTo(document.body);
 
 	var progressbar = new TRN.ProgressBar(jQuery('#container'));
-	var oscene = TRN.MasterLoader.loadLevel('TRN/level/' + TRN.Browser.QueryString.level, progressbar, function(oscene) {
+	var oscene = TRN.MasterLoader.loadLevel('TRN/level/' + TRN.Browser.QueryString.level, progressbar, function(sceneJSON, scene) {
 		play = new TRN.Play(document.getElementById( 'container' ));
 		if (TRN.Browser.QueryString.autostart == '1') {
 			progressbar.hide();
-			play.start(oscene);
+			play.start(sceneJSON, scene);
 		} else {
-			progressbar.showStart(progressbar.showStart(function() { progressbar.hide(); play.start(oscene)}));
+			progressbar.showStart(progressbar.showStart(function() { progressbar.hide(); play.start(sceneJSON, scene)}));
 		}
 	});
 } else {

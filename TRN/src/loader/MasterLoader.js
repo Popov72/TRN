@@ -63,6 +63,7 @@ TRN.MasterLoader = {
 			request.send();
 
 		}
+
 	},
 
 	/*
@@ -98,12 +99,7 @@ TRN.MasterLoader = {
 
 			    window.setTimeout(function() {
 
-			    	var oscene = new TRN.Scene(sceneJSON, scene);
-			    	if (trlevel.noPostProcess) {
-			    		callbackLevelLoaded(oscene);
-			    	} else {
-						this_._postProcessLevel(progressbar, callbackLevelLoaded, oscene);
-			    	}
+					this_._postProcessLevel(progressbar, callbackLevelLoaded, sceneJSON, scene);
 
 				}, 100);
 
@@ -117,8 +113,8 @@ TRN.MasterLoader = {
 		Called when ThreeJS has finished parsing the JSON scene.
 		We now make additional setup in the scene created by ThreeJS
 	*/
-	_postProcessLevel : function (progressbar, callbackLevelLoaded, oscene) {
-		var sceneData = oscene.sceneJSON.data, sceneRender = oscene.scene;
+	_postProcessLevel : function (progressbar, callbackLevelLoaded, sceneJSON, scene) {
+		var sceneData = sceneJSON.data, sceneRender = scene;
 
         sceneData.textures = sceneRender.__textures;
 
@@ -177,7 +173,7 @@ TRN.MasterLoader = {
 
         objToRemoveFromScene.forEach( (obj) => sceneRender.remove(obj) );
 
-		callbackLevelLoaded(oscene);
+		callbackLevelLoaded(sceneJSON, scene);
     }
     
 }
