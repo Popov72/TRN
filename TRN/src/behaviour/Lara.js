@@ -70,7 +70,7 @@ TRN.Behaviours.Lara.prototype = {
         if (mvbPistolAnim) {
             if (this.confMgr.trversion == 'TR4') {
                 // for some reason, pistol animation mesh is only for left hand in TR4... So copy it to do right hand animation
-                layer.copyFacesWithSkinIndex(mvbPistolAnim, TRN.Layer.BONE.ARM_L3, TRN.Layer.BONE.ARM_R3);
+                new TRN.MeshBuilder(mvbPistolAnim).copyFacesWithSkinIndex(TRN.Layer.BONE.ARM_L3, TRN.Layer.BONE.ARM_R3);
             }
             layer.setMesh(TRN.Layer.LAYER.WEAPON, mvbPistolAnim, 0);
         }
@@ -82,7 +82,7 @@ TRN.Behaviours.Lara.prototype = {
         if (mvbHolsterEmpty) {
             // for some reason, holster meshes are made of 17 bones and not 15 as Lara mesh...
             // so, modify the skin indices so that left and right holsters match the right bones in Lara mesh
-            layer.replaceSkinIndices(mvbHolsterEmpty, {4:TRN.Layer.BONE.LEG_L1, 8:TRN.Layer.BONE.LEG_R1});
+            new TRN.MeshBuilder(mvbHolsterEmpty).replaceSkinIndices({4:TRN.Layer.BONE.LEG_L1, 8:TRN.Layer.BONE.LEG_R1});
             layer.setMesh(TRN.Layer.LAYER.HOLSTER_EMPTY, mvbHolsterEmpty, 0);
         }
 
@@ -91,7 +91,7 @@ TRN.Behaviours.Lara.prototype = {
 
         const mvbHolsterFull = this.objMgr.createMoveable(TRN.ObjectID.HolsterFull, -1, undefined, true, dataLara.skeleton);
         if (mvbHolsterFull) {
-            layer.replaceSkinIndices(mvbHolsterFull, {4:TRN.Layer.BONE.LEG_L1, 8:TRN.Layer.BONE.LEG_R1});
+            new TRN.MeshBuilder(mvbHolsterFull).replaceSkinIndices({4:TRN.Layer.BONE.LEG_L1, 8:TRN.Layer.BONE.LEG_R1});
             layer.setMesh(TRN.Layer.LAYER.HOLSTER_FULL, mvbHolsterFull, 0);
         }
 
@@ -106,7 +106,7 @@ TRN.Behaviours.Lara.prototype = {
             if (TRN.ObjectID['meshswap' + (i+1)] > 0) {
                 const mvb = this.objMgr.createMoveable(TRN.ObjectID['meshswap' + (i+1)], -1, undefined, true, dataLara.skeleton);
                 if (mvb) {
-                    layer.makeSkinIndicesList(mvb.geometry);
+                    new TRN.MeshBuilder(mvb).makeSkinIndicesList();
                     layer.setMask(mvb, 0);
                 }
             }
