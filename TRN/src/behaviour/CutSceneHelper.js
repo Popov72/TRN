@@ -27,7 +27,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                 data.layer.setMesh(TRN.Layer.LAYER.MESHSWAP, meshShovel, 0);
 
                 track1.setCommands([
-                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [24,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [24,  TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] },
                     { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [230, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => this.fadeOut(1.0)] }
                 ], 0);
 
@@ -51,6 +51,7 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                 data.layer.setMesh(TRN.Layer.LAYER.MESHSWAP, meshShovel, 0);
 
                 track1.setCommands([
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, this.cs1MakeHole.bind(this)] },
                     { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] },
                     { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [147, TRN.Animation.Commands.Misc.ANIMCMD_MISC_CUSTOMFUNCTION, () => data.layer.updateMask(TRN.Layer.LAYER.MESHSWAP, TRN.Layer.MASK.ARM_L3)] }
                 ], 0);
@@ -66,8 +67,8 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                 track1.setCommands([
                     { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
                     { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] },
-                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [320,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
-                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [320,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] }
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [320, TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [320, TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] }
                 ], 0);
 
                 break;
@@ -158,8 +159,8 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
                 track1.setCommands([
                     { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
                     { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [0,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] },
-                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [552,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
-                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [552,   TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] }
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [552, TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETLEFTGUN] },
+                    { cmd:TRN.Animation.Commands.ANIMCMD_MISCACTIONONFRAME , params: [552, TRN.Animation.Commands.Misc.ANIMCMD_MISC_GETRIGHTGUN] }
                 ], 0);
 
                 break;
@@ -169,98 +170,98 @@ Object.assign( TRN.Behaviours.CutScene.prototype, {
 
     fadeOut : function(duration) {
         this.bhvMgr.addBehaviour('Fade', { "colorStart": [1, 1, 1], "colorEnd": [0, 0, 0], "duration": duration });
+        //jQuery(this.gameData.container).fadeout(duration);
     },
 
     fadeIn : function(duration) {
         this.bhvMgr.addBehaviour('Fade', { "colorStart": [0, 0, 0], "colorEnd": [1, 1, 1], "duration": duration });
+        //jQuery(this.gameData.container).fadein(duration);
     },
 
     // Between cutscene 1 and 2, a hole should appear in the ground to reveal hidden entrance to pyramid
     cs1MakeHole : function() {
-        return;
-        let oroom = this.objMgr.objectList['room']['81'];
-        if (oroom.__done) {
+        // First room
+        let oroom = this.objMgr.objectList['room']['81'],
+            data = this.sceneData.objects['room81'];
+
+        if (data.__done) {
             return;
         }
 
-        let geom = oroom.geometry;
-        let faces = [], facesuv = [], 
-            remove = new Set([ 
-                geom.faces.length-3,
-                geom.faces.length-5,
-                geom.faces.length-6,
-                geom.faces.length-8
-            ]);
+        data.__done = true;
 
-        /*const vertices = geom.vertices;
+        let mshBld = new TRN.MeshBuilder(oroom);
 
-        const f = geom.faces[geom.faces.length-3];
-        const v = vertices[f.c];
-        const nv = new THREE.Vector3(v.x, v.y-256, v.z);
-
-        vertices.push(nv);
-
-        const nf = new THREE.Face3();
-        nf.a = f.a;
-        nf.b = f.b;
-        nf.c = vertices.length-1;
-        nf.materialIndex = 0;
-        nf.normal = new THREE.Vector3(0,1,0);
-        nf.vertexColors = [
-            new THREE.Color(0xffffff),
-            new THREE.Color(0xffffff),
-            new THREE.Color(0xffffff)
-        ];
-        nf.vertexNormals = [
-            new THREE.Vector3(0,1,0),
-            new THREE.Vector3(0,1,0),
-            new THREE.Vector3(0,1,0)
+        let newFaces = [ 
+            mshBld.copyFace(118),
+            mshBld.copyFace(120),
+            mshBld.copyFace(120),
+            mshBld.copyFace(118),
+            mshBld.copyFace(117),
+            mshBld.copyFace(49)
         ];
 
-        const nfuv = [
-            [0,0], [0,1], [1,1]
-        ];*/
+        newFaces[0].v1[0] = newFaces[0].v3[0];
+        newFaces[0].v1[2] = newFaces[0].v3[2];
+        newFaces[0].uv1 = [newFaces[4].uv1[0], newFaces[4].uv2[1]];
+        newFaces[0].uv2 = [newFaces[4].uv2[0], newFaces[4].uv2[1]];
+        newFaces[0].uv3 = [newFaces[4].uv1[0], newFaces[4].uv1[1]];
 
-        for (let i = 0; i < geom.faces.length; ++i) {
-            if (!remove.has(i)) {
-                faces.push(geom.faces[i]);
-                facesuv.push(geom.faceVertexUvs[0][i]);
-            }
-        }
+        newFaces[1].v1[0] = newFaces[1].v3[0];
+        newFaces[1].v1[2] = newFaces[1].v3[2];
 
-        geom.faces = faces;
-        geom.faceVertexUvs[0] = facesuv;
+        newFaces[2].v2[0] = newFaces[2].v3[0];
+        newFaces[2].v2[2] = newFaces[2].v3[2];
+        newFaces[2].uv1 = [newFaces[5].uv1[0], newFaces[5].uv1[1]];
+        newFaces[2].uv2 = [newFaces[5].uv2[0], newFaces[5].uv1[1]];
+        newFaces[2].uv3 = [newFaces[5].uv2[0], newFaces[5].uv2[1]];
 
-        //geom.faces.push(nf);
-        //geom.faceVertexUvs[0].push(nfuv);
+        newFaces[3].v2[0] = newFaces[3].v3[0];
+        newFaces[3].v2[2] = newFaces[3].v3[2];
 
-        geom.dispose();
-        delete oroom.__webglInit;
-        updateWebGLObjects = true;
-        oroom.__done = true;
+        mshBld.removeFaces(new Set([ 
+            49,116,117,118,119,120,
+        ]));
 
+        mshBld.createFaces(newFaces, 1);
+
+        // Second room
         oroom = this.objMgr.objectList['room']['80'];
-        geom = oroom.geometry;
-        faces = [];
-        facesuv = [];
-        remove = new Set([ 
-            57, 58, 59, 60
-        ]);
 
-        for (let i = 0; i < geom.faces.length; ++i) {
-            if (!remove.has(i)) {
-                faces.push(geom.faces[i]);
-                facesuv.push(geom.faceVertexUvs[0][i]);
-            }
-        }
+        mshBld = new TRN.MeshBuilder(oroom);
 
-        geom.faces = faces;
-        geom.faceVertexUvs[0] = facesuv;
+        newFaces = [ 
+            mshBld.copyFace(126),
+            mshBld.copyFace(126),
+            mshBld.copyFace(128),
+            mshBld.copyFace(128),
+            mshBld.copyFace(134),
+            mshBld.copyFace(63)
+        ];
 
-        geom.dispose();
-        delete oroom.__webglInit;
-        updateWebGLObjects = true;
-        oroom.__done = true;
+        mshBld.removeFaces(new Set([ 
+            63,126,127,128,129,134
+        ]));
+
+        newFaces[0].v1[0] = newFaces[0].v3[0];
+        newFaces[0].v1[2] = newFaces[0].v3[2];
+
+        newFaces[1].v2[0] = newFaces[1].v3[0];
+        newFaces[1].v2[2] = newFaces[1].v3[2];
+        newFaces[1].uv1 = [newFaces[4].uv1[0], newFaces[4].uv1[1]];
+        newFaces[1].uv2 = [newFaces[4].uv2[0], newFaces[4].uv1[1]];
+        newFaces[1].uv3 = [newFaces[4].uv2[0], newFaces[4].uv2[1]];
+
+        newFaces[2].v2[0] = newFaces[2].v3[0];
+        newFaces[2].v2[2] = newFaces[2].v3[2];
+
+        newFaces[3].v1[0] = newFaces[3].v3[0];
+        newFaces[3].v1[2] = newFaces[3].v3[2];
+        newFaces[3].uv1 = [newFaces[5].uv1[0], newFaces[5].uv2[1]];
+        newFaces[3].uv2 = [newFaces[5].uv2[0], newFaces[5].uv2[1]];
+        newFaces[3].uv3 = [newFaces[5].uv1[0], newFaces[5].uv1[1]];
+
+        mshBld.createFaces(newFaces, 2);
     }
 
 });
