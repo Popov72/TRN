@@ -13,8 +13,6 @@ TRN.ProgressBar = function(domElement) {
 	this.elem = jQuery(html);
 
 	this.elem.appendTo(this.domElement ? this.domElement : document.body);
-
-	this.barWidth = this.elem.find('.progressbar').width();
 }
 
 TRN.ProgressBar.prototype = {
@@ -31,12 +29,6 @@ TRN.ProgressBar.prototype = {
 
 		this.elem.css('display', 'none');
 
-	},
-
-	progress : function(pct) {
-		var bar = Math.floor(this.barWidth * pct);
-
-		this.elem.find('.bar').css('width', bar + 'px');
 	},
 
 	setMessage : function(message) {

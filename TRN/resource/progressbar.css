@@ -21,25 +21,6 @@
 	display:none;
 }
 
-.progress .progressbar {
-	text-align: center;
-	background: white;
-	width: 250px;
-	height: 10px;
-}
-
-.progress .progressbar.shadow {
-	-moz-box-shadow: 0px 0px 5px #000;
-	-webkit-box-shadow: 0px 0px 5px #000;
-	box-shadow: 0px 0px 5px #000;
-}
-
-.progress .bar {
-	background:#d00;
-	width:0px;
-	height:10px;
-}
-
 .progress .enabled {
 	color: lime!important;
 	cursor:pointer;
@@ -52,4 +33,46 @@
 .progress .disabled {
 	background:gray;
 	cursor:default;
+}
+
+.progressbar {
+    box-sizing: border-box;
+}
+
+/* from https://connoratherton.com/loaders */
+@keyframes scale {
+    0%,80% {
+        transform:scale(1);
+        opacity:1
+    }
+    45% {
+        transform:scale(.1);
+        opacity:.7
+    }
+}
+
+.ball-pulse > div:nth-child(1) {
+    animation: scale .75s -.24s infinite cubic-bezier(.2,.68,.18,1.08);
+}
+
+.ball-pulse > div:nth-child(2) {
+    animation: scale .75s -.12s infinite cubic-bezier(.2,.68,.18,1.08);
+}
+
+.ball-pulse > div:nth-child(3) {
+    animation: scale .75s 0s infinite cubic-bezier(.2,.68,.18,1.08);
+}
+
+.ball-pulse > div {
+    width: 15px;
+    height: 15px;
+    animation-fill-mode: both;
+    box-sizing: border-box;
+}
+
+.ball-pulse > div {
+    background-color: #fff;
+    border-radius: 100%;
+    margin: 2px;
+    display: inline-block;
 }
