@@ -11,13 +11,13 @@ TRN.SkyDome = {
        /*int*/ xsegments, /*int*/ ysegments, /*int*/ ySegmentsToKeep
 	)
 	{
-		var res = { vertices : [], textures : [], faces : [] };
+		const res = { vertices : [], textures : [], faces : [] };
 
-		for (var i = 0; i < 5; ++i) {
-			var data = this.createPlane(i, curvature, tiling, distance, orientation, xsegments, ysegments, i!=4/*BP_UP*/ ? ySegmentsToKeep : -1);
+		for (let i = 0; i < 5; ++i) {
+			const data = this.createPlane(i, curvature, tiling, distance, orientation, xsegments, ysegments, i!=4/*BP_UP*/ ? ySegmentsToKeep : -1);
 			
-			var numVertices = res.vertices.length/3;
-			for (var f = 0; f < data.faces.length; ++f) res.faces.push(data.faces[f] + numVertices);
+			const numVertices = res.vertices.length/3;
+			for (let f = 0; f < data.faces.length; ++f) res.faces.push(data.faces[f] + numVertices);
 
 			res.vertices = res.vertices.concat(data.vertices);
 			res.textures = res.textures.concat(data.textures);
@@ -34,15 +34,15 @@ TRN.SkyDome = {
        /*const Quaternion&*/ orientation,
        /*int*/ xsegments, /*int*/ ysegments, /*int*/ ysegments_keep) 
 	{
-	    var BP_FRONT = 0,
-		    BP_BACK = 1,
-		    BP_LEFT = 2,
-		    BP_RIGHT = 3,
-		    BP_UP = 4,
-		    BP_DOWN = 5;
+	    const BP_FRONT = 0,
+		      BP_BACK = 1,
+		      BP_LEFT = 2,
+		      BP_RIGHT = 3,
+		      BP_UP = 4,
+		      BP_DOWN = 5;
 
-	    var plane = { constant:distance, normal:[0,0,0] };
-	    var up = [0,1,0];
+	    const plane = { constant:distance, normal:[0,0,0] };
+	    let   up = [0,1,0];
 
 	    // Set up plane equation
 	    switch(bp) {
@@ -72,7 +72,7 @@ TRN.SkyDome = {
 	    glMatrix.vec3.transformQuat(up, up, orientation);
 
 	    // Create new
-	    var planeSize = distance * 2;
+	    const planeSize = distance * 2;
 
 	    return this.createCurvedIllusionPlane(plane,
 	        planeSize, planeSize, curvature,
@@ -88,24 +88,24 @@ TRN.SkyDome = {
         /*const Quaternion&*/ orientation, 
         /*int*/ ySegmentsToKeep)
     {
-		var params = {
-	        plane : plane,
-	        width : width,
-	        height : height,
-	        curvature : curvature,
-	        xsegments : xsegments,
-	        ysegments : ysegments,
-	        xTile : uTile,
-	        yTile : vTile,
-	        upVector : upVector,
-	        orientation : orientation,
-	        ySegmentsToKeep : ySegmentsToKeep
+		const params = {
+                plane : plane,
+                width : width,
+                height : height,
+                curvature : curvature,
+                xsegments : xsegments,
+                ysegments : ysegments,
+                xTile : uTile,
+                yTile : vTile,
+                upVector : upVector,
+                orientation : orientation,
+                ySegmentsToKeep : ySegmentsToKeep
 		};
 		return this.loadManualCurvedIllusionPlane(params);
 	},
 
 	loadManualCurvedIllusionPlane : function(params) {
-		var vertCoords = [], textCoords = [];
+		const vertCoords = [], textCoords = [];
 
         if (params.ySegmentsToKeep == -1) params.ySegmentsToKeep = params.ysegments;
 
@@ -116,11 +116,11 @@ TRN.SkyDome = {
         // Default orientation of plane is normal along +z, distance 0
     
         // Determine axes
-        var zAxis = glMatrix.vec3.clone(params.plane.normal);
+        const zAxis = glMatrix.vec3.clone(params.plane.normal);
         glMatrix.vec3.normalize(zAxis, zAxis);
-        var yAxis = glMatrix.vec3.clone(params.upVector);
+        const yAxis = glMatrix.vec3.clone(params.upVector);
         glMatrix.vec3.normalize(yAxis,yAxis);
-        var xAxis = glMatrix.vec3.create();
+        const xAxis = glMatrix.vec3.create();
         glMatrix.vec3.cross(xAxis, yAxis, zAxis);
         if (glMatrix.vec3.squaredLength(xAxis) == 0) {
             //upVector must be wrong
@@ -128,7 +128,7 @@ TRN.SkyDome = {
         }
         glMatrix.vec3.normalize(xAxis, xAxis);
 
-        var rot = glMatrix.mat4.create();
+        const rot = glMatrix.mat4.create();
 		glMatrix.mat4.set(rot,
 			xAxis[0], xAxis[1], xAxis[2], 0,
 			yAxis[0], yAxis[1], yAxis[2], 0,
@@ -137,15 +137,15 @@ TRN.SkyDome = {
 		);
 
         // Set up standard transform from origin
-        var xlate = glMatrix.mat4.create(); // create an identity matrix
-        var pnormal = glMatrix.vec3.clone(params.plane.normal);
+        const xlate = glMatrix.mat4.create(); // create an identity matrix
+        const pnormal = glMatrix.vec3.clone(params.plane.normal);
         glMatrix.vec3.scale(pnormal, pnormal, -params.plane.constant);
         xlate[12] = pnormal[0];
         xlate[13] = pnormal[1];
         xlate[14] = pnormal[2];
 
         // concatenate
-        var xform = glMatrix.mat4.clone(xlate);
+        const xform = glMatrix.mat4.clone(xlate);
         glMatrix.mat4.multiply(xform, xform, rot);
 
         // Generate vertex data
@@ -155,26 +155,27 @@ TRN.SkyDome = {
         // Credit to Aftershock for the general approach
 
         // Actual values irrelevant, it's the relation between sphere radius and camera position that's important
-        var SPHERE_RAD = 100.0;
-        var CAM_DIST = 5.0;
+        const SPHERE_RAD = 100.0,
+              CAM_DIST = 5.0;
 
-        var sphereRadius = SPHERE_RAD - params.curvature;
-        var /* Real */ camPos = sphereRadius - CAM_DIST; // Camera position relative to sphere center
+        const sphereRadius = SPHERE_RAD - params.curvature,
+              camPos = sphereRadius - CAM_DIST; // Camera position relative to sphere center
 
-        var xSpace = params.width / params.xsegments;
-        var ySpace = params.height / params.ysegments;
-        var halfWidth = params.width / 2;
-        var halfHeight = params.height / 2;
-        var invOrientation = glMatrix.quat.clone(params.orientation);
+        const xSpace = params.width / params.xsegments,
+              ySpace = params.height / params.ysegments,
+              halfWidth = params.width / 2,
+              halfHeight = params.height / 2,
+              invOrientation = glMatrix.quat.clone(params.orientation);
+
         glMatrix.quat.invert(invOrientation, invOrientation);
 
-        for (var y = params.ysegments - params.ySegmentsToKeep; y < params.ysegments + 1; ++y) {
-            for (var x = 0; x < params.xsegments + 1; ++x) {
+        for (let y = params.ysegments - params.ySegmentsToKeep; y < params.ysegments + 1; ++y) {
+            for (let x = 0; x < params.xsegments + 1; ++x) {
                 // Work out centered on origin
-                var vec = glMatrix.vec3.fromValues(
-                	(x * xSpace) - halfWidth,
-                	(y * ySpace) - halfHeight,
-                	0.0);
+                const vec = glMatrix.vec3.fromValues(
+                	    (x * xSpace) - halfWidth,
+                	    (y * ySpace) - halfHeight,
+                	    0.0);
 
                 // Transform by orientation and distance
                 glMatrix.vec3.transformMat4(vec, vec, xform);
@@ -189,37 +190,37 @@ TRN.SkyDome = {
                 glMatrix.vec3.normalize(vec, vec);
 
                 // Find distance to sphere
-                var sphDist = Math.sqrt(camPos*camPos * (vec[1]*vec[1]-1.0) + sphereRadius*sphereRadius) - camPos*vec[1]; // Distance from camera to sphere along box vertex vector
+                const sphDist = Math.sqrt(camPos*camPos * (vec[1]*vec[1]-1.0) + sphereRadius*sphereRadius) - camPos*vec[1]; // Distance from camera to sphere along box vertex vector
 
                 vec[0] *= sphDist;
                 vec[2] *= sphDist;
 
                 // Use x and y on sphere as texture coordinates, tiled
-                var s = vec[0] * (0.01 * params.xTile);
-                var t = 1.0 - (vec[2] * (0.01 * params.yTile));
+                const s = vec[0] * (0.01 * params.xTile),
+                      t = 1.0 - (vec[2] * (0.01 * params.yTile));
 
                 textCoords.push(s, t);
             } // x
         } // y
 
-        var faceIndices = this.tesselate2DMesh(params.xsegments + 1, params.ySegmentsToKeep + 1, false);
+        const faceIndices = this.tesselate2DMesh(params.xsegments + 1, params.ySegmentsToKeep + 1, false);
 
 		return { vertices : vertCoords, textures : textCoords, faces : faceIndices };
 	},
 
     tesselate2DMesh : function(/*unsigned short*/ meshWidth, /*unsigned short*/ meshHeight, /*bool*/ doubleSided) {
         // Make a list of indexes to spit out the triangles
-        var vInc = 1, v = 0, iterations = doubleSided ? 2 : 1;
-        var indices = [];
+        let vInc = 1, v = 0, iterations = doubleSided ? 2 : 1;
+        let indices = [];
 
         while (iterations--) {
             // Make tris in a zigzag pattern (compatible with strips)
-            var u = 0;
-            var uInc = 1; // Start with moving +u
-            var vCount = meshHeight - 1;
+            let u = 0,
+                uInc = 1, // Start with moving +u
+                vCount = meshHeight - 1;
 
             while (vCount--) {
-                var uCount = meshWidth - 1;
+                let uCount = meshWidth - 1;
                 while (uCount--) {
                     // First Tri in cell
                     indices.push(
