@@ -1,8 +1,8 @@
 TRN.Play = function (container) {
 
-	this.container = jQuery(container);
-
     this.gameData = {
+        "container": jQuery(container),
+
         "curRoom": -1,
         "camera": null,
 
@@ -34,14 +34,14 @@ TRN.Play = function (container) {
     this.clock = new THREE.Clock();
     
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(this.container.width(), this.container.height());
+    this.renderer.setSize(this.gameData.container.width(), this.gameData.container.height());
     this.renderer.autoUpdateObjects = false; // to avoid having initWebGLObjects called every frame
     this.renderer.autoClear = false;
 	//renderer.sortObjects = false;
 
-	this.container.append( this.renderer.domElement );
+	this.gameData.container.append( this.renderer.domElement );
 
-    this.gameData.panel = new TRN.Panel(this.container, this.gameData, this.renderer);
+    this.gameData.panel = new TRN.Panel(this.gameData.container, this.gameData, this.renderer);
 	this.gameData.panel.hide();
 
 	this.stats = new Stats();
@@ -50,7 +50,7 @@ TRN.Play = function (container) {
 	this.stats.domElement.style.right = '0px';
 	this.stats.domElement.style.zIndex = 100;
 
-	this.container.append(this.stats.domElement);
+	this.gameData.container.append(this.stats.domElement);
 
 	TRN.Browser.bindRequestPointerLock(document.body);
 	TRN.Browser.bindRequestFullscreen(document.body);
@@ -194,10 +194,10 @@ TRN.Play.prototype = {
 	},
 
 	onWindowResize : function () {
-		this.gameData.camera.aspect = this.container.width() / this.container.height();
+		this.gameData.camera.aspect = this.gameData.container.width() / this.gameData.container.height();
 		this.gameData.camera.updateProjectionMatrix();
 
-		this.renderer.setSize( this.container.width(), this.container.height() );
+		this.renderer.setSize( this.gameData.container.width(), this.gameData.container.height() );
 
 		this.render();
 	}
