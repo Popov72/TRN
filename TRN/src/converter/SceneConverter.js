@@ -467,8 +467,8 @@ TRN.SceneConverter.prototype = {
 			const anim = this.sc.data.trlevel.animations[anm];
 
 			let frameOffset = anim.frameOffset / 2,
-			    frameStep   = anim.frameSize;
-			    numFrames = anim.frameEnd - anim.frameStart + 1;
+			    frameStep   = anim.frameSize,
+			    numFrames = anim.frameEnd - anim.frameStart + 1,
 			    animNumKeys = parseInt((numFrames - 1) / anim.frameRate) + 1;
 
 			if ((numFrames - 1) % anim.frameRate) animNumKeys++;
@@ -650,7 +650,7 @@ TRN.SceneConverter.prototype = {
 
         let numMeshes = moveableGeom.numMeshes, meshIndex = moveableGeom.startingMesh, meshTree = moveableGeom.meshTree,
             moveableIsExternallyLit = false, materials = null, meshJSON = null;
-        const isDummy = numMeshes == 1 && this.sc.data.trlevel.meshes[meshIndex].dummy && !moveableGeom.objectID == this.laraObjectID;
+        const isDummy = numMeshes == 1 && this.sc.data.trlevel.meshes[meshIndex].dummy && !(moveableGeom.objectID == this.laraObjectID);
 
         if (!isDummy) {
             meshJSON = this.createNewGeometryData();
