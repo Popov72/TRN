@@ -319,7 +319,7 @@ TRN.Animation.TrackInstance.prototype = {
             this.nextTrackInstance.pushState();
             this.nextTrackInstance.setCurrentFrame(this.nextTrackInstanceFrame);
 
-            this.nextTrackInstance.interpolate(this.interpolatedData, true);
+            this.nextTrackInstance._interpolate(this.interpolatedData, true);
 
             this.nextTrackInstance.popState();
 
