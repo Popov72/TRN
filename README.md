@@ -53,8 +53,16 @@ Note that the updates are done in a new Repository (**TRN2**) that is not public
 * [x] Use behaviours
 * [x] TR4 cutscenes replay
 * [x] Add particle effects for fires (torches, fire camps, ...). Done for torch, **still need fire camp**
-* [x] ~~Use physic engine for Lara's ponytail~~ Ported the _Braid_ class from **OpenLara** instead. **Still have to implement collisions**
+* [x] ~~Use physic engine for Lara's ponytail~~ Ported the _Braid_ class from **OpenLara** instead. ~~**Still have to implement collisions**~~. Collision detection done.
 * [x] Add joints in TR4 Lara's model
+* [ ] Particle system for fire camp in wall.tr2
+* [ ] Portal rendering?
+* [ ] Control bar for cutscenes
+* [ ] Light effect when firing
+* [ ] Smoke particle system when firing?
+* [ ] Light behaviour
+* [ ] TR4 cutscene #15: flickering light
+* [ ] TR4 cutscene #14: add dynamic lights for each torch
 
 ## Credits
 * XProger: I have stolen and ported the _Braid_ class from his awesome [OpenLara](https://github.com/XProger/OpenLara) as well as some other ideas (like the _Layer_ concept)
