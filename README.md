@@ -41,19 +41,25 @@ Note that you can use any web server for this matter. I described how to use Pyt
 You can also use PHP in much the same way than Python to start a simple HTTP server: install PHP on your computer (if not already installed), then use the command **PHP -S localhost:8000** from the TRN directory to start a simple web server.
 
 ## Roadmap
+Note that the updates are done in a new Repository (**TRN2**) that is not public yet.
 * [x] Use the [**BabylonJS engine**](https://www.babylonjs.com/)
 * [x] ~~Convert TR level to GLTF2 format and use this format in **ThreeJS** / **BabylonJS**~~: GLTF2 is too rigid, will use custom format
   * [x] Animations
-  * [ ] Cutscenes / sounds
-  * [ ] Shaders
-    * [x] Done in ThreeJS
-  * [ ] Mesh swap
+  * [x] Cutscenes / sounds
+  * [x] Shaders
+    * [x] Done ~~in ThreeJS~~
+  * [x] Mesh swap
   * [x] Calculate and export normals
 * [x] Use behaviours
 * [x] TR4 cutscenes replay
-* [ ] Add particle effects for fires (torches, fire camps, ...)
-* [ ] Use physic engine for Lara's ponytail
+* [x] Add particle effects for fires (torches, fire camps, ...). Done for torch, **still need fire camp**
+* [x] ~~Use physic engine for Lara's ponytail~~ Ported the _Braid_ class from **OpenLara** instead. **Still have to implement collisions**
 * [x] Add joints in TR4 Lara's model
+
+## Credits
+* XProger: I have stolen and ported the _Braid_ class from his awesome [OpenLara](https://github.com/XProger/OpenLara) as well as some other ideas (like the _Layer_ concept)
+* Sapper and T4Larson, who did a great job deciphering the TR4 cutscene file format: no TR4 cutscene replay without them! The description of the format can be found [**here**](https://www.trsearch.org/tool/32/download)
+* All people from the **Tomb Raider** community for their continuing support
 
 ## Screenshots
 Click on the picture to view the corresponding level.<br>
@@ -81,4 +87,5 @@ Click on the picture to view the corresponding level.<br>
 <a href="http://www.evpopov.com/TRN.html?trgame=TR4&level=tr4/palaces.tr4&autostart=1"><img title="Pharos,Temple Of Isis" src="resources/TR4_big/palaces.jpg"/></a>
 
 <a href="http://www.evpopov.com/TRN.html?trgame=TR4&level=tr4/palaces2.tr4&autostart=1"><img title="Cleopatra´s Palaces" src="resources/TR4_big/palaces2.jpg"/></a>
+
 
