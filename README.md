@@ -57,6 +57,7 @@ You can also use PHP in much the same way than Python to start a simple HTTP ser
 
 ## Credits
 * XProger: I have stolen and ported the _Braid_ class from his awesome [OpenLara](https://github.com/XProger/OpenLara) as well as some other ideas (like the _Layer_ concept)
+* Sapper and T4Larson, who did a great job deciphering the TR4 cutscene file format: no TR4 cutscene replay without them! The description of the format can be found [**here**](https://www.trsearch.org/tool/32/download)
 * All people from the **Tomb Raider** community for their continuing support
 
 ## Screenshots
