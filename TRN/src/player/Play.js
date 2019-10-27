@@ -20,6 +20,7 @@ TRN.Play = function (container) {
         "confMgr": null,
 
         "startTime": -1,
+        "lastTime": -1,
         "quantum": 1/TRN.baseFrameRate,
         "quantumTime": -1,
         "quantumRnd": 0,
@@ -31,13 +32,9 @@ TRN.Play = function (container) {
         "fps": 0
     };
 
-    this.clock = new THREE.Clock();
-    
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(this.gameData.container.width(), this.gameData.container.height());
-    this.renderer.autoUpdateObjects = false; // to avoid having initWebGLObjects called every frame
     this.renderer.autoClear = false;
-	//renderer.sortObjects = false;
 
 	this.gameData.container.append( this.renderer.domElement );
 
@@ -142,7 +139,7 @@ TRN.Play.prototype = {
 		//!this.renderer.initWebGLObjects(this.gameData.sceneRender);
         //!this.renderer.initWebGLObjects(this.gameData.sceneBackground);
 
-        this.gameData.startTime = this.gameData.quantumTime = (new Date()).getTime() / 1000.0;
+        this.gameData.startTime = this.gameData.lastTime = this.gameData.quantumTime = (new Date()).getTime() / 1000.0;
     
         this.gameData.bhvMgr.onBeforeRenderLoop();
 
@@ -154,8 +151,11 @@ TRN.Play.prototype = {
 	renderLoop : function () {
 		requestAnimationFrame( this.renderLoop.bind(this) );
 
-		var delta = this.clock.getDelta();
 		var curTime = (new Date()).getTime() / 1000.0;
+
+        var delta = curTime - this.gameData.lastTime;
+
+        this.gameData.lastTime = curTime;
 
 		if (curTime - this.gameData.quantumTime > this.gameData.quantum) {
 			this.gameData.quantumRnd = Math.random();
@@ -178,11 +178,11 @@ TRN.Play.prototype = {
 
         this.gameData.bhvMgr.frameEnded(curTime, delta);
 
-		this.render();
+        this.render();
 	},
 
 	render : function () {
-        this.renderer.clear(true, true, true);
+        //this.renderer.clear(true, true, true);
 
         this.renderer.render( this.gameData.sceneBackground, this.gameData.camera );
 
