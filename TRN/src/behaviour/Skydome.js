@@ -23,7 +23,7 @@ TRN.Behaviours.Skydome.prototype = {
 
         this.objSky = objSky['0'][0];
 
-        this.objSky.renderDepth = 0;
+        this.objSky.renderOrder = 0;
         this.objSky.matrixAutoUpdate = true;
         
         this.sceneBackground.add(this.objSky);

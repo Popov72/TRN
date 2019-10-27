@@ -34,7 +34,7 @@ TRN.Behaviours.Sky.prototype = {
 
         data.has_anims = !noanim;
 
-        this.objSky.renderDepth = 1;
+        this.objSky.renderOrder = 1;
         this.objSky.matrixAutoUpdate = true;
 
         if (data.has_anims) {
