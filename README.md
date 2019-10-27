@@ -41,6 +41,7 @@ Note that you can use any web server for this matter. I described how to use Pyt
 You can also use PHP in much the same way than Python to start a simple HTTP server: install PHP on your computer (if not already installed), then use the command **PHP -S localhost:8000** from the TRN directory to start a simple web server.
 
 ## Roadmap
+Note that the updates are done in a new Repository (**TRN2**) that is not public yet.
 * [x] Use the [**BabylonJS engine**](https://www.babylonjs.com/)
 * [x] ~~Convert TR level to GLTF2 format and use this format in **ThreeJS** / **BabylonJS**~~: GLTF2 is too rigid, will use custom format
   * [x] Animations
