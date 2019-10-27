@@ -22,7 +22,7 @@ TRN.Helper = {
             if (bufferList != null && bufferList.length > 0) {
                 return (new Promise( (resolve, reject) => 
                     TRN.Browser.AudioContext.decodeAudioData(
-                        TRN.Base64Binary.decodeArrayBuffer(TRN.Base64Binary.encode(bufferList[0])),
+                        bufferList[0],
                         (buffer) => {
                             var ret = {
                                 code: 0
