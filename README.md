@@ -55,7 +55,7 @@ Note that the updates are done in a new Repository (**TRN2**) that is not public
 * [x] Add particle effects for fires (torches, fire camps, ...). Done for torch, **still need fire camp**
 * [x] ~~Use physic engine for Lara's ponytail~~ Ported the _Braid_ class from **OpenLara** instead. ~~**Still have to implement collisions**~~. Collision detection done.
 * [x] Add joints in TR4 Lara's model
-* [ ] Particle system for fire camp in wall.tr2
+* [x] Particle system for fire camp in wall.tr2
 * [ ] Portal rendering?
 * [ ] Control bar for cutscenes
 * [ ] Light effect when firing
