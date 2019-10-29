@@ -61,7 +61,7 @@ Note that the updates are done in a new Repository (**TRN2**) that is not public
 * [x] Light effect when firing
 * [ ] Smoke particle system when firing?
 * [x] Light behaviour
-* [ ] TR4 cutscene #15: flickering light
+* [x] TR4 cutscene #15: flickering light
 * [x] TR4 cutscene #14: add dynamic lights for each torch
 
 ## Credits
