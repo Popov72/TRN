@@ -58,11 +58,11 @@ Note that the updates are done in a new Repository (**TRN2**) that is not public
 * [x] Particle system for fire camp in wall.tr2
 * [ ] Portal rendering?
 * [ ] Control bar for cutscenes
-* [ ] Light effect when firing
+* [x] Light effect when firing
 * [ ] Smoke particle system when firing?
-* [ ] Light behaviour
+* [x] Light behaviour
 * [ ] TR4 cutscene #15: flickering light
-* [ ] TR4 cutscene #14: add dynamic lights for each torch
+* [x] TR4 cutscene #14: add dynamic lights for each torch
 
 ## Credits
 * XProger: I have stolen and ported the _Braid_ class from his awesome [OpenLara](https://github.com/XProger/OpenLara) as well as some other ideas (like the _Layer_ concept)
