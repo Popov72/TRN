@@ -57,12 +57,15 @@ Note that the updates are done in a new Repository (**TRN2**) that is not public
 * [x] Add joints in TR4 Lara's model
 * [x] Particle system for fire camp in wall.tr2
 * [ ] Portal rendering?
-* [ ] Control bar for cutscenes
+* [x] Control bar for cutscenes
 * [x] Light effect when firing
-* [ ] Smoke particle system when firing?
+* [x] ~~Smoke particle system when firing?~~ Display sprite instead
 * [x] Light behaviour
 * [x] TR4 cutscene #15: flickering light
 * [x] TR4 cutscene #14: add dynamic lights for each torch
+* [ ] Head swap in TR4 cutscene dialogs
+* [ ] Improve braid (no seams in joint with head)
+* [ ] Make TR4 cutscene screenshots
 
 ## Credits
 * XProger: I have stolen and ported the _Braid_ class from his awesome [OpenLara](https://github.com/XProger/OpenLara) as well as some other ideas (like the _Layer_ concept)
