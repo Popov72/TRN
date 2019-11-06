@@ -63,8 +63,8 @@ Note that the updates are done in a new Repository (**TRN2**) that is not public
 * [x] Light behaviour
 * [x] TR4 cutscene #15: flickering light
 * [x] TR4 cutscene #14: add dynamic lights for each torch
-* [ ] Head swap in TR4 cutscene dialogs
-* [ ] Improve braid (no seams in joint with head)
+* [x] Head swap in TR4 cutscene dialogs
+* [x] Improve TR4 braid (no seams in joint with head). Done for old Lara
 * [ ] Make TR4 cutscene screenshots
 
 ## Credits
