@@ -65,7 +65,7 @@ Note that the updates are done in a new Repository (**TRN2**) that is not public
 * [x] TR4 cutscene #14: add dynamic lights for each torch
 * [x] Head swap in TR4 cutscene dialogs
 * [x] Improve TR4 braid (no seams in joint with head). Done for old Lara
-* [ ] Make TR4 cutscene screenshots
+* [x] Make TR4 cutscene screenshots
 
 ## Credits
 * XProger: I have stolen and ported the _Braid_ class from his awesome [OpenLara](https://github.com/XProger/OpenLara) as well as some other ideas (like the _Layer_ concept)
